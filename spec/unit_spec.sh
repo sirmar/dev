@@ -7,15 +7,15 @@ DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 # shellcheck disable=SC1091
 . "$DEV_ROOT/spec/support/helpers.sh"
 
-Describe 'unit when test stage is missing from Dockerfile'
-  setup_unit_no_stage() { setup_mock_docker_without_stage test; }
+Describe 'unit when unit stage is missing from Dockerfile'
+  setup_unit_no_stage() { setup_mock_docker_without_stage unit; }
   teardown_unit_no_stage() { teardown_mock_docker; }
   Before 'setup_unit_no_stage'
   After 'teardown_unit_no_stage'
 
   It 'prints info and skips without error'
     When run run_dev unit
-    The output should include "no 'test' stage found in Dockerfile"
+    The output should include "no 'unit' stage found in Dockerfile"
     The output should not include 'running unit'
     The status should be success
   End
@@ -27,16 +27,9 @@ Describe 'unit'
 
   It 'runs unit tests'
     When run run_dev unit
-    The output should include 'building stage test'
+    The output should include 'building stage unit'
     The output should include 'running unit'
     The output should include 'docker run'
-    The status should be success
-  End
-
-  It "accepts 'test' as an alias"
-    When run run_dev test
-    The output should include 'building stage test'
-    The output should include 'running unit'
     The status should be success
   End
 End
@@ -49,7 +42,7 @@ Describe 'unit --claude passes'
   It 'exits 0 and produces no stderr'
     When run bash -c "cd '$MOCK_DIR' && echo '{}' | bash '$DEV_SCRIPT' unit --claude"
     The status should be success
-    The output should include 'building stage test'
+    The output should include 'building stage unit'
     The output should include 'running unit'
     The stderr should equal ''
   End
@@ -63,7 +56,7 @@ Describe 'unit --claude fails'
   It 'exits non-zero and writes test output to stderr'
     When run bash -c "cd '$MOCK_DIR' && echo '{}' | bash '$DEV_SCRIPT' unit --claude"
     The status should be failure
-    The output should include 'building stage test'
+    The output should include 'building stage unit'
     The output should include 'running unit'
     The stderr should include 'test failure'
   End
@@ -77,7 +70,7 @@ Describe 'unit --claude tails long output'
   It 'only shows last 20 lines on stderr'
     When run bash -c "cd '$MOCK_DIR' && echo '{}' | bash '$DEV_SCRIPT' unit --claude"
     The status should be failure
-    The output should include 'building stage test'
+    The output should include 'building stage unit'
     The output should include 'running unit'
     The stderr should include 'error 30'
     The stderr should not include 'error 10'

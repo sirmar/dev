@@ -39,7 +39,7 @@ Describe 'check'
 
     It 'runs fmt, lint, types, and coverage in order'
       When run run_dev check
-      The output should include 'running fmt'
+      The output should include 'running format'
       The output should include 'running lint'
       The output should include 'running types'
       The output should include 'running coverage'
@@ -67,7 +67,7 @@ Describe 'check'
 
     It 'stops after lint and does not run types or coverage'
       When run run_dev check
-      The output should include 'running fmt'
+      The output should include 'running format'
       The output should include 'running lint'
       The output should not include 'running types'
       The output should not include 'running coverage'

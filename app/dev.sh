@@ -90,6 +90,10 @@ run_in() {
 	docker run --rm --name "$(image_name "$stage")" -v "$ROOT_DIR:/workspace" "$(image_name "$stage")" "$@"
 }
 
+compose() {
+	docker compose --project-name "$DEV_NAME" -f "$ROOT_DIR/docker-compose.yml" "$@"
+}
+
 # ---------------------------------------------------------------------------
 # Subcommands
 # ---------------------------------------------------------------------------
@@ -106,71 +110,61 @@ cmd_lint() {
 		return 0
 	fi
 	build_image lint true
-	local target="" claude_mode=false
+	local target=""
 	if [[ "${2:-}" == "--claude" ]]; then
-		claude_mode=true
 		local abs
 		abs="$(jq -r '.tool_input.file_path')"
 		target="${abs#"$ROOT_DIR"/}"
-	else
-		target="${2:-}"
-	fi
-	if [[ -n "$target" ]]; then info "running lint on $target"; else info "running lint"; fi
-	if $claude_mode; then
+		info "running lint on $target"
 		local output
-		output="$(run_in lint ${target:+"$target"} 2>&1)" || {
+		output="$(run_in lint "$target" 2>&1)" || {
 			tail -n 20 <<<"$output" >&2
 			exit 2
 		}
 	else
+		target="${2:-}"
+		if [[ -n "$target" ]]; then info "running lint on $target"; else info "running lint"; fi
 		run_in lint ${target:+"$target"}
 	fi
 }
 
-cmd_fmt() {
+cmd_format() {
 	check_docker
 	if ! has_dockerfile_stage format; then
 		info "no 'format' stage found in Dockerfile — skipping"
 		return 0
 	fi
 	build_image format true
-	local target="" claude_mode=false
+	local target=""
 	if [[ "${2:-}" == "--claude" ]]; then
-		claude_mode=true
 		local abs
 		abs="$(jq -r '.tool_input.file_path')"
 		target="${abs#"$ROOT_DIR"/}"
+		info "running format on $target"
+		run_in format "$target" &>/dev/null || true
 	else
 		target="${2:-}"
-	fi
-	if [[ -n "$target" ]]; then info "running fmt on $target"; else info "running fmt"; fi
-	if $claude_mode; then
-		run_in format ${target:+"$target"} &>/dev/null || true
-	else
+		if [[ -n "$target" ]]; then info "running format on $target"; else info "running format"; fi
 		run_in format ${target:+"$target"}
 	fi
 }
 
 cmd_unit() {
 	check_docker
-	if ! has_dockerfile_stage test; then
-		info "no 'test' stage found in Dockerfile — skipping"
+	if ! has_dockerfile_stage unit; then
+		info "no 'unit' stage found in Dockerfile — skipping"
 		return 0
 	fi
-	build_image test true
-	local claude_mode=false
+	build_image unit true
+	info "running unit tests"
 	if [[ "${2:-}" == "--claude" ]]; then
-		claude_mode=true
-	fi
-	info "running unit"
-	if $claude_mode; then
 		local output
-		output="$(run_in test 2>&1)" || {
+		output="$(run_in unit 2>&1)" || {
 			tail -n 20 <<<"$output" >&2
 			exit 2
 		}
 	else
-		run_in test
+		run_in unit
 	fi
 }
 
@@ -182,7 +176,7 @@ cmd_coverage() {
 	fi
 	build_image coverage true
 	info "running coverage"
-	docker run --rm --name "$(image_name coverage)" -v "$ROOT_DIR:/workspace" "$(image_name coverage)"
+	run_in coverage
 }
 
 cmd_types() {
@@ -198,7 +192,7 @@ cmd_types() {
 
 cmd_check() {
 	check_docker
-	cmd_fmt "$@"
+	cmd_format "$@"
 	cmd_lint "$@"
 	cmd_types "$@"
 	cmd_coverage "$@"
@@ -222,13 +216,13 @@ cmd_up() {
 	check_docker
 	ensure_network
 	info "starting services"
-	docker compose --project-name "$DEV_NAME" -f "$ROOT_DIR/docker-compose.yml" up -d "${@:2}"
+	compose up -d "${@:2}"
 }
 
 cmd_down() {
 	check_docker
 	info "stopping services"
-	docker compose --project-name "$DEV_NAME" -f "$ROOT_DIR/docker-compose.yml" down "${@:2}"
+	compose down "${@:2}"
 }
 
 cmd_release() {
@@ -275,9 +269,9 @@ USAGE
 COMMANDS
     build               Build Docker images
     lint [file]         Lint shell files with ShellCheck
-    fmt [file]          Format shell files with shfmt
+    format [file]       Format shell files with shfmt
     unit                Run unit tests with ShellSpec
-    check               Run fmt, lint, types, and coverage (stops on first failure)
+    check               Run format, lint, types, and coverage (stops on first failure)
     coverage            Run unit tests with kcov coverage report
     types               Run static type checking
     shell               Open interactive shell in container
@@ -306,8 +300,8 @@ main() {
 	build) cmd_build "$@" ;;
 	check) cmd_check "$@" ;;
 	lint) cmd_lint "$@" ;;
-	fmt | format) cmd_fmt "$@" ;;
-	unit | test) cmd_unit "$@" ;;
+	format) cmd_format "$@" ;;
+	unit) cmd_unit "$@" ;;
 	coverage) cmd_coverage "$@" ;;
 	types) cmd_types "$@" ;;
 	shell) cmd_shell "$@" ;;
