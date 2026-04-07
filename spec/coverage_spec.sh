@@ -8,14 +8,14 @@ DEV_SCRIPT="$DEV_ROOT/app/dev.sh"
 # shellcheck disable=SC1091
 . "$DEV_ROOT/spec/support/helpers.sh"
 
-Describe "coverage"
-Before "setup_mock_docker"
-After "teardown_mock_docker"
+Describe 'coverage'
+  Before 'setup_mock_docker'
+  After 'teardown_mock_docker'
 
-It "builds coverage image and runs"
-When run bash "$DEV_SCRIPT" coverage
-The output should include "building stage coverage"
-The output should include "running coverage"
-The status should be success
-End
+  It 'builds coverage image and runs'
+    When run bash "$DEV_SCRIPT" coverage
+    The output should include 'building stage coverage'
+    The output should include 'running coverage'
+    The status should be success
+  End
 End
