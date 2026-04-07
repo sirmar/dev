@@ -1,0 +1,2 @@
+--shell bash
+--kcov-options "--include-path=/workspace/app"
