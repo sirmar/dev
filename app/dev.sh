@@ -71,6 +71,11 @@ ensure_network() {
 	fi
 }
 
+has_dockerfile_stage() {
+	local stage="$1"
+	grep -qE "^FROM .+ AS ${stage}$" "$ROOT_DIR/Dockerfile" 2>/dev/null
+}
+
 build_image() {
 	local stage="$1" quiet="${2:-false}"
 	local flags=()
@@ -96,6 +101,10 @@ cmd_build() {
 
 cmd_lint() {
 	check_docker
+	if ! has_dockerfile_stage lint; then
+		info "no 'lint' stage found in Dockerfile — skipping"
+		return 0
+	fi
 	build_image lint true
 	local target="" claude_mode=false
 	if [[ "${2:-}" == "--claude" ]]; then
@@ -120,6 +129,10 @@ cmd_lint() {
 
 cmd_fmt() {
 	check_docker
+	if ! has_dockerfile_stage format; then
+		info "no 'format' stage found in Dockerfile — skipping"
+		return 0
+	fi
 	build_image format true
 	local target="" claude_mode=false
 	if [[ "${2:-}" == "--claude" ]]; then
@@ -140,6 +153,10 @@ cmd_fmt() {
 
 cmd_unit() {
 	check_docker
+	if ! has_dockerfile_stage test; then
+		info "no 'test' stage found in Dockerfile — skipping"
+		return 0
+	fi
 	build_image test true
 	local claude_mode=false
 	if [[ "${2:-}" == "--claude" ]]; then
@@ -159,9 +176,32 @@ cmd_unit() {
 
 cmd_coverage() {
 	check_docker
+	if ! has_dockerfile_stage coverage; then
+		info "no 'coverage' stage found in Dockerfile — skipping"
+		return 0
+	fi
 	build_image coverage true
 	info "running coverage"
 	docker run --rm --name "$(image_name coverage)" -v "$ROOT_DIR:/workspace" "$(image_name coverage)"
+}
+
+cmd_types() {
+	check_docker
+	if ! has_dockerfile_stage types; then
+		info "no 'types' stage found in Dockerfile — skipping"
+		return 0
+	fi
+	build_image types true
+	info "running types"
+	run_in types
+}
+
+cmd_check() {
+	check_docker
+	cmd_fmt "$@"
+	cmd_lint "$@"
+	cmd_types "$@"
+	cmd_coverage "$@"
 }
 
 cmd_shell() {
@@ -237,7 +277,9 @@ COMMANDS
     lint [file]         Lint shell files with ShellCheck
     fmt [file]          Format shell files with shfmt
     unit                Run unit tests with ShellSpec
+    check               Run fmt, lint, types, and coverage (stops on first failure)
     coverage            Run unit tests with kcov coverage report
+    types               Run static type checking
     shell               Open interactive shell in container
     run <cmd> [args]    Run arbitrary command in container
     up [service...]     Start services via docker-compose
@@ -262,10 +304,12 @@ main() {
 	local command="${1:-help}"
 	case "$command" in
 	build) cmd_build "$@" ;;
+	check) cmd_check "$@" ;;
 	lint) cmd_lint "$@" ;;
 	fmt | format) cmd_fmt "$@" ;;
 	unit | test) cmd_unit "$@" ;;
 	coverage) cmd_coverage "$@" ;;
+	types) cmd_types "$@" ;;
 	shell) cmd_shell "$@" ;;
 	run) cmd_run "$@" ;;
 	up) cmd_up "$@" ;;
