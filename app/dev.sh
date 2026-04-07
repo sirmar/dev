@@ -161,7 +161,7 @@ cmd_coverage() {
 	check_docker
 	build_image coverage true
 	info "running coverage"
-	run_in coverage
+	docker run --rm --name "$(image_name coverage)" -v "$ROOT_DIR:/workspace" "$(image_name coverage)"
 }
 
 cmd_shell() {
