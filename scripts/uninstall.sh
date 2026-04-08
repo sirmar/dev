@@ -12,3 +12,9 @@ fi
 
 rm "$LINK_PATH"
 echo "Uninstalled: $LINK_PATH"
+
+CONFIG_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/dev/config"
+if [[ -f "$CONFIG_FILE" ]]; then
+	echo "Config file left in place: $CONFIG_FILE"
+	echo "Remove manually if no longer needed: rm $CONFIG_FILE"
+fi
