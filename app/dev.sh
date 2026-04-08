@@ -41,10 +41,16 @@ find_root() {
 
 load_config() {
 	# shellcheck source=/dev/null
+	[[ -f "${XDG_CONFIG_HOME:-$HOME/.config}/dev/config" ]] && source "${XDG_CONFIG_HOME:-$HOME/.config}/dev/config"
+	# shellcheck source=/dev/null
 	source "$ROOT_DIR/.dev"
 	DEV_NAME="${DEV_NAME:-dev}"
 	DEV_SHELL="${DEV_SHELL:-sh}"
 	DEV_CONTEXT="${DEV_CONTEXT:-.}"
+	DEV_REPO_TYPE="${DEV_REPO_TYPE:-service}"
+	DEV_REGISTRY="${DEV_REGISTRY:-}"
+	DEV_REGISTRY_USER="${DEV_REGISTRY_USER:-}"
+	DEV_REGISTRY_TOKEN="${DEV_REGISTRY_TOKEN:-}"
 	DEV_NETWORK="${DEV_NETWORK:-}"
 	DEV_DB_NAME="${DEV_DB_NAME:-}"
 	DEV_DB_USER="${DEV_DB_USER:-root}"
@@ -68,7 +74,7 @@ image_name() {
 }
 
 ensure_network() {
-	[[ -z "$DEV_NETWORK" ]] && return 0
+	if [[ -z "$DEV_NETWORK" ]]; then return 0; fi
 	if ! docker network inspect "$DEV_NETWORK" &>/dev/null; then
 		info "creating network $DEV_NETWORK"
 		docker network create "$DEV_NETWORK"
@@ -84,8 +90,13 @@ build_image() {
 	local stage="$1" quiet="${2:-false}"
 	local flags=()
 	$quiet && flags+=(-q)
-	info "building stage $stage"
-	docker build "${flags[@]}" --target "$stage" -t "$(image_name "$stage")" -f "$ROOT_DIR/Dockerfile" "$ROOT_DIR/$DEV_CONTEXT"
+	if [[ -n "$stage" ]]; then
+		info "building stage $stage"
+		docker build "${flags[@]}" --target "$stage" -t "$(image_name "$stage")" -f "$ROOT_DIR/Dockerfile" "$ROOT_DIR/$DEV_CONTEXT"
+	else
+		info "building image"
+		docker build "${flags[@]}" -t "$DEV_NAME" -f "$ROOT_DIR/Dockerfile" "$ROOT_DIR/$DEV_CONTEXT"
+	fi
 }
 
 run_in() {
@@ -102,34 +113,115 @@ compose() {
 # Subcommands
 # ---------------------------------------------------------------------------
 
+dockerfile_stages() {
+	sed -n 's/^FROM .* AS \([a-zA-Z0-9_]*\)$/\1/p' "$ROOT_DIR/Dockerfile" | grep -v '^base$'
+}
+
 cmd_build() {
 	check_docker
-	build_image app
+	if [[ "$DEV_REPO_TYPE" == "image" ]]; then
+		local stages
+		mapfile -t stages < <(dockerfile_stages)
+		if [[ ${#stages[@]} -eq 0 ]]; then
+			build_image ""
+		else
+			for stage in "${stages[@]}"; do
+				build_image "$stage"
+			done
+		fi
+	else
+		build_image app
+	fi
+}
+
+cmd_login() {
+	check_docker
+	local host user token
+	if command -v gh &>/dev/null && gh auth status &>/dev/null; then
+		host="ghcr.io"
+		user="$(gh api user --jq .login)"
+		token="$(gh auth token)"
+	elif [[ -n "$DEV_REGISTRY" && -n "$DEV_REGISTRY_USER" && -n "$DEV_REGISTRY_TOKEN" ]]; then
+		host="${DEV_REGISTRY%%/*}"
+		user="$DEV_REGISTRY_USER"
+		token="$DEV_REGISTRY_TOKEN"
+	else
+		error "no credentials found — run 'gh auth login' or set DEV_REGISTRY, DEV_REGISTRY_USER, and DEV_REGISTRY_TOKEN in ~/.config/dev/config"
+	fi
+	info "logging in to $host"
+	echo "$token" | docker login "$host" -u "$user" --password-stdin
+}
+
+cmd_push() {
+	check_docker
+	if [[ -z "$DEV_REGISTRY" ]]; then error "DEV_REGISTRY is not set — add it to .dev or ~/.config/dev/config"; fi
+	cmd_login
+	local tag remote
+	tag="$(git -C "$ROOT_DIR" describe --tags --abbrev=0 2>/dev/null || error "no git tag found — run dev release first")"
+	if [[ "$DEV_REPO_TYPE" == "image" ]]; then
+		local stages
+		mapfile -t stages < <(dockerfile_stages)
+		if [[ ${#stages[@]} -eq 0 ]]; then
+			remote="${DEV_REGISTRY}/${DEV_NAME}:${tag}"
+			info "pushing $remote"
+			docker tag "$DEV_NAME" "$remote"
+			docker push "$remote"
+		else
+			for stage in "${stages[@]}"; do
+				remote="${DEV_REGISTRY}/${DEV_NAME}:${stage}-${tag}"
+				info "pushing $remote"
+				docker tag "$(image_name "$stage")" "$remote"
+				docker push "$remote"
+			done
+		fi
+	else
+		remote="${DEV_REGISTRY}/${DEV_NAME}:${tag}"
+		info "pushing $remote"
+		docker tag "$(image_name app)" "$remote"
+		docker push "$remote"
+	fi
+}
+
+cmd_lint_dockerfiles() {
+	if [[ ! -f "$ROOT_DIR/Dockerfile" ]]; then return 0; fi
+	info "linting Dockerfile"
+	docker run --rm \
+		-v "$ROOT_DIR:/workspace" \
+		hadolint/hadolint \
+		hadolint /workspace/Dockerfile
 }
 
 cmd_lint() {
 	check_docker
-	if ! has_dockerfile_stage lint; then
-		info "no 'lint' stage found in Dockerfile — skipping"
+	if [[ "$DEV_REPO_TYPE" == "image" ]]; then
+		if [[ "${2:-}" != "--claude" ]]; then cmd_lint_dockerfiles; fi
 		return 0
 	fi
-	build_image lint true
 	local target=""
 	if [[ "${2:-}" == "--claude" ]]; then
 		local abs
 		abs="$(jq -r '.tool_input.file_path')"
 		target="${abs#"$ROOT_DIR"/}"
-		info "running lint on $target"
-		local output
-		output="$(run_in lint "$target" 2>&1)" || {
-			tail -n 20 <<<"$output" >&2
-			exit 2
-		}
 	else
 		target="${2:-}"
-		if [[ -n "$target" ]]; then info "running lint on $target"; else info "running lint"; fi
-		run_in lint ${target:+"$target"}
 	fi
+	if has_dockerfile_stage lint; then
+		build_image lint true
+		if [[ "${2:-}" == "--claude" ]]; then
+			info "running lint on $target"
+			local output
+			output="$(run_in lint "$target" 2>&1)" || {
+				tail -n 20 <<<"$output" >&2
+				exit 2
+			}
+		else
+			if [[ -n "$target" ]]; then info "running lint on $target"; else info "running lint"; fi
+			run_in lint ${target:+"$target"}
+		fi
+	else
+		info "no 'lint' stage found in Dockerfile — skipping"
+	fi
+	if [[ -z "$target" ]] && [[ "${2:-}" != "--claude" ]]; then cmd_lint_dockerfiles; fi
 }
 
 cmd_format() {
@@ -194,6 +286,17 @@ cmd_types() {
 	run_in types
 }
 
+cmd_security() {
+	check_docker
+	if ! has_dockerfile_stage security; then
+		info "no 'security' stage found in Dockerfile — skipping"
+		return 0
+	fi
+	build_image security true
+	info "running security"
+	run_in security
+}
+
 cmd_check() {
 	check_docker
 	cmd_format "$@"
@@ -204,7 +307,7 @@ cmd_check() {
 
 cmd_db_shell() {
 	check_docker
-	[[ -z "$DEV_DB_NAME" ]] && error "DEV_DB_NAME is not set in .dev"
+	if [[ -z "$DEV_DB_NAME" ]]; then error "DEV_DB_NAME is not set in .dev"; fi
 	local container="${DEV_NAME}-db"
 	info "entering database on $container"
 	docker exec -it "$container" mysql -u "$DEV_DB_USER" -p"$DEV_DB_PASSWORD" "$DEV_DB_NAME"
@@ -212,7 +315,7 @@ cmd_db_shell() {
 
 cmd_db_migrate() {
 	check_docker
-	[[ -z "$DEV_DB_NAME" ]] && error "DEV_DB_NAME is not set in .dev"
+	if [[ -z "$DEV_DB_NAME" ]]; then error "DEV_DB_NAME is not set in .dev"; fi
 	local db_url="mysql://${DEV_DB_USER}:${DEV_DB_PASSWORD}@${DEV_NAME}-db/${DEV_DB_NAME}"
 	info "running migrations"
 	docker run --rm \
@@ -223,12 +326,6 @@ cmd_db_migrate() {
 		--migrations-dir /db/migrations \
 		--no-dump-schema \
 		up
-}
-
-cmd_e2e() {
-	check_docker
-	info "running e2e tests"
-	shellspec spec/e2e
 }
 
 cmd_shell() {
@@ -300,25 +397,39 @@ USAGE
     dev <command> [args]
 
 COMMANDS
-    build               Build Docker images
-    lint [file]         Lint shell files with ShellCheck
-    format [file]       Format shell files with shfmt
-    unit                Run unit tests with ShellSpec
-    e2e                 Run end-to-end tests against fixture projects
-    check               Run format, lint, types, and coverage (stops on first failure)
-    coverage            Run unit tests with kcov coverage report
-    types               Run static type checking
-    shell               Open interactive shell in container
-    run <cmd> [args]    Run arbitrary command in container
-    up [service...]     Start services via docker-compose
-    down [args]         Stop services via docker-compose
-    db-shell            Enter shell in running database container
-    db-migrate          Run database migrations with dbmate
+    build               Build Docker image(s)
+    lint                Lint Dockerfiles with hadolint
+    login               Log in to container registry
+    push                Push built image(s) to registry
     release <type>      Create release tag (major|minor|patch)
     help                Show this help
+EOF
+
+	if [[ "$DEV_REPO_TYPE" == "service" ]]; then
+		cat <<EOF
+
+    lint [file]         Lint source files
+    format [file]       Format source files
+    unit                Run unit tests
+    check               Run format, lint, types, and coverage
+    coverage            Run tests with coverage report
+    types               Run static type checking
+    security            Run security scanning
+    shell               Open interactive shell in container
+    run <cmd> [args]    Run arbitrary command in container
+    up [service...]     Start services via Docker Compose
+    down [args]         Stop services via Docker Compose
+    db-shell            Enter shell in running database container
+    db-migrate          Run database migrations
+EOF
+	fi
+
+	cat <<EOF
 
 PROJECT ROOT
     $ROOT_DIR
+REPO TYPE
+    $DEV_REPO_TYPE
 
 EOF
 }
@@ -327,6 +438,11 @@ EOF
 # Main
 # ---------------------------------------------------------------------------
 
+service_only() {
+	local command="$1"
+	if [[ "$DEV_REPO_TYPE" == "image" ]]; then error "'$command' is not available for image repos"; fi
+}
+
 main() {
 	ROOT_DIR="$(find_root)"
 	load_config
@@ -334,20 +450,58 @@ main() {
 	local command="${1:-help}"
 	case "$command" in
 	build) cmd_build "$@" ;;
-	check) cmd_check "$@" ;;
-	e2e) cmd_e2e "$@" ;;
-	lint) cmd_lint "$@" ;;
-	format) cmd_format "$@" ;;
-	unit) cmd_unit "$@" ;;
-	coverage) cmd_coverage "$@" ;;
-	types) cmd_types "$@" ;;
-	shell) cmd_shell "$@" ;;
-	run) cmd_run "$@" ;;
-	up) cmd_up "$@" ;;
-	down) cmd_down "$@" ;;
-	db-shell) cmd_db_shell "$@" ;;
-	db-migrate) cmd_db_migrate "$@" ;;
+	login) cmd_login "$@" ;;
+	push) cmd_push "$@" ;;
 	release) cmd_release "$@" ;;
+	lint) cmd_lint "$@" ;;
+	format)
+		service_only format
+		cmd_format "$@"
+		;;
+	unit)
+		service_only unit
+		cmd_unit "$@"
+		;;
+	check)
+		service_only check
+		cmd_check "$@"
+		;;
+	coverage)
+		service_only coverage
+		cmd_coverage "$@"
+		;;
+	types)
+		service_only types
+		cmd_types "$@"
+		;;
+	security)
+		service_only security
+		cmd_security "$@"
+		;;
+	shell)
+		service_only shell
+		cmd_shell "$@"
+		;;
+	run)
+		service_only run
+		cmd_run "$@"
+		;;
+	up)
+		service_only up
+		cmd_up "$@"
+		;;
+	down)
+		service_only down
+		cmd_down "$@"
+		;;
+	db-shell)
+		service_only db-shell
+		cmd_db_shell "$@"
+		;;
+	db-migrate)
+		service_only db-migrate
+		cmd_db_migrate "$@"
+		;;
 	help | -h | --help) cmd_help ;;
 	*)
 		echo "error: unknown command '$command'" >&2
