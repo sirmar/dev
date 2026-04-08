@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+# shellcheck shell=bash
+# shellcheck disable=SC2317
+
+DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
+
+# shellcheck disable=SC1091
+. "$DEV_ROOT/spec/support/helpers.sh"
+
+# Sets up a mock git+docker environment with a tag and registry config.
+# docker mock echoes args for build/tag/push; gh mock provides credentials.
+setup_push() {
+	_setup_mock_project
+	printf 'DEV_NAME=dev\nDEV_SERVICE=app\nDEV_REGISTRY=registry.example.com/org\nDEV_REGISTRY_USER=myuser\nDEV_REGISTRY_TOKEN=mytoken\n' >"$MOCK_DIR/.dev"
+	git init -q "$MOCK_DIR"
+	git -C "$MOCK_DIR" config user.email 'test@test.com'
+	git -C "$MOCK_DIR" config user.name 'Test'
+	git -C "$MOCK_DIR" add .
+	git -C "$MOCK_DIR" commit -q -m 'init'
+	git -C "$MOCK_DIR" tag -a v1.2.3 -m 'Release v1.2.3'
+	printf '#!/bin/sh\necho "docker $*"\n' >"$MOCK_DIR/docker"
+	chmod +x "$MOCK_DIR/docker"
+	# No gh in PATH — falls back to DEV_REGISTRY config
+	export PATH="$MOCK_DIR:$PATH"
+}
+
+Describe 'push without DEV_REGISTRY'
+	Before 'setup_mock_docker'
+	After 'teardown_mock_docker'
+
+	It 'errors when DEV_REGISTRY is not set'
+		When run run_dev push
+		The status should be failure
+		The stderr should include 'DEV_REGISTRY is not set'
+	End
+End
+
+Describe 'push (service repo)'
+	Before 'setup_push'
+	After 'teardown_mock_docker'
+
+	It 'tags and pushes the app image with the latest git tag'
+		When run run_dev push
+		The output should include 'pushing registry.example.com/org/dev:v1.2.3'
+		The output should include 'docker tag dev registry.example.com/org/dev:v1.2.3'
+		The output should include 'docker push registry.example.com/org/dev:v1.2.3'
+		The status should be success
+	End
+End
+
+Describe 'push (image repo with stages)'
+	setup_push_image_stages() {
+		setup_push
+		printf 'DEV_NAME=dev\nDEV_SERVICE=app\nDEV_REGISTRY=registry.example.com/org\nDEV_REGISTRY_USER=myuser\nDEV_REGISTRY_TOKEN=mytoken\nDEV_REPO_TYPE=image\n' >"$MOCK_DIR/.dev"
+		printf 'FROM scratch AS base\nFROM scratch AS amd64\nFROM scratch AS arm64\n' >"$MOCK_DIR/Dockerfile"
+	}
+	Before 'setup_push_image_stages'
+	After 'teardown_mock_docker'
+
+	It 'tags and pushes each non-base stage with stage-suffixed tag'
+		When run run_dev push
+		The output should include 'pushing registry.example.com/org/dev:amd64-v1.2.3'
+		The output should include 'pushing registry.example.com/org/dev:arm64-v1.2.3'
+		The output should not include 'base'
+		The status should be success
+	End
+End
+
+Describe 'push (image repo with no stages)'
+	setup_push_image_no_stages() {
+		setup_push
+		printf 'DEV_NAME=dev\nDEV_SERVICE=app\nDEV_REGISTRY=registry.example.com/org\nDEV_REGISTRY_USER=myuser\nDEV_REGISTRY_TOKEN=mytoken\nDEV_REPO_TYPE=image\n' >"$MOCK_DIR/.dev"
+		printf 'FROM scratch\n' >"$MOCK_DIR/Dockerfile"
+	}
+	Before 'setup_push_image_no_stages'
+	After 'teardown_mock_docker'
+
+	It 'tags and pushes the single image without a stage suffix'
+		When run run_dev push
+		The output should include 'pushing registry.example.com/org/dev:v1.2.3'
+		The output should not include 'docker tag dev:' # no stage suffix
+		The status should be success
+	End
+End
+
+Describe 'push with no git tag'
+	setup_push_no_tag() {
+		setup_push
+		git -C "$MOCK_DIR" tag -d v1.2.3 >/dev/null
+	}
+	Before 'setup_push_no_tag'
+	After 'teardown_mock_docker'
+
+	It 'errors when no git tag exists'
+		When run run_dev push
+		The status should be failure
+		The stderr should include 'no git tag found'
+		The output should include 'logging in to'
+	End
+End
