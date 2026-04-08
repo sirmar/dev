@@ -14,7 +14,7 @@ COPY scripts/format-entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
-FROM base AS test
+FROM base AS unit
 RUN curl -fsSL https://git.io/shellspec | sh -s -- --yes --prefix /usr/local
 ENTRYPOINT ["shellspec"]
 
