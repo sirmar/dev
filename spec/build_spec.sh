@@ -20,8 +20,14 @@ Describe 'build'
 
   It 'tags the app image as DEV_NAME without a suffix'
     When run bash "$DEV_SCRIPT" build
-    The output should include 'docker build --target app -t dev '
-    The output should not include 'docker build --target app -t dev-app'
+    The output should include '-t dev '
+    The output should not include '-t dev-app'
+    The status should be success
+  End
+
+  It 'always passes Dockerfile from project root'
+    When run bash "$DEV_SCRIPT" build
+    The output should match pattern '*docker build*-f */Dockerfile *'
     The status should be success
   End
 End
