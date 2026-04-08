@@ -16,6 +16,7 @@ FROM scratch AS format
 FROM scratch AS unit
 FROM scratch AS coverage
 FROM scratch AS types
+FROM scratch AS security
 FROM scratch AS app'
 
 _MOCK_DEV='DEV_NAME=dev
