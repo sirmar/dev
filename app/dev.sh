@@ -44,7 +44,11 @@ load_config() {
 	source "$ROOT_DIR/.dev"
 	DEV_NAME="${DEV_NAME:-dev}"
 	DEV_SHELL="${DEV_SHELL:-sh}"
+	DEV_CONTEXT="${DEV_CONTEXT:-.}"
 	DEV_NETWORK="${DEV_NETWORK:-}"
+	DEV_DB_NAME="${DEV_DB_NAME:-}"
+	DEV_DB_USER="${DEV_DB_USER:-root}"
+	DEV_DB_PASSWORD="${DEV_DB_PASSWORD:-}"
 }
 
 # ---------------------------------------------------------------------------
@@ -81,7 +85,7 @@ build_image() {
 	local flags=()
 	$quiet && flags+=(-q)
 	info "building stage $stage"
-	docker build "${flags[@]}" --target "$stage" -t "$(image_name "$stage")" "$ROOT_DIR"
+	docker build "${flags[@]}" --target "$stage" -t "$(image_name "$stage")" -f "$ROOT_DIR/Dockerfile" "$ROOT_DIR/$DEV_CONTEXT"
 }
 
 run_in() {
@@ -198,6 +202,35 @@ cmd_check() {
 	cmd_coverage "$@"
 }
 
+cmd_db_shell() {
+	check_docker
+	[[ -z "$DEV_DB_NAME" ]] && error "DEV_DB_NAME is not set in .dev"
+	local container="${DEV_NAME}-db"
+	info "entering database on $container"
+	docker exec -it "$container" mysql -u "$DEV_DB_USER" -p"$DEV_DB_PASSWORD" "$DEV_DB_NAME"
+}
+
+cmd_db_migrate() {
+	check_docker
+	[[ -z "$DEV_DB_NAME" ]] && error "DEV_DB_NAME is not set in .dev"
+	local db_url="mysql://${DEV_DB_USER}:${DEV_DB_PASSWORD}@${DEV_NAME}-db/${DEV_DB_NAME}"
+	info "running migrations"
+	docker run --rm \
+		--network "${DEV_NETWORK:-${DEV_NAME}_default}" \
+		-v "$ROOT_DIR/migrations:/db/migrations" \
+		-e "DATABASE_URL=$db_url" \
+		ghcr.io/amacneil/dbmate \
+		--migrations-dir /db/migrations \
+		--no-dump-schema \
+		up
+}
+
+cmd_e2e() {
+	check_docker
+	info "running e2e tests"
+	shellspec spec/e2e
+}
+
 cmd_shell() {
 	check_docker
 	build_image "$DEV_SERVICE" true
@@ -271,6 +304,7 @@ COMMANDS
     lint [file]         Lint shell files with ShellCheck
     format [file]       Format shell files with shfmt
     unit                Run unit tests with ShellSpec
+    e2e                 Run end-to-end tests against fixture projects
     check               Run format, lint, types, and coverage (stops on first failure)
     coverage            Run unit tests with kcov coverage report
     types               Run static type checking
@@ -278,6 +312,8 @@ COMMANDS
     run <cmd> [args]    Run arbitrary command in container
     up [service...]     Start services via docker-compose
     down [args]         Stop services via docker-compose
+    db-shell            Enter shell in running database container
+    db-migrate          Run database migrations with dbmate
     release <type>      Create release tag (major|minor|patch)
     help                Show this help
 
@@ -299,6 +335,7 @@ main() {
 	case "$command" in
 	build) cmd_build "$@" ;;
 	check) cmd_check "$@" ;;
+	e2e) cmd_e2e "$@" ;;
 	lint) cmd_lint "$@" ;;
 	format) cmd_format "$@" ;;
 	unit) cmd_unit "$@" ;;
@@ -308,6 +345,8 @@ main() {
 	run) cmd_run "$@" ;;
 	up) cmd_up "$@" ;;
 	down) cmd_down "$@" ;;
+	db-shell) cmd_db_shell "$@" ;;
+	db-migrate) cmd_db_migrate "$@" ;;
 	release) cmd_release "$@" ;;
 	help | -h | --help) cmd_help ;;
 	*)
