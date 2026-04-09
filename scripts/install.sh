@@ -18,6 +18,22 @@ if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
 	echo "warning: $INSTALL_DIR is not in PATH — add it to your shell profile"
 fi
 
+BASH_COMPLETION_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/bash-completion/completions"
+ZSH_COMPLETION_DIR="${ZDOTDIR:-$HOME}/.zfunc"
+
+if [[ -f "$REPO_DIR/completions/dev.bash" ]]; then
+	mkdir -p "$BASH_COMPLETION_DIR"
+	ln -sf "$REPO_DIR/completions/dev.bash" "$BASH_COMPLETION_DIR/dev"
+	echo "Installed bash completion: $BASH_COMPLETION_DIR/dev"
+fi
+
+if [[ -f "$REPO_DIR/completions/_dev" ]]; then
+	mkdir -p "$ZSH_COMPLETION_DIR"
+	ln -sf "$REPO_DIR/completions/_dev" "$ZSH_COMPLETION_DIR/_dev"
+	echo "Installed zsh completion: $ZSH_COMPLETION_DIR/_dev"
+	echo "Ensure fpath includes $ZSH_COMPLETION_DIR and compinit is called in your .zshrc"
+fi
+
 CONFIG_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/dev/config"
 if [[ ! -f "$CONFIG_FILE" ]]; then
 	mkdir -p "$(dirname "$CONFIG_FILE")"
