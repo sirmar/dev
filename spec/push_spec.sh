@@ -11,7 +11,7 @@ DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 # docker mock echoes args for build/tag/push; gh mock provides credentials.
 setup_push() {
 	_setup_mock_project
-	printf 'DEV_NAME=dev\nDEV_SERVICE=app\nDEV_REGISTRY=registry.example.com/org\nDEV_REGISTRY_USER=myuser\nDEV_REGISTRY_TOKEN=mytoken\n' >"$MOCK_DIR/.dev"
+	write_dev_config "$MOCK_DIR" dev service "DEV_REGISTRY=registry.example.com/org" "DEV_REGISTRY_USER=myuser" "DEV_REGISTRY_TOKEN=mytoken"
 	git init -q "$MOCK_DIR"
 	git -C "$MOCK_DIR" config user.email 'test@test.com'
 	git -C "$MOCK_DIR" config user.name 'Test'
@@ -51,7 +51,7 @@ End
 Describe 'push (image repo)'
 	setup_push_image() {
 		setup_push
-		printf 'DEV_NAME=dev\nDEV_SERVICE=app\nDEV_REGISTRY=registry.example.com/org\nDEV_REGISTRY_USER=myuser\nDEV_REGISTRY_TOKEN=mytoken\nDEV_REPO_TYPE=image\n' >"$MOCK_DIR/.dev"
+		write_dev_config "$MOCK_DIR" dev image "DEV_REGISTRY=registry.example.com/org" "DEV_REGISTRY_USER=myuser" "DEV_REGISTRY_TOKEN=mytoken"
 		printf 'FROM scratch\n' >"$MOCK_DIR/Dockerfile"
 	}
 	Before 'setup_push_image'

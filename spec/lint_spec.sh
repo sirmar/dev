@@ -10,7 +10,7 @@ DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 Describe 'lint (image repo)'
   setup_lint_image_repo() {
     setup_mock_docker
-    printf 'DEV_NAME=dev\nDEV_SERVICE=app\nDEV_REPO_TYPE=image\n' >"$MOCK_DIR/.dev"
+    write_dev_config "$MOCK_DIR" dev image
   }
   Before 'setup_lint_image_repo'
   After 'teardown_mock_docker'

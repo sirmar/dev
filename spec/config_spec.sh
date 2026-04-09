@@ -7,21 +7,40 @@ DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 # shellcheck disable=SC1091
 . "$DEV_ROOT/spec/support/helpers.sh"
 
-Describe 'DEV_REPO_TYPE default'
-  Before 'setup_mock_docker'
+Describe 'DEV_NAME validation'
+  setup_missing_dev_name() {
+    setup_mock_docker
+    printf 'DEV_REPO_TYPE=service\n' >"$MOCK_DIR/.dev"
+  }
+  Before 'setup_missing_dev_name'
   After 'teardown_mock_docker'
 
-  It 'defaults to service'
+  It 'errors when DEV_NAME is not set'
     When run run_dev help
-    The output should include 'service'
-    The status should be success
+    The status should be failure
+    The stderr should include 'DEV_NAME is not set'
+  End
+End
+
+Describe 'DEV_REPO_TYPE validation'
+  setup_missing_repo_type() {
+    setup_mock_docker
+    printf 'DEV_NAME=dev\n' >"$MOCK_DIR/.dev"
+  }
+  Before 'setup_missing_repo_type'
+  After 'teardown_mock_docker'
+
+  It 'errors when DEV_REPO_TYPE is not set'
+    When run run_dev help
+    The status should be failure
+    The stderr should include 'DEV_REPO_TYPE is not set'
   End
 End
 
 Describe 'DEV_REPO_TYPE=image'
   setup_image_repo() {
     setup_mock_docker
-    printf 'DEV_NAME=dev\nDEV_SERVICE=app\nDEV_REPO_TYPE=image\n' >"$MOCK_DIR/.dev"
+    write_dev_config "$MOCK_DIR" dev image
   }
   Before 'setup_image_repo'
   After 'teardown_mock_docker'
@@ -32,7 +51,7 @@ Describe 'DEV_REPO_TYPE=image'
     The status should be success
   End
 
-  It 'does not show service-only commands in help'
+  It 'does not show tooling commands in help'
     When run run_dev help
     The output should not include 'unit'
     The output should not include 'coverage'
@@ -40,10 +59,40 @@ Describe 'DEV_REPO_TYPE=image'
   End
 End
 
-Describe 'service_only guard'
+Describe 'DEV_REPO_TYPE=tool'
+  setup_tool_repo() {
+    setup_mock_docker
+    write_dev_config "$MOCK_DIR" dev tool
+  }
+  Before 'setup_tool_repo'
+  After 'teardown_mock_docker'
+
+  It 'shows tool repo type in help'
+    When run run_dev help
+    The output should include 'tool'
+    The status should be success
+  End
+
+  It 'shows tooling commands in help'
+    When run run_dev help
+    The output should include 'unit'
+    The output should include 'coverage'
+    The status should be success
+  End
+
+  It 'does not show service-only commands in help'
+    When run run_dev help
+    The output should not include 'up'
+    The output should not include 'down'
+    The output should not include 'shell'
+    The status should be success
+  End
+End
+
+Describe 'assert_repo_type guard'
   setup_image_repo() {
     setup_mock_docker
-    printf 'DEV_NAME=dev\nDEV_SERVICE=app\nDEV_REPO_TYPE=image\n' >"$MOCK_DIR/.dev"
+    write_dev_config "$MOCK_DIR" dev image
   }
   Before 'setup_image_repo'
   After 'teardown_mock_docker'
@@ -121,6 +170,51 @@ Describe 'service_only guard'
   End
 End
 
+Describe 'assert_repo_type guard on tool repos'
+  setup_tool_repo() {
+    setup_mock_docker
+    write_dev_config "$MOCK_DIR" dev tool
+  }
+  Before 'setup_tool_repo'
+  After 'teardown_mock_docker'
+
+  It 'blocks watch command on tool repos'
+    When run run_dev watch
+    The status should be failure
+    The stderr should include 'not available for tool repos'
+  End
+
+  It 'blocks shell command on tool repos'
+    When run run_dev shell
+    The status should be failure
+    The stderr should include 'not available for tool repos'
+  End
+
+  It 'blocks up command on tool repos'
+    When run run_dev up
+    The status should be failure
+    The stderr should include 'not available for tool repos'
+  End
+
+  It 'blocks down command on tool repos'
+    When run run_dev down
+    The status should be failure
+    The stderr should include 'not available for tool repos'
+  End
+
+  It 'blocks db-shell command on tool repos'
+    When run run_dev db-shell
+    The status should be failure
+    The stderr should include 'not available for tool repos'
+  End
+
+  It 'blocks db-migrate command on tool repos'
+    When run run_dev db-migrate
+    The status should be failure
+    The stderr should include 'not available for tool repos'
+  End
+End
+
 Describe 'DEV_CONTEXT default'
   Before 'setup_mock_docker'
   After 'teardown_mock_docker'
@@ -135,7 +229,7 @@ End
 Describe 'DEV_CONTEXT custom'
   setup_custom_context() {
     setup_mock_docker
-    printf 'DEV_NAME=dev\nDEV_SERVICE=app\nDEV_CONTEXT=services/api\n' >"$MOCK_DIR/.dev"
+    write_dev_config "$MOCK_DIR" dev service "DEV_CONTEXT=services/api"
   }
   Before 'setup_custom_context'
   After 'teardown_mock_docker'

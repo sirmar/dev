@@ -5,13 +5,16 @@
 DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 DEV_SCRIPT="$DEV_ROOT/app/dev.sh"
 
+# shellcheck disable=SC1091
+. "$DEV_ROOT/spec/support/helpers.sh"
+
 Describe 'up'
   setup_env() {
     MOCK_DIR="$(mktemp -d)"
     export PATH="$MOCK_DIR:$PATH"
     PROJ_DIR="$(mktemp -d)"
     cp "$DEV_SCRIPT" "$PROJ_DIR/dev.sh"
-    printf 'DEV_NAME=myapp\n' >"$PROJ_DIR/.dev"
+    write_dev_config "$PROJ_DIR" myapp service
     printf 'services:\n  api:\n    image: test\n' >"$PROJ_DIR/docker-compose.yml"
     cat >"$MOCK_DIR/docker" <<'EOF'
 #!/bin/sh
@@ -43,7 +46,7 @@ EOF
   End
 
   It 'ensures network exists before starting'
-    printf 'DEV_NAME=myapp\nDEV_NETWORK=shared-net\n' >"$PROJ_DIR/.dev"
+    write_dev_config "$PROJ_DIR" myapp service "DEV_NETWORK=shared-net"
     cat >"$MOCK_DIR/docker" <<'EOF'
 #!/bin/sh
 if [ "$1" = "network" ] && [ "$2" = "inspect" ]; then exit 1; fi

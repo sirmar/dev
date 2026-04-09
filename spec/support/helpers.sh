@@ -20,13 +20,19 @@ FROM scratch AS security
 FROM scratch AS watch
 FROM scratch AS prod'
 
-_MOCK_DEV='DEV_NAME=dev
-DEV_SERVICE=app'
+write_dev_config() {
+    local dir="$1" name="$2" type="$3"
+    shift 3
+    printf 'DEV_NAME=%s\nDEV_REPO_TYPE=%s\n' "$name" "$type" >"$dir/.dev"
+    for extra in "$@"; do
+        printf '%s\n' "$extra" >>"$dir/.dev"
+    done
+}
 
 _setup_mock_project() {
     MOCK_DIR="$(mktemp -d)"
     printf '%s\n' "$_MOCK_DOCKERFILE" >"$MOCK_DIR/Dockerfile"
-    printf '%s\n' "$_MOCK_DEV" >"$MOCK_DIR/.dev"
+    write_dev_config "$MOCK_DIR" dev service
     export MOCK_DIR
 }
 
@@ -77,7 +83,7 @@ setup_mock_git_repo() {
     git init -q "$MOCK_DIR"
     git -C "$MOCK_DIR" config user.email 'test@test.com'
     git -C "$MOCK_DIR" config user.name 'Test'
-    printf '%s\n' "$_MOCK_DEV" >"$MOCK_DIR/.dev"
+    write_dev_config "$MOCK_DIR" dev service
     cp "$DEV_SCRIPT" "$MOCK_DIR/dev.sh"
     git -C "$MOCK_DIR" add .
     git -C "$MOCK_DIR" commit -q -m 'init'

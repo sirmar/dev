@@ -22,7 +22,7 @@ Describe 'db-shell'
 	Describe 'when DEV_DB_NAME is set'
 		setup_db_shell() {
 			setup_mock_docker
-			printf 'DEV_NAME=myapp\nDEV_SERVICE=app\nDEV_DB_NAME=mydb\nDEV_DB_USER=myuser\nDEV_DB_PASSWORD=secret\n' >"$MOCK_DIR/.dev"
+			write_dev_config "$MOCK_DIR" myapp service "DEV_DB_NAME=mydb" "DEV_DB_USER=myuser" "DEV_DB_PASSWORD=secret"
 		}
 		Before 'setup_db_shell'
 		After 'teardown_mock_docker'
@@ -52,7 +52,7 @@ Describe 'db-migrate'
 	Describe 'when DEV_DB_NAME is set'
 		setup_db_migrate() {
 			setup_mock_docker
-			printf 'DEV_NAME=myapp\nDEV_SERVICE=app\nDEV_DB_NAME=mydb\nDEV_DB_USER=myuser\nDEV_DB_PASSWORD=secret\n' >"$MOCK_DIR/.dev"
+			write_dev_config "$MOCK_DIR" myapp service "DEV_DB_NAME=mydb" "DEV_DB_USER=myuser" "DEV_DB_PASSWORD=secret"
 			mkdir -p "$MOCK_DIR/migrations"
 		}
 		Before 'setup_db_migrate'
