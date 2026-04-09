@@ -183,16 +183,14 @@ cmd_push() {
 	cmd_login
 	local tag remote
 	tag="$(git -C "$ROOT_DIR" describe --tags --abbrev=0 2>/dev/null || error "no git tag found — run dev release first")"
+	remote="${DEV_REGISTRY}/${DEV_NAME}:${tag}"
+	info "pushing $remote"
+	docker buildx inspect dev-builder &>/dev/null || docker buildx create --name dev-builder --driver docker-container --use
+	docker buildx use dev-builder
 	if [[ "$DEV_REPO_TYPE" == "image" ]]; then
-		remote="${DEV_REGISTRY}/${DEV_NAME}:${tag}"
-		info "pushing $remote"
-		docker tag "$DEV_NAME" "$remote"
-		docker push "$remote"
+		docker buildx build --platform linux/amd64,linux/arm64 --push -t "$remote" -f "$ROOT_DIR/Dockerfile" "$ROOT_DIR/$DEV_CONTEXT"
 	else
-		remote="${DEV_REGISTRY}/${DEV_NAME}:${tag}"
-		info "pushing $remote"
-		docker tag "$(image_name prod)" "$remote"
-		docker push "$remote"
+		docker buildx build --platform linux/amd64,linux/arm64 --push --target prod -t "$remote" -f "$ROOT_DIR/Dockerfile" "$ROOT_DIR/$DEV_CONTEXT"
 	fi
 }
 
