@@ -125,6 +125,7 @@ cmd_build() {
 		if [[ ${#stages[@]} -eq 0 ]]; then
 			build_image ""
 		else
+			has_dockerfile_stage base && build_image base
 			for stage in "${stages[@]}"; do
 				build_image "$stage"
 			done
@@ -159,21 +160,10 @@ cmd_push() {
 	local tag remote
 	tag="$(git -C "$ROOT_DIR" describe --tags --abbrev=0 2>/dev/null || error "no git tag found — run dev release first")"
 	if [[ "$DEV_REPO_TYPE" == "image" ]]; then
-		local stages
-		mapfile -t stages < <(dockerfile_stages)
-		if [[ ${#stages[@]} -eq 0 ]]; then
-			remote="${DEV_REGISTRY}/${DEV_NAME}:${tag}"
-			info "pushing $remote"
-			docker tag "$DEV_NAME" "$remote"
-			docker push "$remote"
-		else
-			for stage in "${stages[@]}"; do
-				remote="${DEV_REGISTRY}/${DEV_NAME}:${stage}-${tag}"
-				info "pushing $remote"
-				docker tag "$(image_name "$stage")" "$remote"
-				docker push "$remote"
-			done
-		fi
+		remote="${DEV_REGISTRY}/${DEV_NAME}:${tag}"
+		info "pushing $remote"
+		docker tag "$DEV_NAME" "$remote"
+		docker push "$remote"
 	else
 		remote="${DEV_REGISTRY}/${DEV_NAME}:${tag}"
 		info "pushing $remote"
