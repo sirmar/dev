@@ -16,6 +16,7 @@
 | `run <cmd>`        | Run arbitrary command in container        |
 | `up [service...]`  | Start services via Docker Compose         |
 | `down [args]`      | Stop services via Docker Compose          |
+| `logs [-f] [svc]`  | Show service logs (use -f to follow)      |
 | `db-shell`         | Enter shell in running database container |
 | `db-migrate`       | Run database migrations                   |
 | `login`            | Log in to container registry              |

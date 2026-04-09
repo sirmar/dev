@@ -389,6 +389,11 @@ cmd_down() {
 	compose down "${@:2}"
 }
 
+cmd_logs() {
+	check_docker
+	compose logs "${@:2}"
+}
+
 cmd_release() {
 	local bump_type="${2:-}"
 	case "$bump_type" in
@@ -460,6 +465,7 @@ EOF
     run <cmd> [args]    Run arbitrary command in container
     up [service...]     Start services via Docker Compose
     down [args]         Stop services via Docker Compose
+    logs [-f] [svc...] Show service logs (--follow to tail)
     db-shell            Enter shell in running database container
     db-migrate          Run database migrations
 EOF
@@ -505,7 +511,7 @@ cmd_completions() {
 		cmds="$cmds format unit coverage types security check e2e"
 	fi
 	if [[ "$repo_type" == "service" ]]; then
-		cmds="$cmds watch shell run up down db-shell db-migrate"
+		cmds="$cmds watch shell run up down logs db-shell db-migrate"
 	fi
 	echo "$cmds"
 }
@@ -573,6 +579,10 @@ main() {
 	down)
 		assert_repo_type down service
 		cmd_down "$@"
+		;;
+	logs)
+		assert_repo_type logs service
+		cmd_logs "$@"
 		;;
 	db-shell)
 		assert_repo_type db-shell service
