@@ -1,0 +1,22 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  push:
+    name: Push
+    runs-on: ubuntu-latest
+    env:
+      DEV_REGISTRY: ghcr.io/${{ github.repository_owner }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_ACTOR: ${{ github.actor }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dev
+        run: |
+          cp app/dev.sh /usr/local/bin/dev
+          chmod +x /usr/local/bin/dev
+      - name: Push
+        run: dev push

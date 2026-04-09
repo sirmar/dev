@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  tool:
+    name: Tool
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dev
+        run: |
+          cp app/dev.sh /usr/local/bin/dev
+          chmod +x /usr/local/bin/dev
+      - name: Lint
+        run: dev lint
+      - name: Unit tests
+        run: dev unit
+      - name: Coverage
+        run: dev coverage
+
+  bash-image:
+    name: Bash Image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dev
+        run: |
+          cp app/dev.sh /usr/local/bin/dev
+          chmod +x /usr/local/bin/dev
+      - name: Lint
+        working-directory: images/bash
+        run: dev lint
+      - name: Build
+        working-directory: images/bash
+        run: dev build
+
+  python-image:
+    name: Python Image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dev
+        run: |
+          cp app/dev.sh /usr/local/bin/dev
+          chmod +x /usr/local/bin/dev
+      - name: Lint
+        working-directory: images/python
+        run: dev lint
+      - name: Build
+        working-directory: images/python
+        run: dev build

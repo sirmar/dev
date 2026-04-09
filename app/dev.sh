@@ -158,7 +158,11 @@ cmd_build() {
 cmd_login() {
 	check_docker
 	local host user token
-	if command -v gh &>/dev/null && gh auth status &>/dev/null; then
+	if [[ -n "${CI:-}" && -n "${GITHUB_TOKEN:-}" ]]; then
+		host="ghcr.io"
+		user="$GITHUB_ACTOR"
+		token="$GITHUB_TOKEN"
+	elif command -v gh &>/dev/null && gh auth status &>/dev/null; then
 		host="ghcr.io"
 		user="$(gh api user --jq .login)"
 		token="$(gh auth token)"
