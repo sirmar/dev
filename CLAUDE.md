@@ -46,3 +46,4 @@ When adding a new language image, follow this same structure.
 ## Workflow
 
 - Never run tests, lint, or format commands (shellspec, shellcheck, shfmt). Hooks will handle this.
+- When changing implementation, add or update tests to cover the changes.
