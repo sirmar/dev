@@ -31,6 +31,21 @@ if [[ -f "$REPO_DIR/completions/_dev" ]]; then
 	mkdir -p "$ZSH_COMPLETION_DIR"
 	ln -sf "$REPO_DIR/completions/_dev" "$ZSH_COMPLETION_DIR/_dev"
 	echo "Installed zsh completion: $ZSH_COMPLETION_DIR/_dev"
+fi
+
+ZSHRC="${ZDOTDIR:-$HOME}/.zshrc"
+ZSH_BASH_COMPLETION_SNIPPET="# dev bash completion
+autoload bashcompinit && bashcompinit
+source \"$BASH_COMPLETION_DIR/dev\""
+
+if [[ "${SHELL}" == */zsh ]] && [[ -f "$BASH_COMPLETION_DIR/dev" ]]; then
+	if ! grep -qF "source \"$BASH_COMPLETION_DIR/dev\"" "$ZSHRC" 2>/dev/null; then
+		printf '\n%s\n' "$ZSH_BASH_COMPLETION_SNIPPET" >>"$ZSHRC"
+		echo "Added bash completion to $ZSHRC — restart your shell or run: source $ZSHRC"
+	else
+		echo "Bash completion already configured in $ZSHRC"
+	fi
+elif [[ -f "$REPO_DIR/completions/_dev" ]]; then
 	echo "Ensure fpath includes $ZSH_COMPLETION_DIR and compinit is called in your .zshrc"
 fi
 
