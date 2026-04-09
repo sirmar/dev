@@ -48,37 +48,20 @@ Describe 'push (service repo)'
 	End
 End
 
-Describe 'push (image repo with stages)'
-	setup_push_image_stages() {
-		setup_push
-		printf 'DEV_NAME=dev\nDEV_SERVICE=app\nDEV_REGISTRY=registry.example.com/org\nDEV_REGISTRY_USER=myuser\nDEV_REGISTRY_TOKEN=mytoken\nDEV_REPO_TYPE=image\n' >"$MOCK_DIR/.dev"
-		printf 'FROM scratch AS base\nFROM scratch AS amd64\nFROM scratch AS arm64\n' >"$MOCK_DIR/Dockerfile"
-	}
-	Before 'setup_push_image_stages'
-	After 'teardown_mock_docker'
-
-	It 'tags and pushes each non-base stage with stage-suffixed tag'
-		When run run_dev push
-		The output should include 'pushing registry.example.com/org/dev:amd64-v1.2.3'
-		The output should include 'pushing registry.example.com/org/dev:arm64-v1.2.3'
-		The output should not include 'base'
-		The status should be success
-	End
-End
-
-Describe 'push (image repo with no stages)'
-	setup_push_image_no_stages() {
+Describe 'push (image repo)'
+	setup_push_image() {
 		setup_push
 		printf 'DEV_NAME=dev\nDEV_SERVICE=app\nDEV_REGISTRY=registry.example.com/org\nDEV_REGISTRY_USER=myuser\nDEV_REGISTRY_TOKEN=mytoken\nDEV_REPO_TYPE=image\n' >"$MOCK_DIR/.dev"
 		printf 'FROM scratch\n' >"$MOCK_DIR/Dockerfile"
 	}
-	Before 'setup_push_image_no_stages'
+	Before 'setup_push_image'
 	After 'teardown_mock_docker'
 
-	It 'tags and pushes the single image without a stage suffix'
+	It 'tags and pushes the image with the latest git tag'
 		When run run_dev push
 		The output should include 'pushing registry.example.com/org/dev:v1.2.3'
-		The output should not include 'docker tag dev:' # no stage suffix
+		The output should include 'docker tag dev registry.example.com/org/dev:v1.2.3'
+		The output should include 'docker push registry.example.com/org/dev:v1.2.3'
 		The status should be success
 	End
 End

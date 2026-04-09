@@ -41,16 +41,11 @@ Describe 'build (image repo with stages)'
   Before 'setup_image_repo'
   After 'teardown_mock_docker'
 
-  It 'builds each non-base stage'
+  It 'builds base stage first, then each other stage'
     When run run_dev build
+    The output should include 'building stage base'
     The output should include 'building stage amd64'
     The output should include 'building stage arm64'
-    The status should be success
-  End
-
-  It 'does not build the base stage'
-    When run run_dev build
-    The output should not include 'building stage base'
     The status should be success
   End
 End
