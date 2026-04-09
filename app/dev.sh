@@ -58,13 +58,15 @@ load_config() {
 	# Derived names
 	DEV_IMAGE="${DEV_NAME}"
 	DEV_E2E_IMAGE="${DEV_NAME}-e2e"
+	DEV_COVERAGE_IMAGE="${DEV_NAME}-coverage"
 	DEV_CONTAINER="${DEV_NAME}"
 	DEV_DB_CONTAINER="${DEV_NAME}-db"
 	DEV_E2E_CONTAINER="${DEV_NAME}-e2e"
 	DEV_E2E_DB_CONTAINER="${DEV_NAME}-db-e2e"
+	DEV_COVERAGE_CONTAINER="${DEV_NAME}-coverage"
 	DEV_E2E_NETWORK="${DEV_NAME}-e2e"
 	export DEV_NAME DEV_CONTEXT DEV_REPO_TYPE DEV_REGISTRY DEV_REGISTRY_USER DEV_REGISTRY_TOKEN DEV_NETWORK DEV_DB_NAME DEV_DB_USER DEV_DB_PASSWORD
-	export DEV_IMAGE DEV_E2E_IMAGE DEV_CONTAINER DEV_DB_CONTAINER DEV_E2E_CONTAINER DEV_E2E_DB_CONTAINER DEV_E2E_NETWORK
+	export DEV_IMAGE DEV_E2E_IMAGE DEV_COVERAGE_IMAGE DEV_CONTAINER DEV_DB_CONTAINER DEV_E2E_CONTAINER DEV_E2E_DB_CONTAINER DEV_COVERAGE_CONTAINER DEV_E2E_NETWORK
 }
 
 # ---------------------------------------------------------------------------
@@ -80,6 +82,8 @@ image_name() {
 		echo "$DEV_IMAGE"
 	elif [[ "$1" == "e2e" ]]; then
 		echo "$DEV_E2E_IMAGE"
+	elif [[ "$1" == "coverage" ]]; then
+		echo "$DEV_COVERAGE_IMAGE"
 	else
 		echo "${DEV_NAME}-${1}"
 	fi
@@ -278,7 +282,12 @@ cmd_coverage() {
 	fi
 	build_image coverage true
 	info "running coverage"
-	run_in coverage
+	if [[ -f "$ROOT_DIR/docker-compose.e2e.yml" ]]; then
+		compose_e2e run --rm coverage
+		compose_e2e down -v
+	else
+		run_in coverage
+	fi
 }
 
 cmd_types() {
