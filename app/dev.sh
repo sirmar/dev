@@ -55,7 +55,16 @@ load_config() {
 	DEV_DB_NAME="${DEV_DB_NAME:-}"
 	DEV_DB_USER="${DEV_DB_USER:-root}"
 	DEV_DB_PASSWORD="${DEV_DB_PASSWORD:-}"
+	# Derived names
+	DEV_IMAGE="${DEV_NAME}"
+	DEV_E2E_IMAGE="${DEV_NAME}-e2e"
+	DEV_CONTAINER="${DEV_NAME}"
+	DEV_DB_CONTAINER="${DEV_NAME}-db"
+	DEV_E2E_CONTAINER="${DEV_NAME}-e2e"
+	DEV_E2E_DB_CONTAINER="${DEV_NAME}-db-e2e"
+	DEV_E2E_NETWORK="${DEV_NAME}-e2e"
 	export DEV_NAME DEV_CONTEXT DEV_REPO_TYPE DEV_REGISTRY DEV_REGISTRY_USER DEV_REGISTRY_TOKEN DEV_NETWORK DEV_DB_NAME DEV_DB_USER DEV_DB_PASSWORD
+	export DEV_IMAGE DEV_E2E_IMAGE DEV_CONTAINER DEV_DB_CONTAINER DEV_E2E_CONTAINER DEV_E2E_DB_CONTAINER DEV_E2E_NETWORK
 }
 
 # ---------------------------------------------------------------------------
@@ -68,7 +77,9 @@ check_docker() {
 
 image_name() {
 	if [[ "$1" == "prod" ]]; then
-		echo "$DEV_NAME"
+		echo "$DEV_IMAGE"
+	elif [[ "$1" == "e2e" ]]; then
+		echo "$DEV_E2E_IMAGE"
 	else
 		echo "${DEV_NAME}-${1}"
 	fi
@@ -108,6 +119,10 @@ run_in() {
 
 compose() {
 	docker compose --project-name "$DEV_NAME" -f "$ROOT_DIR/docker-compose.yml" -f "$SCRIPT_DIR/docker-compose.network.yml" "$@"
+}
+
+compose_e2e() {
+	docker compose --project-name "$DEV_E2E_NETWORK" -f "$ROOT_DIR/docker-compose.e2e.yml" "$@"
 }
 
 # ---------------------------------------------------------------------------
@@ -299,15 +314,14 @@ cmd_check() {
 cmd_db_shell() {
 	check_docker
 	if [[ -z "$DEV_DB_NAME" ]]; then error "DEV_DB_NAME is not set in .dev"; fi
-	local container="${DEV_NAME}-db"
-	info "entering database on $container"
-	docker exec -it "$container" mysql -u "$DEV_DB_USER" -p"$DEV_DB_PASSWORD" "$DEV_DB_NAME"
+	info "entering database on $DEV_DB_CONTAINER"
+	docker exec -it "$DEV_DB_CONTAINER" mysql -u "$DEV_DB_USER" -p"$DEV_DB_PASSWORD" "$DEV_DB_NAME"
 }
 
 cmd_db_migrate() {
 	check_docker
 	if [[ -z "$DEV_DB_NAME" ]]; then error "DEV_DB_NAME is not set in .dev"; fi
-	local db_url="mysql://${DEV_DB_USER}:${DEV_DB_PASSWORD}@${DEV_NAME}-db/${DEV_DB_NAME}"
+	local db_url="mysql://${DEV_DB_USER}:${DEV_DB_PASSWORD}@${DEV_DB_CONTAINER}/${DEV_DB_NAME}"
 	info "running migrations"
 	docker run --rm \
 		--network "${DEV_NETWORK:-${DEV_NAME}_default}" \
@@ -319,15 +333,29 @@ cmd_db_migrate() {
 		up
 }
 
+cmd_e2e() {
+	check_docker
+	if ! has_dockerfile_stage e2e; then
+		info "no 'e2e' stage found in Dockerfile — skipping"
+		return 0
+	fi
+	if [[ ! -f "$ROOT_DIR/docker-compose.e2e.yml" ]]; then
+		info "no docker-compose.e2e.yml found — skipping e2e"
+		return 0
+	fi
+	build_image e2e true
+	info "running e2e tests"
+	compose_e2e run --rm e2e
+	compose_e2e down -v
+}
+
 cmd_shell() {
 	check_docker
-	local container
-	container="$DEV_NAME"
-	if ! docker ps --format '{{.Names}}' | grep -qx "$container"; then
-		error "container '$container' is not running — start it with: dev up"
+	if ! docker ps --format '{{.Names}}' | grep -qx "$DEV_CONTAINER"; then
+		error "container '$DEV_CONTAINER' is not running — start it with: dev up"
 	fi
-	info "entering $container"
-	docker exec -it "$container" bash
+	info "entering $DEV_CONTAINER"
+	docker exec -it "$DEV_CONTAINER" bash
 }
 
 cmd_watch() {
@@ -417,6 +445,7 @@ EOF
     lint [file]         Lint source files
     format [file]       Format source files
     unit                Run unit tests
+    e2e                 Run e2e tests
     check               Run format, lint, types, and coverage
     coverage            Run tests with coverage report
     types               Run static type checking
@@ -468,6 +497,10 @@ main() {
 	unit)
 		service_only unit
 		cmd_unit "$@"
+		;;
+	e2e)
+		service_only e2e
+		cmd_e2e "$@"
 		;;
 	check)
 		service_only check
