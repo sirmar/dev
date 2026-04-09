@@ -39,11 +39,10 @@ Describe 'push (service repo)'
 	Before 'setup_push'
 	After 'teardown_mock_docker'
 
-	It 'tags and pushes the app image with the latest git tag'
+	It 'builds and pushes the app image multi-arch with the latest git tag'
 		When run run_dev push
 		The output should include 'pushing registry.example.com/org/dev:v1.2.3'
-		The output should include 'docker tag dev registry.example.com/org/dev:v1.2.3'
-		The output should include 'docker push registry.example.com/org/dev:v1.2.3'
+		The output should include 'docker buildx build --platform linux/amd64,linux/arm64 --push --target prod -t registry.example.com/org/dev:v1.2.3'
 		The status should be success
 	End
 End
@@ -57,11 +56,10 @@ Describe 'push (image repo)'
 	Before 'setup_push_image'
 	After 'teardown_mock_docker'
 
-	It 'tags and pushes the image with the latest git tag'
+	It 'builds and pushes the image multi-arch with the latest git tag'
 		When run run_dev push
 		The output should include 'pushing registry.example.com/org/dev:v1.2.3'
-		The output should include 'docker tag dev registry.example.com/org/dev:v1.2.3'
-		The output should include 'docker push registry.example.com/org/dev:v1.2.3'
+		The output should include 'docker buildx build --platform linux/amd64,linux/arm64 --push -t registry.example.com/org/dev:v1.2.3'
 		The status should be success
 	End
 End
