@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GITHUB_ACTOR: ${{ github.actor }}
+
 jobs:
   tool:
     name: Tool
@@ -16,6 +20,8 @@ jobs:
         run: |
           cp app/dev.sh /usr/local/bin/dev
           chmod +x /usr/local/bin/dev
+      - name: Login
+        run: dev login
       - name: Lint
         run: dev lint
       - name: Unit tests
@@ -32,6 +38,8 @@ jobs:
         run: |
           cp app/dev.sh /usr/local/bin/dev
           chmod +x /usr/local/bin/dev
+      - name: Login
+        run: dev login
       - name: Lint
         working-directory: images/bash
         run: dev lint
@@ -48,6 +56,8 @@ jobs:
         run: |
           cp app/dev.sh /usr/local/bin/dev
           chmod +x /usr/local/bin/dev
+      - name: Login
+        run: dev login
       - name: Lint
         working-directory: images/python
         run: dev lint
