@@ -7,6 +7,29 @@ DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 # shellcheck disable=SC1091
 . "$DEV_ROOT/spec/support/helpers.sh"
 
+Describe 'login via CI (GITHUB_TOKEN)'
+  setup_login_ci() {
+    setup_mock_docker
+    rm -f "$MOCK_DIR/gh"
+    export CI=true
+    export GITHUB_TOKEN=ghs_citoken
+    export GITHUB_ACTOR=ciuser
+  }
+  cleanup_login_ci() {
+    teardown_mock_docker
+    unset CI GITHUB_TOKEN GITHUB_ACTOR
+  }
+  Before 'setup_login_ci'
+  After 'cleanup_login_ci'
+
+  It 'logs in to ghcr.io using GITHUB_TOKEN'
+    When run run_dev login
+    The output should include 'logging in to ghcr.io'
+    The output should include 'docker login ghcr.io'
+    The status should be success
+  End
+End
+
 Describe 'login via gh'
   setup_login_gh() {
     setup_mock_docker
