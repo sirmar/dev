@@ -49,6 +49,23 @@ _dev_completion() {
 				COMPREPLY=("${COMPREPLY[@]/%/ }")
 			fi
 			;;
+		logs)
+			local compose_file=""
+			for f in docker-compose.yml docker-compose.yaml compose.yml compose.yaml; do
+				if [[ -f "$f" ]]; then
+					compose_file="$f"
+					break
+				fi
+			done
+			local opts="-f --follow"
+			if [[ -n "$compose_file" ]]; then
+				local services
+				services=$(grep -E '^  [a-zA-Z0-9_-]+:' "$compose_file" 2>/dev/null | sed 's/://;s/^ *//' || true)
+				opts="$opts $services"
+			fi
+			COMPREPLY=($(compgen -W "$opts" -- "$cur"))
+			COMPREPLY=("${COMPREPLY[@]/%/ }")
+			;;
 		*)
 			COMPREPLY=($(compgen -f -- "$cur"))
 			_dev_fix_files

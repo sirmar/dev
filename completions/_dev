@@ -34,6 +34,22 @@ _dev() {
 				_describe 'service' services
 			fi
 			;;
+		logs)
+			local -a log_opts
+			log_opts=('-f:Follow log output' '--follow:Follow log output')
+			local compose_file=""
+			for f in docker-compose.yml docker-compose.yaml compose.yml compose.yaml; do
+				[[ -f "$f" ]] && { compose_file="$f"; break; }
+			done
+			if [[ -n "$compose_file" ]]; then
+				local -a services
+				services=(${(f)"$(grep -E '^  [a-zA-Z0-9_-]+:' "$compose_file" 2>/dev/null | sed 's/://;s/^ *//' || true)"})
+				_describe 'option or service' log_opts
+				_describe 'service' services
+			else
+				_describe 'option' log_opts
+			fi
+			;;
 		*)
 			_default
 			;;
