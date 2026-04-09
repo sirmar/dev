@@ -15,9 +15,9 @@ _dev_completion() {
 	local cur subcmd
 	cur="${COMP_WORDS[COMP_CWORD]}"
 
-	local all_cmds="build format lint unit coverage types security check shell run up down db-shell db-migrate login push release help"
-
 	if [[ $COMP_CWORD -eq 1 ]]; then
+		local all_cmds
+		all_cmds="$(dev completions 2>/dev/null)"
 		COMPREPLY=($(compgen -W "$all_cmds" -- "$cur"))
 		COMPREPLY=("${COMPREPLY[@]/%/ }")
 		return

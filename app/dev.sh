@@ -45,9 +45,9 @@ load_config() {
 	[[ -f "${XDG_CONFIG_HOME:-$HOME/.config}/dev/config" ]] && source "${XDG_CONFIG_HOME:-$HOME/.config}/dev/config"
 	# shellcheck source=/dev/null
 	source "$ROOT_DIR/.dev"
-	DEV_NAME="${DEV_NAME:-dev}"
+	[[ -z "${DEV_NAME:-}" ]] && error "DEV_NAME is not set in .dev"
 	DEV_CONTEXT="${DEV_CONTEXT:-.}"
-	DEV_REPO_TYPE="${DEV_REPO_TYPE:-service}"
+	[[ -z "${DEV_REPO_TYPE:-}" ]] && error "DEV_REPO_TYPE is not set in .dev"
 	DEV_REGISTRY="${DEV_REGISTRY:-}"
 	DEV_REGISTRY_USER="${DEV_REGISTRY_USER:-}"
 	DEV_REGISTRY_TOKEN="${DEV_REGISTRY_TOKEN:-}"
@@ -439,7 +439,7 @@ COMMANDS
     help                Show this help
 EOF
 
-	if [[ "$DEV_REPO_TYPE" == "service" ]]; then
+	if [[ "$DEV_REPO_TYPE" == "tool" || "$DEV_REPO_TYPE" == "service" ]]; then
 		cat <<EOF
 
     lint [file]         Lint source files
@@ -450,6 +450,11 @@ EOF
     coverage            Run tests with coverage report
     types               Run static type checking
     security            Run security scanning
+EOF
+	fi
+
+	if [[ "$DEV_REPO_TYPE" == "service" ]]; then
+		cat <<EOF
     watch               Build watch stage and run with hot reload
     shell               Open interactive shell in container
     run <cmd> [args]    Run arbitrary command in container
@@ -474,12 +479,43 @@ EOF
 # Main
 # ---------------------------------------------------------------------------
 
-service_only() {
+assert_repo_type() {
 	local command="$1"
-	if [[ "$DEV_REPO_TYPE" == "image" ]]; then error "'$command' is not available for image repos"; fi
+	shift
+	local allowed=("$@")
+	for type in "${allowed[@]}"; do
+		[[ "$DEV_REPO_TYPE" == "$type" ]] && return 0
+	done
+	error "'$command' is not available for $DEV_REPO_TYPE repos"
+}
+
+cmd_completions() {
+	local dir="$PWD"
+	local repo_type=""
+	while [[ "$dir" != "/" ]]; do
+		if [[ -f "$dir/.dev" ]]; then
+			repo_type="$(grep -m1 '^DEV_REPO_TYPE=' "$dir/.dev" | cut -d= -f2)"
+			break
+		fi
+		dir="$(dirname "$dir")"
+	done
+
+	local cmds="build lint login push release help"
+	if [[ "$repo_type" == "service" || "$repo_type" == "tool" ]]; then
+		cmds="$cmds format unit coverage types security check e2e"
+	fi
+	if [[ "$repo_type" == "service" ]]; then
+		cmds="$cmds watch shell run up down db-shell db-migrate"
+	fi
+	echo "$cmds"
 }
 
 main() {
+	[[ "${1:-}" == "completions" ]] && {
+		cmd_completions
+		exit 0
+	}
+
 	ROOT_DIR="$(find_root)"
 	load_config
 
@@ -491,59 +527,59 @@ main() {
 	release) cmd_release "$@" ;;
 	lint) cmd_lint "$@" ;;
 	format)
-		service_only format
+		assert_repo_type format service tool
 		cmd_format "$@"
 		;;
 	unit)
-		service_only unit
+		assert_repo_type unit service tool
 		cmd_unit "$@"
 		;;
 	e2e)
-		service_only e2e
+		assert_repo_type e2e service tool
 		cmd_e2e "$@"
 		;;
 	check)
-		service_only check
+		assert_repo_type check service tool
 		cmd_check "$@"
 		;;
 	coverage)
-		service_only coverage
+		assert_repo_type coverage service tool
 		cmd_coverage "$@"
 		;;
 	types)
-		service_only types
+		assert_repo_type types service tool
 		cmd_types "$@"
 		;;
 	security)
-		service_only security
+		assert_repo_type security service tool
 		cmd_security "$@"
 		;;
 	watch)
-		service_only watch
+		assert_repo_type watch service
 		cmd_watch "$@"
 		;;
 	shell)
-		service_only shell
+		assert_repo_type shell service
 		cmd_shell "$@"
 		;;
 	run)
-		service_only run
+		assert_repo_type run service
 		cmd_run "$@"
 		;;
 	up)
-		service_only up
+		assert_repo_type up service
 		cmd_up "$@"
 		;;
 	down)
-		service_only down
+		assert_repo_type down service
 		cmd_down "$@"
 		;;
 	db-shell)
-		service_only db-shell
+		assert_repo_type db-shell service
 		cmd_db_shell "$@"
 		;;
 	db-migrate)
-		service_only db-migrate
+		assert_repo_type db-migrate service
 		cmd_db_migrate "$@"
 		;;
 	help | -h | --help) cmd_help ;;
