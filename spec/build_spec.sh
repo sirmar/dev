@@ -12,16 +12,16 @@ Describe 'build (service repo)'
   Before 'setup_mock_docker'
   After 'teardown_mock_docker'
 
-  It 'builds the app image'
+  It 'builds the prod image'
     When run bash "$DEV_SCRIPT" build
-    The output should include 'docker build --target app'
+    The output should include 'docker build --target prod'
     The status should be success
   End
 
-  It 'tags the app image as DEV_NAME without a suffix'
+  It 'tags the prod image as DEV_NAME without a suffix'
     When run bash "$DEV_SCRIPT" build
     The output should include '-t dev '
-    The output should not include '-t dev-app'
+    The output should not include '-t dev-prod'
     The status should be success
   End
 

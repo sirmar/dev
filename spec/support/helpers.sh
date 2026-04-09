@@ -17,7 +17,8 @@ FROM scratch AS unit
 FROM scratch AS coverage
 FROM scratch AS types
 FROM scratch AS security
-FROM scratch AS app'
+FROM scratch AS watch
+FROM scratch AS prod'
 
 _MOCK_DEV='DEV_NAME=dev
 DEV_SERVICE=app'

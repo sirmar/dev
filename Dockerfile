@@ -16,7 +16,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN curl -fsSL https://git.io/shellspec | sh -s -- --yes --prefix /usr/local
 ENTRYPOINT ["shellspec", "--kcov"]
 
-FROM alpine:3.19 AS app
+FROM alpine:3.19 AS prod
 RUN apk add --no-cache bash=5.2.21-r0 git=2.43.7-r0 curl=8.14.1-r2
 WORKDIR /workspace
 COPY app/dev.sh /usr/local/bin/dev
