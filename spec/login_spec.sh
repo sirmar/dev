@@ -34,7 +34,7 @@ End
 Describe 'login via DEV_REGISTRY config'
   setup_login_config() {
     setup_mock_docker
-    printf 'DEV_NAME=dev\nDEV_SERVICE=app\nDEV_REGISTRY=registry.example.com/org\nDEV_REGISTRY_USER=myuser\nDEV_REGISTRY_TOKEN=mytoken\n' >"$MOCK_DIR/.dev"
+    write_dev_config "$MOCK_DIR" dev service "DEV_REGISTRY=registry.example.com/org" "DEV_REGISTRY_USER=myuser" "DEV_REGISTRY_TOKEN=mytoken"
     # No gh in PATH so it falls back to config
     rm -f "$MOCK_DIR/gh"
   }

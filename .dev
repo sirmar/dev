@@ -1,2 +1,2 @@
 DEV_NAME=dev
-DEV_SHELL=bash
+DEV_REPO_TYPE=tool

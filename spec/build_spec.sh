@@ -35,7 +35,7 @@ End
 Describe 'build (image repo with stages)'
   setup_image_repo() {
     setup_mock_docker
-    printf 'DEV_NAME=myimage\nDEV_SERVICE=app\nDEV_REPO_TYPE=image\n' >"$MOCK_DIR/.dev"
+    write_dev_config "$MOCK_DIR" myimage image
     printf 'FROM scratch AS base\nFROM scratch AS amd64\nFROM scratch AS arm64\n' >"$MOCK_DIR/Dockerfile"
   }
   Before 'setup_image_repo'
@@ -53,7 +53,7 @@ End
 Describe 'build (image repo with no stages)'
   setup_image_repo_no_stages() {
     setup_mock_docker
-    printf 'DEV_NAME=myimage\nDEV_SERVICE=app\nDEV_REPO_TYPE=image\n' >"$MOCK_DIR/.dev"
+    write_dev_config "$MOCK_DIR" myimage image
     printf 'FROM scratch\n' >"$MOCK_DIR/Dockerfile"
   }
   Before 'setup_image_repo_no_stages'

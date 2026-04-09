@@ -61,7 +61,7 @@ End
 Describe 'e2e is not available for image repos'
   setup_e2e_image_repo() {
     setup_mock_e2e
-    printf 'DEV_NAME=dev\nDEV_REPO_TYPE=image\n' >"$MOCK_DIR/.dev"
+    write_dev_config "$MOCK_DIR" dev image
   }
   Before 'setup_e2e_image_repo'
   After 'teardown_mock_docker'

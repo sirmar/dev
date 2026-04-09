@@ -5,13 +5,16 @@
 DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 DEV_SCRIPT="$DEV_ROOT/app/dev.sh"
 
+# shellcheck disable=SC1091
+. "$DEV_ROOT/spec/support/helpers.sh"
+
 Describe 'down'
   setup_env() {
     MOCK_DIR="$(mktemp -d)"
     export PATH="$MOCK_DIR:$PATH"
     PROJ_DIR="$(mktemp -d)"
     cp "$DEV_SCRIPT" "$PROJ_DIR/dev.sh"
-    printf 'DEV_NAME=myapp\n' >"$PROJ_DIR/.dev"
+    write_dev_config "$PROJ_DIR" myapp service
     printf 'services:\n  api:\n    image: test\n' >"$PROJ_DIR/docker-compose.yml"
     printf '#!/bin/sh\necho "docker $*"\n' >"$MOCK_DIR/docker"
     chmod +x "$MOCK_DIR/docker"
