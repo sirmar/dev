@@ -2,6 +2,7 @@
 set -euo pipefail
 
 VERSION="0.1.0"
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 export DOCKER_CLI_HINTS=false
 
 # ---------------------------------------------------------------------------
@@ -45,7 +46,6 @@ load_config() {
 	# shellcheck source=/dev/null
 	source "$ROOT_DIR/.dev"
 	DEV_NAME="${DEV_NAME:-dev}"
-	DEV_SHELL="${DEV_SHELL:-sh}"
 	DEV_CONTEXT="${DEV_CONTEXT:-.}"
 	DEV_REPO_TYPE="${DEV_REPO_TYPE:-service}"
 	DEV_REGISTRY="${DEV_REGISTRY:-}"
@@ -55,6 +55,7 @@ load_config() {
 	DEV_DB_NAME="${DEV_DB_NAME:-}"
 	DEV_DB_USER="${DEV_DB_USER:-root}"
 	DEV_DB_PASSWORD="${DEV_DB_PASSWORD:-}"
+	export DEV_NAME DEV_CONTEXT DEV_REPO_TYPE DEV_REGISTRY DEV_REGISTRY_USER DEV_REGISTRY_TOKEN DEV_NETWORK DEV_DB_NAME DEV_DB_USER DEV_DB_PASSWORD
 }
 
 # ---------------------------------------------------------------------------
@@ -66,7 +67,7 @@ check_docker() {
 }
 
 image_name() {
-	if [[ "$1" == "app" ]]; then
+	if [[ "$1" == "prod" ]]; then
 		echo "$DEV_NAME"
 	else
 		echo "${DEV_NAME}-${1}"
@@ -106,7 +107,7 @@ run_in() {
 }
 
 compose() {
-	docker compose --project-name "$DEV_NAME" -f "$ROOT_DIR/docker-compose.yml" "$@"
+	docker compose --project-name "$DEV_NAME" -f "$ROOT_DIR/docker-compose.yml" -f "$SCRIPT_DIR/docker-compose.network.yml" "$@"
 }
 
 # ---------------------------------------------------------------------------
@@ -131,7 +132,7 @@ cmd_build() {
 			done
 		fi
 	else
-		build_image app
+		build_image prod
 	fi
 }
 
@@ -167,7 +168,7 @@ cmd_push() {
 	else
 		remote="${DEV_REGISTRY}/${DEV_NAME}:${tag}"
 		info "pushing $remote"
-		docker tag "$(image_name app)" "$remote"
+		docker tag "$(image_name prod)" "$remote"
 		docker push "$remote"
 	fi
 }
@@ -320,16 +321,31 @@ cmd_db_migrate() {
 
 cmd_shell() {
 	check_docker
-	build_image "$DEV_SERVICE" true
-	info "running shell"
-	docker run --rm -it --name "$(image_name "$DEV_SERVICE")" -v "$ROOT_DIR:/workspace" "$(image_name "$DEV_SERVICE")" "$DEV_SHELL"
+	local container
+	container="$DEV_NAME"
+	if ! docker ps --format '{{.Names}}' | grep -qx "$container"; then
+		error "container '$container' is not running — start it with: dev up"
+	fi
+	info "entering $container"
+	docker exec -it "$container" bash
+}
+
+cmd_watch() {
+	check_docker
+	if ! has_dockerfile_stage watch; then
+		info "no 'watch' stage found in Dockerfile — skipping"
+		return 0
+	fi
+	build_image watch true
+	info "starting watch"
+	docker run --rm -it --name "$(image_name watch)" -v "$ROOT_DIR:/workspace" "$(image_name watch)"
 }
 
 cmd_run() {
 	check_docker
-	build_image app true
+	build_image prod true
 	shift
-	run_in app "$@"
+	run_in prod "$@"
 }
 
 cmd_up() {
@@ -405,6 +421,7 @@ EOF
     coverage            Run tests with coverage report
     types               Run static type checking
     security            Run security scanning
+    watch               Build watch stage and run with hot reload
     shell               Open interactive shell in container
     run <cmd> [args]    Run arbitrary command in container
     up [service...]     Start services via Docker Compose
@@ -467,6 +484,10 @@ main() {
 	security)
 		service_only security
 		cmd_security "$@"
+		;;
+	watch)
+		service_only watch
+		cmd_watch "$@"
 		;;
 	shell)
 		service_only shell
