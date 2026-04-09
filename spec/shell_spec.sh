@@ -7,36 +7,59 @@ DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 # shellcheck disable=SC1091
 . "$DEV_ROOT/spec/support/helpers.sh"
 
+setup_mock_docker_shell_running() {
+    _setup_mock_project
+    cat >"$MOCK_DIR/docker" <<'EOF'
+#!/bin/sh
+if [ "$1" = "ps" ]; then
+    echo "dev"
+else
+    echo "docker $*"
+fi
+EOF
+    chmod +x "$MOCK_DIR/docker"
+    export PATH="$MOCK_DIR:$PATH"
+}
+
+setup_mock_docker_shell_not_running() {
+    _setup_mock_project
+    cat >"$MOCK_DIR/docker" <<'EOF'
+#!/bin/sh
+if [ "$1" = "ps" ]; then
+    echo ""
+else
+    echo "docker $*"
+fi
+EOF
+    chmod +x "$MOCK_DIR/docker"
+    export PATH="$MOCK_DIR:$PATH"
+}
+
 Describe 'shell'
-	Before 'setup_mock_docker'
-	After 'teardown_mock_docker'
+    Before 'setup_mock_docker_shell_running'
+    After 'teardown_mock_docker'
 
-	It 'builds the service image and runs an interactive shell'
-		When run run_dev shell
-		The output should include 'docker build'
-		The output should include 'docker run'
-		The output should include 'running shell'
-		The status should be success
-	End
+    It 'execs into the running container'
+        When run run_dev shell
+        The output should include 'docker exec'
+        The output should include 'dev'
+        The status should be success
+    End
 
-	It 'mounts the workspace volume'
-		When run run_dev shell
-		The output should include '/workspace'
-		The status should be success
-	End
+    It 'uses bash as the shell'
+        When run run_dev shell
+        The output should include 'bash'
+        The status should be success
+    End
 End
 
-Describe 'shell with custom DEV_SHELL'
-	setup_shell_bash() {
-		setup_mock_docker
-		printf 'DEV_NAME=dev\nDEV_SERVICE=app\nDEV_SHELL=bash\n' >"$MOCK_DIR/.dev"
-	}
-	Before 'setup_shell_bash'
-	After 'teardown_mock_docker'
+Describe 'shell when container is not running'
+    Before 'setup_mock_docker_shell_not_running'
+    After 'teardown_mock_docker'
 
-	It 'uses DEV_SHELL as the shell command'
-		When run run_dev shell
-		The output should include 'bash'
-		The status should be success
-	End
+    It 'errors with a helpful message'
+        When run run_dev shell
+        The stderr should include 'not running'
+        The status should be failure
+    End
 End
