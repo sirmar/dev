@@ -1,0 +1,63 @@
+#compdef dev
+
+_dev() {
+	local -a commands
+	commands=(
+		'build:Build Docker image(s)'
+		'format:Format source files'
+		'lint:Lint source files'
+		'unit:Run unit tests'
+		'coverage:Run tests with coverage'
+		'types:Run type checking'
+		'security:Run security scanning'
+		'check:Run format, lint, types, and coverage'
+		'shell:Open interactive shell in container'
+		'run:Run arbitrary command in container'
+		'up:Start services via Docker Compose'
+		'down:Stop services via Docker Compose'
+		'db-shell:Enter database shell'
+		'db-migrate:Run database migrations'
+		'login:Log in to container registry'
+		'push:Push image(s) to registry'
+		'release:Create a release tag'
+		'help:Show help'
+	)
+
+	if (( CURRENT == 2 )); then
+		_describe 'command' commands
+		return
+	fi
+
+	local subcmd="${words[2]}"
+
+	case "$subcmd" in
+		release)
+			local -a types
+			types=(
+				'major:Bump major version'
+				'minor:Bump minor version'
+				'patch:Bump patch version'
+			)
+			_describe 'release type' types
+			;;
+		lint | format)
+			_files
+			;;
+		up)
+			local compose_file=""
+			for f in docker-compose.yml docker-compose.yaml compose.yml compose.yaml; do
+				[[ -f "$f" ]] && { compose_file="$f"; break; }
+			done
+			if [[ -n "$compose_file" ]]; then
+				local -a services
+				services=(${(f)"$(grep -E '^  [a-zA-Z0-9_-]+:' "$compose_file" 2>/dev/null | sed 's/://;s/^ *//' || true)"})
+				_describe 'service' services
+			fi
+			;;
+		*)
+			_default
+			;;
+	esac
+}
+
+_dev "$@"
