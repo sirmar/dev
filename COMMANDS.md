@@ -13,7 +13,7 @@
 | `e2e`              | Run e2e tests                             |
 | `watch`            | Run with hot reload                       |
 | `shell`            | Open shell in running container           |
-| `run <cmd>`        | Run arbitrary command in container        |
+| `run [args]`       | Run the tool (tool repos only)            |
 | `up [service...]`  | Start services via Docker Compose         |
 | `down [args]`      | Stop services via Docker Compose          |
 | `logs [-f] [svc]`  | Show service logs (use -f to follow)      |
