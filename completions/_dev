@@ -50,6 +50,19 @@ _dev() {
 				_describe 'option' log_opts
 			fi
 			;;
+		exec)
+			local dev_scripts=""
+			local dir="$PWD"
+			while [[ "$dir" != "/" ]]; do
+				[[ -f "$dir/.dev" ]] && { dev_scripts="$(grep -m1 '^DEV_SCRIPTS=' "$dir/.dev" | cut -d= -f2- | tr -d '"' || true)"; break; }
+				dir="$(dirname "$dir")"
+			done
+			if [[ -n "$dev_scripts" ]]; then
+				local -a scripts
+				scripts=(${(f)"$(echo "$dev_scripts" | tr ' ' '\n' | cut -d: -f1)"})
+				_describe 'script' scripts
+			fi
+			;;
 		*)
 			_default
 			;;

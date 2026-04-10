@@ -66,6 +66,20 @@ _dev_completion() {
 			COMPREPLY=($(compgen -W "$opts" -- "$cur"))
 			COMPREPLY=("${COMPREPLY[@]/%/ }")
 			;;
+		exec)
+			local dev_scripts="" script_names=""
+			local dir="$PWD"
+			while [[ "$dir" != "/" ]]; do
+				if [[ -f "$dir/.dev" ]]; then
+					dev_scripts="$(grep -m1 '^DEV_SCRIPTS=' "$dir/.dev" | cut -d= -f2- | tr -d '"' || true)"
+					break
+				fi
+				dir="$(dirname "$dir")"
+			done
+			script_names="$(echo "$dev_scripts" | tr ' ' '\n' | cut -d: -f1 | tr '\n' ' ')"
+			COMPREPLY=($(compgen -W "$script_names" -- "$cur"))
+			COMPREPLY=("${COMPREPLY[@]/%/ }")
+			;;
 		*)
 			COMPREPLY=($(compgen -f -- "$cur"))
 			_dev_fix_files

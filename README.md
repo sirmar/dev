@@ -47,6 +47,7 @@ Available config keys:
 | `DEV_REPO_TYPE`     | **Required.** `service`, `tool`, or `image` |
 | `DEV_CONTEXT`       | Docker build context                       |
 | `DEV_NETWORK`       | External Docker network to attach to       |
+| `DEV_SCRIPTS`       | Named scripts for `dev exec`, e.g. `evaluate:scripts/evaluate.py` |
 | `DEV_DB_NAME`       | Database name for `db-shell`/`db-migrate`  |
 | `DEV_DB_USER`       | Database user                              |
 | `DEV_DB_PASSWORD`   | Database password                          |

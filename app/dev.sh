@@ -52,6 +52,7 @@ load_config() {
 	DEV_REGISTRY_USER="${DEV_REGISTRY_USER:-}"
 	DEV_REGISTRY_TOKEN="${DEV_REGISTRY_TOKEN:-}"
 	DEV_NETWORK="${DEV_NETWORK:-}"
+	DEV_SCRIPTS="${DEV_SCRIPTS:-}"
 	DEV_DB_NAME="${DEV_DB_NAME:-}"
 	DEV_DB_USER="${DEV_DB_USER:-root}"
 	DEV_DB_PASSWORD="${DEV_DB_PASSWORD:-}"
@@ -65,7 +66,7 @@ load_config() {
 	DEV_E2E_DB_CONTAINER="${DEV_NAME}-db-e2e"
 	DEV_COVERAGE_CONTAINER="${DEV_NAME}-coverage"
 	DEV_E2E_NETWORK="${DEV_NAME}-e2e"
-	export DEV_NAME DEV_CONTEXT DEV_REPO_TYPE DEV_REGISTRY DEV_REGISTRY_USER DEV_REGISTRY_TOKEN DEV_NETWORK DEV_DB_NAME DEV_DB_USER DEV_DB_PASSWORD
+	export DEV_NAME DEV_CONTEXT DEV_REPO_TYPE DEV_REGISTRY DEV_REGISTRY_USER DEV_REGISTRY_TOKEN DEV_NETWORK DEV_SCRIPTS DEV_DB_NAME DEV_DB_USER DEV_DB_PASSWORD
 	export DEV_IMAGE DEV_E2E_IMAGE DEV_COVERAGE_IMAGE DEV_CONTAINER DEV_DB_CONTAINER DEV_E2E_CONTAINER DEV_E2E_DB_CONTAINER DEV_COVERAGE_CONTAINER DEV_E2E_NETWORK
 }
 
@@ -118,7 +119,9 @@ build_image() {
 run_in() {
 	local stage="$1"
 	shift
-	docker run --rm --name "$(image_name "$stage")" -v "$ROOT_DIR:/workspace" "$(image_name "$stage")" "$@"
+	local network_flag=()
+	[[ -n "$DEV_NETWORK" ]] && network_flag=(--network "$DEV_NETWORK")
+	docker run --rm --name "$(image_name "$stage")" "${network_flag[@]}" -v "$ROOT_DIR:/workspace" "$(image_name "$stage")" "$@"
 }
 
 compose() {
@@ -348,7 +351,32 @@ cmd_run() {
 	build_image prod true
 	info "running $DEV_NAME"
 	shift
-	run_in prod "$@"
+	local network_flag=()
+	[[ -n "$DEV_NETWORK" ]] && network_flag=(--network "$DEV_NETWORK")
+	docker run --rm -it --name "$(image_name prod)" "${network_flag[@]}" -v "$ROOT_DIR:/workspace" "$(image_name prod)" "$@"
+}
+
+cmd_exec() {
+	if ! has_dockerfile_stage scripts; then
+		info "no 'scripts' stage found in Dockerfile — skipping"
+		return 0
+	fi
+	build_image scripts true
+	shift
+	local script="${1:-}"
+	[[ -z "$script" ]] && error "usage: dev exec <script> [args]"
+	shift
+	local script_path=""
+	for entry in $DEV_SCRIPTS; do
+		local name="${entry%%:*}"
+		if [[ "$name" == "$script" ]]; then
+			script_path="${entry#*:}"
+			break
+		fi
+	done
+	[[ -z "$script_path" ]] && error "unknown script '$script' — available: $(echo "$DEV_SCRIPTS" | tr ' ' '\n' | cut -d: -f1 | tr '\n' ' ')"
+	info "running $script"
+	run_in scripts "$script_path" "$@"
 }
 
 cmd_up() {
@@ -436,6 +464,14 @@ EOF
 EOF
 	fi
 
+	if [[ -n "$DEV_SCRIPTS" ]]; then
+		local script_names
+		script_names="$(echo "$DEV_SCRIPTS" | tr ' ' '\n' | cut -d: -f1 | tr '\n' ' ' | sed 's/ $//')"
+		cat <<EOF
+    exec <script>       Run a script in the scripts stage ($script_names)
+EOF
+	fi
+
 	if [[ "$DEV_REPO_TYPE" == "service" ]]; then
 		cat <<EOF
     watch               Build watch stage and run with hot reload
@@ -490,6 +526,18 @@ cmd_completions() {
 	if [[ "$repo_type" == "tool" ]]; then
 		cmds="$cmds run"
 	fi
+	local dev_scripts=""
+	local dir2="$PWD"
+	while [[ "$dir2" != "/" ]]; do
+		if [[ -f "$dir2/.dev" ]]; then
+			dev_scripts="$(grep -m1 '^DEV_SCRIPTS=' "$dir2/.dev" | cut -d= -f2- | tr -d '"' || true)"
+			break
+		fi
+		dir2="$(dirname "$dir2")"
+	done
+	if [[ -n "$dev_scripts" ]]; then
+		cmds="$cmds exec"
+	fi
 	if [[ "$repo_type" == "service" ]]; then
 		cmds="$cmds watch shell up down logs db-shell db-migrate"
 	fi
@@ -522,7 +570,7 @@ main() {
 	esac
 
 	case "$command" in
-	build | login | push | lint | format | unit | e2e | check | coverage | types | security | watch | shell | run | up | down | logs | db-shell | db-migrate) ;;
+	build | login | push | lint | format | unit | e2e | check | coverage | types | security | watch | shell | run | exec | up | down | logs | db-shell | db-migrate) ;;
 	*)
 		echo "error: unknown command '$command'" >&2
 		cmd_help
@@ -576,6 +624,10 @@ main() {
 	run)
 		assert_repo_type run tool
 		cmd_run "$@"
+		;;
+	exec)
+		assert_repo_type exec service tool
+		cmd_exec "$@"
 		;;
 	up)
 		assert_repo_type up service
