@@ -1,0 +1,11 @@
+name: Setup dev
+description: Install the dev CLI into the runner's PATH
+
+runs:
+  using: composite
+  steps:
+    - name: Install dev
+      shell: bash
+      run: |
+        cp "${{ github.action_path }}/app/dev.sh" /usr/local/bin/dev
+        chmod +x /usr/local/bin/dev

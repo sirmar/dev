@@ -20,10 +20,7 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
-      - name: Install dev
-        run: |
-          cp app/dev.sh /usr/local/bin/dev
-          chmod +x /usr/local/bin/dev
+      - uses: ./
       - name: Login
         run: dev login
       - name: Lint
@@ -43,10 +40,7 @@ jobs:
       packages: read
     steps:
       - uses: actions/checkout@v4
-      - name: Install dev
-        run: |
-          cp app/dev.sh /usr/local/bin/dev
-          chmod +x /usr/local/bin/dev
+      - uses: ./
       - name: Login
         run: dev login
       - name: Lint
@@ -63,10 +57,7 @@ jobs:
       packages: read
     steps:
       - uses: actions/checkout@v4
-      - name: Install dev
-        run: |
-          cp app/dev.sh /usr/local/bin/dev
-          chmod +x /usr/local/bin/dev
+      - uses: ./
       - name: Login
         run: dev login
       - name: Lint
