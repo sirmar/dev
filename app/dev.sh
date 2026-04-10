@@ -346,6 +346,7 @@ cmd_watch() {
 
 cmd_run() {
 	build_image prod true
+	info "running $DEV_NAME"
 	shift
 	run_in prod "$@"
 }
@@ -429,11 +430,16 @@ EOF
 EOF
 	fi
 
+	if [[ "$DEV_REPO_TYPE" == "tool" ]]; then
+		cat <<EOF
+    run [args]          Run the tool
+EOF
+	fi
+
 	if [[ "$DEV_REPO_TYPE" == "service" ]]; then
 		cat <<EOF
     watch               Build watch stage and run with hot reload
     shell               Open interactive shell in container
-    run <cmd> [args]    Run arbitrary command in container
     up [service...]     Start services via Docker Compose
     down [args]         Stop services via Docker Compose
     logs [-f] [svc...] Show service logs (--follow to tail)
@@ -481,8 +487,11 @@ cmd_completions() {
 	if [[ "$repo_type" == "service" || "$repo_type" == "tool" ]]; then
 		cmds="$cmds format unit coverage types security check e2e"
 	fi
+	if [[ "$repo_type" == "tool" ]]; then
+		cmds="$cmds run"
+	fi
 	if [[ "$repo_type" == "service" ]]; then
-		cmds="$cmds watch shell run up down logs db-shell db-migrate"
+		cmds="$cmds watch shell up down logs db-shell db-migrate"
 	fi
 	echo "$cmds"
 }
@@ -565,7 +574,7 @@ main() {
 		cmd_shell "$@"
 		;;
 	run)
-		assert_repo_type run service
+		assert_repo_type run tool
 		cmd_run "$@"
 		;;
 	up)
