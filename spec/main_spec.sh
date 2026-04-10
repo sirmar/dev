@@ -49,6 +49,14 @@ Describe 'completions'
   End
 End
 
+Describe 'root'
+  It 'prints the project root directory'
+    When run bash -c "cd '$DEV_ROOT' && bash '$DEV_SCRIPT' root"
+    The status should be success
+    The output should equal "$DEV_ROOT"
+  End
+End
+
 Describe 'find_root'
   It 'finds .dev file from project root'
     When run bash -c "cd '$DEV_ROOT' && bash '$DEV_SCRIPT' help"

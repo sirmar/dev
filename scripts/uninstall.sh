@@ -13,6 +13,10 @@ fi
 rm "$LINK_PATH"
 echo "Uninstalled: $LINK_PATH"
 
+for hook in claude-lint claude-format; do
+	[[ -L "$INSTALL_DIR/$hook" ]] && rm "$INSTALL_DIR/$hook" && echo "Uninstalled: $INSTALL_DIR/$hook"
+done
+
 BASH_COMPLETION_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/bash-completion/completions"
 ZSH_COMPLETION_DIR="${ZDOTDIR:-$HOME}/.zfunc"
 

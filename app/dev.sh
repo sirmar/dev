@@ -138,7 +138,6 @@ dockerfile_stages() {
 }
 
 cmd_build() {
-	check_docker
 	if [[ "$DEV_REPO_TYPE" == "image" ]]; then
 		local stages
 		mapfile -t stages < <(dockerfile_stages)
@@ -156,7 +155,6 @@ cmd_build() {
 }
 
 cmd_login() {
-	check_docker
 	local host user token
 	if [[ -n "${CI:-}" && -n "${GITHUB_TOKEN:-}" ]]; then
 		host="ghcr.io"
@@ -178,7 +176,6 @@ cmd_login() {
 }
 
 cmd_push() {
-	check_docker
 	if [[ -z "$DEV_REGISTRY" ]]; then error "DEV_REGISTRY is not set — add it to .dev or ~/.config/dev/config"; fi
 	cmd_login
 	local tag remote
@@ -194,6 +191,10 @@ cmd_push() {
 	fi
 }
 
+cmd_root() {
+	echo "$ROOT_DIR"
+}
+
 cmd_lint_dockerfiles() {
 	if [[ ! -f "$ROOT_DIR/Dockerfile" ]]; then return 0; fi
 	info "linting Dockerfile"
@@ -204,61 +205,33 @@ cmd_lint_dockerfiles() {
 }
 
 cmd_lint() {
-	check_docker
 	if [[ "$DEV_REPO_TYPE" == "image" ]]; then
-		if [[ "${2:-}" != "--claude" ]]; then cmd_lint_dockerfiles; fi
+		cmd_lint_dockerfiles
 		return 0
 	fi
-	local target=""
-	if [[ "${2:-}" == "--claude" ]]; then
-		local abs
-		abs="$(jq -r '.tool_input.file_path')"
-		target="${abs#"$ROOT_DIR"/}"
-	else
-		target="${2:-}"
-	fi
+	local target="${2:-}"
 	if has_dockerfile_stage lint; then
 		build_image lint true
-		if [[ "${2:-}" == "--claude" ]]; then
-			info "running lint on $target"
-			local output
-			output="$(run_in lint "$target" 2>&1)" || {
-				tail -n 20 <<<"$output" >&2
-				exit 2
-			}
-		else
-			if [[ -n "$target" ]]; then info "running lint on $target"; else info "running lint"; fi
-			run_in lint ${target:+"$target"}
-		fi
+		if [[ -n "$target" ]]; then info "running lint on $target"; else info "running lint"; fi
+		run_in lint ${target:+"$target"}
 	else
 		info "no 'lint' stage found in Dockerfile — skipping"
 	fi
-	if [[ -z "$target" ]] && [[ "${2:-}" != "--claude" ]]; then cmd_lint_dockerfiles; fi
+	if [[ -z "$target" ]]; then cmd_lint_dockerfiles; fi
 }
 
 cmd_format() {
-	check_docker
 	if ! has_dockerfile_stage format; then
 		info "no 'format' stage found in Dockerfile — skipping"
 		return 0
 	fi
 	build_image format true
-	local target=""
-	if [[ "${2:-}" == "--claude" ]]; then
-		local abs
-		abs="$(jq -r '.tool_input.file_path')"
-		target="${abs#"$ROOT_DIR"/}"
-		info "running format on $target"
-		run_in format "$target" &>/dev/null || true
-	else
-		target="${2:-}"
-		if [[ -n "$target" ]]; then info "running format on $target"; else info "running format"; fi
-		run_in format ${target:+"$target"}
-	fi
+	local target="${2:-}"
+	if [[ -n "$target" ]]; then info "running format on $target"; else info "running format"; fi
+	run_in format ${target:+"$target"}
 }
 
 cmd_unit() {
-	check_docker
 	if ! has_dockerfile_stage unit; then
 		info "no 'unit' stage found in Dockerfile — skipping"
 		return 0
@@ -277,7 +250,6 @@ cmd_unit() {
 }
 
 cmd_coverage() {
-	check_docker
 	if ! has_dockerfile_stage coverage; then
 		info "no 'coverage' stage found in Dockerfile — skipping"
 		return 0
@@ -293,7 +265,6 @@ cmd_coverage() {
 }
 
 cmd_types() {
-	check_docker
 	if ! has_dockerfile_stage types; then
 		info "no 'types' stage found in Dockerfile — skipping"
 		return 0
@@ -304,7 +275,6 @@ cmd_types() {
 }
 
 cmd_security() {
-	check_docker
 	if ! has_dockerfile_stage security; then
 		info "no 'security' stage found in Dockerfile — skipping"
 		return 0
@@ -315,7 +285,6 @@ cmd_security() {
 }
 
 cmd_check() {
-	check_docker
 	cmd_format "$@"
 	cmd_lint "$@"
 	cmd_types "$@"
@@ -323,14 +292,12 @@ cmd_check() {
 }
 
 cmd_db_shell() {
-	check_docker
 	if [[ -z "$DEV_DB_NAME" ]]; then error "DEV_DB_NAME is not set in .dev"; fi
 	info "entering database on $DEV_DB_CONTAINER"
 	docker exec -it "$DEV_DB_CONTAINER" mysql -u "$DEV_DB_USER" -p"$DEV_DB_PASSWORD" "$DEV_DB_NAME"
 }
 
 cmd_db_migrate() {
-	check_docker
 	if [[ -z "$DEV_DB_NAME" ]]; then error "DEV_DB_NAME is not set in .dev"; fi
 	local db_url="mysql://${DEV_DB_USER}:${DEV_DB_PASSWORD}@${DEV_DB_CONTAINER}/${DEV_DB_NAME}"
 	info "running migrations"
@@ -345,7 +312,6 @@ cmd_db_migrate() {
 }
 
 cmd_e2e() {
-	check_docker
 	if ! has_dockerfile_stage e2e; then
 		info "no 'e2e' stage found in Dockerfile — skipping"
 		return 0
@@ -361,7 +327,6 @@ cmd_e2e() {
 }
 
 cmd_shell() {
-	check_docker
 	if ! docker ps --format '{{.Names}}' | grep -qx "$DEV_CONTAINER"; then
 		error "container '$DEV_CONTAINER' is not running — start it with: dev up"
 	fi
@@ -370,7 +335,6 @@ cmd_shell() {
 }
 
 cmd_watch() {
-	check_docker
 	if ! has_dockerfile_stage watch; then
 		info "no 'watch' stage found in Dockerfile — skipping"
 		return 0
@@ -381,27 +345,23 @@ cmd_watch() {
 }
 
 cmd_run() {
-	check_docker
 	build_image prod true
 	shift
 	run_in prod "$@"
 }
 
 cmd_up() {
-	check_docker
 	ensure_network
 	info "starting services"
 	compose up -d "${@:2}"
 }
 
 cmd_down() {
-	check_docker
 	info "stopping services"
 	compose down "${@:2}"
 }
 
 cmd_logs() {
-	check_docker
 	compose logs "${@:2}"
 }
 
@@ -538,10 +498,35 @@ main() {
 
 	local command="${1:-help}"
 	case "$command" in
+	help | -h | --help)
+		cmd_help
+		return
+		;;
+	root)
+		cmd_root
+		return
+		;;
+	release)
+		cmd_release "$@"
+		return
+		;;
+	esac
+
+	case "$command" in
+	build | login | push | lint | format | unit | e2e | check | coverage | types | security | watch | shell | run | up | down | logs | db-shell | db-migrate) ;;
+	*)
+		echo "error: unknown command '$command'" >&2
+		cmd_help
+		exit 1
+		;;
+	esac
+
+	check_docker
+
+	case "$command" in
 	build) cmd_build "$@" ;;
 	login) cmd_login "$@" ;;
 	push) cmd_push "$@" ;;
-	release) cmd_release "$@" ;;
 	lint) cmd_lint "$@" ;;
 	format)
 		assert_repo_type format service tool
@@ -602,12 +587,6 @@ main() {
 	db-migrate)
 		assert_repo_type db-migrate service
 		cmd_db_migrate "$@"
-		;;
-	help | -h | --help) cmd_help ;;
-	*)
-		echo "error: unknown command '$command'" >&2
-		cmd_help
-		exit 1
 		;;
 	esac
 }
