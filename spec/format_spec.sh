@@ -40,30 +40,3 @@ Describe 'format'
   End
 End
 
-Describe 'format --claude passes'
-  setup_format_claude_pass() { setup_claude_pass; }
-  Before 'setup_format_claude_pass'
-  After 'teardown_mock_docker'
-
-  It 'exits 0 and suppresses output'
-    When run bash -c "cd '$MOCK_DIR' && echo '{}' | bash '$DEV_SCRIPT' format --claude"
-    The status should be success
-    The output should include 'building stage format'
-    The output should include 'running format on dev.sh'
-    The stderr should equal ''
-  End
-End
-
-Describe 'format --claude fails'
-  setup_format_claude_fail() { setup_claude_fail 'format error'; }
-  Before 'setup_format_claude_fail'
-  After 'teardown_mock_docker'
-
-  It 'exits 0 and suppresses output even when format fails'
-    When run bash -c "cd '$MOCK_DIR' && echo '{}' | bash '$DEV_SCRIPT' format --claude"
-    The status should be success
-    The output should include 'building stage format'
-    The output should include 'running format'
-    The stderr should equal ''
-  End
-End

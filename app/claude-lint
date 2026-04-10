@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Claude Code PostToolUse hook — runs lint on the edited file.
+# Reads a Claude tool-use JSON object from stdin.
+set -euo pipefail
+
+root_dir="$(dev root)"
+abs="$(jq -r '.tool_input.file_path')"
+target="${abs#"$root_dir"/}"
+
+output="$(dev lint "$target" 2>&1)" || {
+	tail -n 20 <<<"$output" >&2
+	exit 2
+}

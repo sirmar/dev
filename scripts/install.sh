@@ -14,6 +14,11 @@ mkdir -p "$INSTALL_DIR"
 ln -sf "$REPO_DIR/app/dev.sh" "$INSTALL_DIR/$LINK_NAME"
 echo "Installed: $INSTALL_DIR/$LINK_NAME -> $REPO_DIR/app/dev.sh"
 
+for hook in claude-lint claude-format; do
+	ln -sf "$REPO_DIR/app/$hook" "$INSTALL_DIR/$hook"
+	echo "Installed: $INSTALL_DIR/$hook -> $REPO_DIR/app/$hook"
+done
+
 if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
 	echo "warning: $INSTALL_DIR is not in PATH — add it to your shell profile"
 fi

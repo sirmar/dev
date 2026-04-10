@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Claude Code PostToolUse hook — runs format on the edited file.
+# Reads a Claude tool-use JSON object from stdin.
+set -euo pipefail
+
+root_dir="$(dev root)"
+abs="$(jq -r '.tool_input.file_path')"
+target="${abs#"$root_dir"/}"
+
+dev format "$target" &>/dev/null || true
