@@ -14,6 +14,7 @@
 | `watch`            | Run with hot reload                       |
 | `shell`            | Open shell in running container           |
 | `run [args]`       | Run the tool (tool repos only)            |
+| `exec <script>`    | Run a named script in the scripts stage   |
 | `up [service...]`  | Start services via Docker Compose         |
 | `down [args]`      | Stop services via Docker Compose          |
 | `logs [-f] [svc]`  | Show service logs (use -f to follow)      |
