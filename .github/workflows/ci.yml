@@ -17,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       packages: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
       - name: Install dev
@@ -27,10 +28,13 @@ jobs:
         run: dev login
       - name: Lint
         run: dev lint
-      - name: Unit tests
-        run: dev unit
       - name: Coverage
         run: dev coverage
+      - name: Coverage summary
+        run: |
+          rate=$(grep -o 'line-rate="[^"]*"' coverage/cobertura.xml | head -1 | grep -o '[0-9.]*')
+          pct=$(echo "$rate * 100" | bc -l | xargs printf "%.1f")
+          echo "### Coverage: ${pct}%" >> "$GITHUB_STEP_SUMMARY"
 
   bash-image:
     name: Bash Image
