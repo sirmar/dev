@@ -9,6 +9,7 @@ jobs:
     name: Push
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       packages: write
     env:
       DEV_REGISTRY: ghcr.io/${{ github.repository_owner }}
@@ -27,6 +28,7 @@ jobs:
     name: Push Bash Image
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       packages: write
     env:
       DEV_REGISTRY: ghcr.io/${{ github.repository_owner }}
@@ -45,6 +47,7 @@ jobs:
     name: Push Nginx Image
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       packages: write
     env:
       DEV_REGISTRY: ghcr.io/${{ github.repository_owner }}
@@ -63,6 +66,7 @@ jobs:
     name: Push Python Image
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       packages: write
     env:
       DEV_REGISTRY: ghcr.io/${{ github.repository_owner }}
@@ -81,6 +85,7 @@ jobs:
     name: Push TypeScript Image
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       packages: write
     env:
       DEV_REGISTRY: ghcr.io/${{ github.repository_owner }}
