@@ -16,7 +16,71 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install dev
         run: |
-          cp app/dev.sh /usr/local/bin/dev
+          cp src/app/dev.sh /usr/local/bin/dev
           chmod +x /usr/local/bin/dev
       - name: Push
+        run: dev push
+
+  push-bash-image:
+    name: Push Bash Image
+    runs-on: ubuntu-latest
+    env:
+      DEV_REGISTRY: ghcr.io/${{ github.repository_owner }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_ACTOR: ${{ github.actor }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+      - name: Login
+        run: dev login
+      - name: Push
+        working-directory: images/bash
+        run: dev push
+
+  push-nginx-image:
+    name: Push Nginx Image
+    runs-on: ubuntu-latest
+    env:
+      DEV_REGISTRY: ghcr.io/${{ github.repository_owner }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_ACTOR: ${{ github.actor }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+      - name: Login
+        run: dev login
+      - name: Push
+        working-directory: images/nginx
+        run: dev push
+
+  push-python-image:
+    name: Push Python Image
+    runs-on: ubuntu-latest
+    env:
+      DEV_REGISTRY: ghcr.io/${{ github.repository_owner }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_ACTOR: ${{ github.actor }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+      - name: Login
+        run: dev login
+      - name: Push
+        working-directory: images/python
+        run: dev push
+
+  push-typescript-image:
+    name: Push TypeScript Image
+    runs-on: ubuntu-latest
+    env:
+      DEV_REGISTRY: ghcr.io/${{ github.repository_owner }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_ACTOR: ${{ github.actor }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+      - name: Login
+        run: dev login
+      - name: Push
+        working-directory: images/typescript
         run: dev push
