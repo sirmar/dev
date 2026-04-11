@@ -20,6 +20,7 @@ COPY .shellspec ./
 ENTRYPOINT ["shellspec", "--kcov", "src/spec"]
 
 FROM alpine:3.19 AS prod
+LABEL org.opencontainers.image.source=https://github.com/sirmar/dev
 RUN apk add --no-cache bash=5.2.21-r0 git=2.43.7-r0 curl=8.14.1-r2
 WORKDIR /workspace
 COPY src/app/dev.sh /usr/local/bin/dev
