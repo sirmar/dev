@@ -50,6 +50,23 @@ jobs:
         working-directory: images/bash
         run: dev build
 
+  nginx-image:
+    name: Nginx Image
+    runs-on: ubuntu-latest
+    permissions:
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+      - name: Login
+        run: dev login
+      - name: Lint
+        working-directory: images/nginx
+        run: dev lint
+      - name: Build
+        working-directory: images/nginx
+        run: dev build
+
   python-image:
     name: Python Image
     runs-on: ubuntu-latest
@@ -65,4 +82,21 @@ jobs:
         run: dev lint
       - name: Build
         working-directory: images/python
+        run: dev build
+
+  typescript-image:
+    name: TypeScript Image
+    runs-on: ubuntu-latest
+    permissions:
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+      - name: Login
+        run: dev login
+      - name: Lint
+        working-directory: images/typescript
+        run: dev lint
+      - name: Build
+        working-directory: images/typescript
         run: dev build
