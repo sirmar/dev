@@ -11,6 +11,11 @@ _dev() {
 	local subcmd="${words[2]}"
 
 	case "$subcmd" in
+		build)
+			local -a build_opts
+			build_opts=('--no-cache:Build without using cache')
+			_describe 'option' build_opts
+			;;
 		release)
 			local -a types
 			types=(
