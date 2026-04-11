@@ -1,4 +1,5 @@
 FROM python:3.14-slim
+LABEL org.opencontainers.image.source=https://github.com/sirmar/dev
 WORKDIR /workspace
 ENV UV_PROJECT_ENVIRONMENT=/venv
 ENV PATH="/venv/bin:$PATH"
