@@ -1,8 +1,7 @@
 .git
 .gitignore
 .dockerignore
-.shellspec
-spec
+src/spec
 scripts/install.sh
 scripts/uninstall.sh
 CLAUDE.md
