@@ -3,7 +3,6 @@
 # shellcheck disable=SC2317
 
 DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
-DEV_SCRIPT="$DEV_ROOT/src/app/dev.sh"
 
 # shellcheck disable=SC1091
 . "$DEV_ROOT/src/spec/support/helpers.sh"
@@ -13,32 +12,32 @@ Describe 'build (service repo)'
   After 'teardown_mock_docker'
 
   It 'builds the prod image'
-    When run bash "$DEV_SCRIPT" build
+    When run run_dev build
     The output should include 'docker build --target prod'
     The status should be success
   End
 
   It 'tags the prod image as DEV_NAME without a suffix'
-    When run bash "$DEV_SCRIPT" build
+    When run run_dev build
     The output should include '-t dev '
     The output should not include '-t dev-prod'
     The status should be success
   End
 
   It 'always passes Dockerfile from project root'
-    When run bash "$DEV_SCRIPT" build
+    When run run_dev build
     The output should match pattern '*docker build*-f */Dockerfile *'
     The status should be success
   End
 
   It 'passes --no-cache to docker build when flag is given'
-    When run bash "$DEV_SCRIPT" build --no-cache
+    When run run_dev build --no-cache
     The output should include 'docker build --no-cache'
     The status should be success
   End
 
   It 'does not pass --no-cache by default'
-    When run bash "$DEV_SCRIPT" build
+    When run run_dev build
     The output should not include '--no-cache'
     The status should be success
   End
