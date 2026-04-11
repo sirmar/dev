@@ -8,20 +8,20 @@ DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 . "$DEV_ROOT/src/spec/support/helpers.sh"
 
 Describe 'release'
+  Before 'setup_mock_git_repo'
+  After 'teardown_mock_git_repo'
+
   It 'fails without a bump type'
-    When run bash "$DEV_SCRIPT" release
+    When run bash -c "cd '$MOCK_DIR' && bash dev.sh release"
     The status should be failure
     The stderr should include 'major|minor|patch'
   End
 
   It 'fails with invalid bump type'
-    When run bash "$DEV_SCRIPT" release banana
+    When run bash -c "cd '$MOCK_DIR' && bash dev.sh release banana"
     The status should be failure
     The stderr should include 'major|minor|patch'
   End
-
-  Before 'setup_mock_git_repo'
-  After 'teardown_mock_git_repo'
 
   It 'bumps patch version from v0.0.0'
     When run bash -c "cd '$MOCK_DIR' && bash dev.sh release patch"

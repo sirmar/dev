@@ -50,22 +50,28 @@ Describe 'completions'
 End
 
 Describe 'root'
+  Before 'setup_mock_docker'
+  After 'teardown_mock_docker'
+
   It 'prints the project root directory'
-    When run bash -c "cd '$DEV_ROOT' && bash '$DEV_SCRIPT' root"
+    When run run_dev root
     The status should be success
-    The output should equal "$DEV_ROOT"
+    The output should equal "$MOCK_DIR"
   End
 End
 
 Describe 'find_root'
+  Before 'setup_mock_docker'
+  After 'teardown_mock_docker'
+
   It 'finds .dev file from project root'
-    When run bash -c "cd '$DEV_ROOT' && bash '$DEV_SCRIPT' help"
+    When run run_dev help
     The status should be success
     The output should include 'USAGE'
   End
 
   It 'finds .dev file from a subdirectory'
-    When run bash -c "mkdir -p '$DEV_ROOT/tmp/nested' && cd '$DEV_ROOT/tmp/nested' && bash '$DEV_SCRIPT' help; rm -rf '$DEV_ROOT/tmp'"
+    When run bash -c "mkdir -p '$MOCK_DIR/nested' && cd '$MOCK_DIR/nested' && bash '$DEV_SCRIPT' help"
     The status should be success
     The output should include 'USAGE'
   End
@@ -78,8 +84,11 @@ Describe 'find_root'
 End
 
 Describe 'main dispatch'
+  Before 'setup_mock_docker'
+  After 'teardown_mock_docker'
+
   It "shows help for 'help' command"
-    When run bash "$DEV_SCRIPT" help
+    When run run_dev help
     The output should include 'USAGE'
     The output should include 'build'
     The output should include 'lint'
@@ -87,19 +96,19 @@ Describe 'main dispatch'
   End
 
   It 'shows help for --help flag'
-    When run bash "$DEV_SCRIPT" --help
+    When run run_dev --help
     The output should include 'USAGE'
     The status should be success
   End
 
   It 'shows help when no command given'
-    When run bash "$DEV_SCRIPT"
+    When run run_dev
     The output should include 'USAGE'
     The status should be success
   End
 
   It 'exits with error for unknown command'
-    When run bash "$DEV_SCRIPT" notacommand
+    When run run_dev notacommand
     The status should be failure
     The stderr should include 'unknown command'
     The output should include 'USAGE'

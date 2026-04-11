@@ -7,5 +7,5 @@ runs:
     - name: Install dev
       shell: bash
       run: |
-        cp "${{ github.action_path }}/app/dev.sh" /usr/local/bin/dev
+        cp "${{ github.action_path }}/src/app/dev.sh" /usr/local/bin/dev
         chmod +x /usr/local/bin/dev

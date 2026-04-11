@@ -266,7 +266,14 @@ cmd_coverage() {
 		compose_e2e run --rm coverage
 		compose_e2e down -v
 	else
-		run_in coverage
+		local network_flag=() container
+		[[ -n "$DEV_NETWORK" ]] && network_flag=(--network "$DEV_NETWORK")
+		docker run --name "$(image_name coverage)" "${network_flag[@]}" \
+			-v "$ROOT_DIR/src:/workspace/src" \
+			"$(image_name coverage)"
+		container=$(docker ps -aq --filter "name=$(image_name coverage)")
+		docker cp "$container:/workspace/coverage/." "$ROOT_DIR/coverage"
+		docker rm "$container"
 	fi
 }
 
