@@ -5,18 +5,18 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 INSTALL_DIR="${INSTALL_DIR:-$HOME/.local/bin}"
 LINK_NAME="dev"
 
-if [ ! -f "$REPO_DIR/app/dev.sh" ]; then
-	echo "error: app/dev.sh not found in $REPO_DIR" >&2
+if [ ! -f "$REPO_DIR/src/app/dev.sh" ]; then
+	echo "error: src/app/dev.sh not found in $REPO_DIR" >&2
 	exit 1
 fi
 
 mkdir -p "$INSTALL_DIR"
-ln -sf "$REPO_DIR/app/dev.sh" "$INSTALL_DIR/$LINK_NAME"
-echo "Installed: $INSTALL_DIR/$LINK_NAME -> $REPO_DIR/app/dev.sh"
+ln -sf "$REPO_DIR/src/app/dev.sh" "$INSTALL_DIR/$LINK_NAME"
+echo "Installed: $INSTALL_DIR/$LINK_NAME -> $REPO_DIR/src/app/dev.sh"
 
 for hook in claude-lint claude-format; do
-	ln -sf "$REPO_DIR/app/$hook" "$INSTALL_DIR/$hook"
-	echo "Installed: $INSTALL_DIR/$hook -> $REPO_DIR/app/$hook"
+	ln -sf "$REPO_DIR/src/app/$hook" "$INSTALL_DIR/$hook"
+	echo "Installed: $INSTALL_DIR/$hook -> $REPO_DIR/src/app/$hook"
 done
 
 if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
