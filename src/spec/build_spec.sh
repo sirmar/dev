@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+# shellcheck shell=bash
+# shellcheck disable=SC2317
+
+DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
+DEV_SCRIPT="$DEV_ROOT/src/app/dev.sh"
+
+# shellcheck disable=SC1091
+. "$DEV_ROOT/src/spec/support/helpers.sh"
+
+Describe 'build (service repo)'
+  Before 'setup_mock_docker'
+  After 'teardown_mock_docker'
+
+  It 'builds the prod image'
+    When run bash "$DEV_SCRIPT" build
+    The output should include 'docker build --target prod'
+    The status should be success
+  End
+
+  It 'tags the prod image as DEV_NAME without a suffix'
+    When run bash "$DEV_SCRIPT" build
+    The output should include '-t dev '
+    The output should not include '-t dev-prod'
+    The status should be success
+  End
+
+  It 'always passes Dockerfile from project root'
+    When run bash "$DEV_SCRIPT" build
+    The output should match pattern '*docker build*-f */Dockerfile *'
+    The status should be success
+  End
+
+  It 'passes --no-cache to docker build when flag is given'
+    When run bash "$DEV_SCRIPT" build --no-cache
+    The output should include 'docker build --no-cache'
+    The status should be success
+  End
+
+  It 'does not pass --no-cache by default'
+    When run bash "$DEV_SCRIPT" build
+    The output should not include '--no-cache'
+    The status should be success
+  End
+End
+
+Describe 'build (image repo with stages)'
+  setup_image_repo() {
+    setup_mock_docker
+    write_dev_config "$MOCK_DIR" myimage image
+    printf 'FROM scratch AS base\nFROM scratch AS amd64\nFROM scratch AS arm64\n' >"$MOCK_DIR/Dockerfile"
+  }
+  Before 'setup_image_repo'
+  After 'teardown_mock_docker'
+
+  It 'builds base stage first, then each other stage'
+    When run run_dev build
+    The output should include 'building stage base'
+    The output should include 'building stage amd64'
+    The output should include 'building stage arm64'
+    The status should be success
+  End
+End
+
+Describe 'build (image repo with no stages)'
+  setup_image_repo_no_stages() {
+    setup_mock_docker
+    write_dev_config "$MOCK_DIR" myimage image
+    printf 'FROM scratch\n' >"$MOCK_DIR/Dockerfile"
+  }
+  Before 'setup_image_repo_no_stages'
+  After 'teardown_mock_docker'
+
+  It 'builds image without a target stage'
+    When run run_dev build
+    The output should include 'building image'
+    The output should not include 'building stage'
+    The status should be success
+  End
+
+  It 'tags image as DEV_NAME'
+    When run run_dev build
+    The output should include '-t myimage'
+    The status should be success
+  End
+End

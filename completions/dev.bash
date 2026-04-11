@@ -26,6 +26,10 @@ _dev_completion() {
 	subcmd="${COMP_WORDS[1]}"
 
 	case "$subcmd" in
+		build)
+			COMPREPLY=($(compgen -W "--no-cache" -- "$cur"))
+			COMPREPLY=("${COMPREPLY[@]/%/ }")
+			;;
 		release)
 			COMPREPLY=($(compgen -W "major minor patch" -- "$cur"))
 			COMPREPLY=("${COMPREPLY[@]/%/ }")
