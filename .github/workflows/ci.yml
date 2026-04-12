@@ -13,90 +13,42 @@ env:
 
 jobs:
   tool:
-    name: Tool
+    name: Tool / ${{ matrix.job }}
     runs-on: ubuntu-latest
     permissions:
       packages: read
       pull-requests: write
+    strategy:
+      matrix:
+        job: [lint-dockerfile, lint, coverage]
     steps:
       - uses: actions/checkout@v4
       - uses: ./
       - name: Login
         run: dev login
-      - name: Lint
-        run: dev lint
-      - name: Coverage
-        run: dev coverage
+      - name: Run
+        run: dev ${{ matrix.job }}
       - name: Coverage summary
+        if: matrix.job == 'coverage'
         run: |
           rate=$(grep -o 'line-rate="[^"]*"' coverage/cobertura.xml | head -1 | grep -o '[0-9.]*')
           pct=$(echo "$rate * 100" | bc -l | xargs printf "%.1f")
           echo "### Coverage: ${pct}%" >> "$GITHUB_STEP_SUMMARY"
 
-  bash-image:
-    name: Bash Image
+  image:
+    name: ${{ matrix.image }} / ${{ matrix.job }}
     runs-on: ubuntu-latest
     permissions:
       packages: read
+    strategy:
+      matrix:
+        image: [bash, nginx, python, typescript]
+        job: [lint-dockerfile, build]
     steps:
       - uses: actions/checkout@v4
       - uses: ./
       - name: Login
         run: dev login
-      - name: Lint
-        working-directory: images/bash
-        run: dev lint
-      - name: Build
-        working-directory: images/bash
-        run: dev build
-
-  nginx-image:
-    name: Nginx Image
-    runs-on: ubuntu-latest
-    permissions:
-      packages: read
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./
-      - name: Login
-        run: dev login
-      - name: Lint
-        working-directory: images/nginx
-        run: dev lint
-      - name: Build
-        working-directory: images/nginx
-        run: dev build
-
-  python-image:
-    name: Python Image
-    runs-on: ubuntu-latest
-    permissions:
-      packages: read
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./
-      - name: Login
-        run: dev login
-      - name: Lint
-        working-directory: images/python
-        run: dev lint
-      - name: Build
-        working-directory: images/python
-        run: dev build
-
-  typescript-image:
-    name: TypeScript Image
-    runs-on: ubuntu-latest
-    permissions:
-      packages: read
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./
-      - name: Login
-        run: dev login
-      - name: Lint
-        working-directory: images/typescript
-        run: dev lint
-      - name: Build
-        working-directory: images/typescript
-        run: dev build
+      - name: Run
+        working-directory: images/${{ matrix.image }}
+        run: dev ${{ matrix.job }}
