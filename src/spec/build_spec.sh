@@ -76,6 +76,51 @@ Describe 'build (CI mode)'
   End
 End
 
+Describe 'build (CI mode with registry)'
+  setup_ci_registry() {
+    setup_mock_docker
+    export CI=true
+    export GITHUB_SHA=abc123
+    export GITHUB_TOKEN=token
+    export GITHUB_ACTOR=actor
+    export GITHUB_REPOSITORY_OWNER=org
+    write_dev_config "$MOCK_DIR" dev service
+  }
+  teardown_ci_registry() {
+    unset CI GITHUB_SHA GITHUB_TOKEN GITHUB_ACTOR GITHUB_REPOSITORY_OWNER
+    teardown_mock_docker
+  }
+  Before 'setup_ci_registry'
+  After 'teardown_ci_registry'
+
+  It 'tags the image with the default registry and SHA'
+    When run run_dev build
+    The output should include 'docker tag dev ghcr.io/org/dev:abc123'
+    The status should be success
+  End
+
+  It 'pushes the tagged image'
+    When run run_dev build
+    The output should include 'docker push ghcr.io/org/dev:abc123'
+    The status should be success
+  End
+
+  It 'does not push when GITHUB_SHA is unset'
+    unset GITHUB_SHA
+    When run run_dev build
+    The output should not include 'docker push'
+    The status should be success
+  End
+
+  It 'does not push when DEV_REGISTRY and GITHUB_REPOSITORY_OWNER are unset'
+    write_dev_config "$MOCK_DIR" dev service
+    unset GITHUB_REPOSITORY_OWNER
+    When run run_dev build
+    The output should not include 'docker push'
+    The status should be success
+  End
+End
+
 Describe 'build (image repo with stages)'
   setup_image_repo() {
     setup_mock_docker

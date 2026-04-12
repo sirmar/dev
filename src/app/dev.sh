@@ -48,7 +48,7 @@ load_config() {
 	[[ -z "${DEV_NAME:-}" ]] && error "DEV_NAME is not set in .dev"
 	DEV_CONTEXT="${DEV_CONTEXT:-.}"
 	[[ -z "${DEV_REPO_TYPE:-}" ]] && error "DEV_REPO_TYPE is not set in .dev"
-	DEV_REGISTRY="${DEV_REGISTRY:-}"
+	DEV_REGISTRY="${DEV_REGISTRY:-${GITHUB_REPOSITORY_OWNER:+ghcr.io/$GITHUB_REPOSITORY_OWNER}}"
 	DEV_REGISTRY_USER="${DEV_REGISTRY_USER:-}"
 	DEV_REGISTRY_TOKEN="${DEV_REGISTRY_TOKEN:-}"
 	DEV_NETWORK="${DEV_NETWORK:-}"
@@ -176,6 +176,13 @@ cmd_build() {
 		fi
 	else
 		build_image prod false "$no_cache"
+		if [[ -n "${CI:-}" && -n "$DEV_REGISTRY" && -n "${GITHUB_SHA:-}" ]]; then
+			local remote="${DEV_REGISTRY}/${DEV_NAME}:${GITHUB_SHA}"
+			cmd_login
+			info "pushing $remote"
+			docker tag "$DEV_NAME" "$remote"
+			docker push "$remote"
+		fi
 	fi
 }
 
