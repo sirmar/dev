@@ -32,10 +32,10 @@ Describe 'coverage'
     The status should be success
   End
 
-  It 'copies .coverage file from container'
+  It 'copies coverage.md file from container'
     When run run_dev coverage
     The output should include 'docker cp'
-    The output should include '.coverage'
+    The output should include 'coverage.md'
     The status should be success
   End
 End

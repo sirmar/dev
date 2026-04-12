@@ -30,10 +30,7 @@ jobs:
         run: dev ${{ matrix.job }}
       - name: Coverage summary
         if: matrix.job == 'coverage'
-        run: |
-          rate=$(grep -o 'line-rate="[^"]*"' coverage/cobertura.xml | head -1 | grep -o '[0-9.]*')
-          pct=$(echo "$rate * 100" | bc -l | xargs printf "%.1f")
-          echo "### Coverage: ${pct}%" >> "$GITHUB_STEP_SUMMARY"
+        run: echo '## Coverage' >> $GITHUB_STEP_SUMMARY && cat coverage.md >> $GITHUB_STEP_SUMMARY
 
   image:
     name: ${{ matrix.image }} / ${{ matrix.job }}

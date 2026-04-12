@@ -288,8 +288,7 @@ cmd_coverage() {
 			-v "$ROOT_DIR/src:/workspace/src" \
 			"$(image_name coverage)"
 		container=$(docker ps -aq --filter "name=$(image_name coverage)")
-		docker cp "$container:/workspace/.coverage" "$ROOT_DIR/.coverage" 2>/dev/null || true
-		docker cp "$container:/workspace/coverage/." "$ROOT_DIR/coverage" 2>/dev/null || true
+		docker cp "$container:/workspace/coverage.md" "$ROOT_DIR/coverage.md" 2>/dev/null || true
 		docker rm "$container"
 	fi
 }

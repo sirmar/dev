@@ -1,2 +1,3 @@
 #!/bin/sh
-exec pnpm vitest run --coverage --reporter=dot
+pnpm vitest run --coverage --reporter=dot && \
+  node /usr/local/bin/coverage-summary.js > coverage.md
