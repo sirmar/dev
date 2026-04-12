@@ -11,10 +11,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-    env:
-      DEV_REGISTRY: ghcr.io/${{ github.repository_owner }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      GITHUB_ACTOR: ${{ github.actor }}
     steps:
       - uses: actions/checkout@v4
       - name: Install dev
@@ -30,10 +26,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-    env:
-      DEV_REGISTRY: ghcr.io/${{ github.repository_owner }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      GITHUB_ACTOR: ${{ github.actor }}
     strategy:
       matrix:
         image: [bash, nginx, python, typescript]
