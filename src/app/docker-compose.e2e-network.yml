@@ -1,0 +1,4 @@
+networks:
+  default:
+    name: ${DEV_E2E_NETWORK}
+    external: true

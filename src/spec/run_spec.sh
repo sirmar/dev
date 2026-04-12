@@ -81,7 +81,7 @@ Describe 'run for e2e repo'
 		The status should be success
 	End
 
-	It 'tears down with volumes removed'
+	It 'cleans up before running'
 		When run run_dev run
 		The output should include 'compose'
 		The output should include 'down -v'

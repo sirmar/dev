@@ -61,3 +61,47 @@ EOF
     The status should be success
   End
 End
+
+Describe 'ensure_e2e_network'
+  setup_env() {
+    MOCK_DIR="$(mktemp -d)"
+    export PATH="$MOCK_DIR:$PATH"
+    NET_DIR="$(mktemp -d)"
+    cp "$DEV_SCRIPT" "$NET_DIR/dev.sh"
+    write_dev_config "$NET_DIR" dev service
+    printf 'FROM scratch AS e2e\n' >"$NET_DIR/Dockerfile"
+    touch "$NET_DIR/docker-compose.e2e.yml"
+  }
+
+  teardown_env() {
+    rm -rf "$MOCK_DIR" "$NET_DIR"
+  }
+
+  Before 'setup_env'
+  After 'teardown_env'
+
+  It 'creates the e2e network when it does not exist'
+    cat >"$MOCK_DIR/docker" <<'EOF'
+#!/bin/sh
+if [ "$1" = "network" ] && [ "$2" = "inspect" ]; then exit 1; fi
+echo "docker $*"
+EOF
+    chmod +x "$MOCK_DIR/docker"
+    When run bash -c "cd '$NET_DIR' && bash dev.sh e2e"
+    The output should include 'creating network dev-e2e'
+    The output should include 'docker network create dev-e2e'
+    The status should be success
+  End
+
+  It 'skips network creation when e2e network already exists'
+    cat >"$MOCK_DIR/docker" <<'EOF'
+#!/bin/sh
+if [ "$1" = "network" ] && [ "$2" = "inspect" ]; then exit 0; fi
+echo "docker $*"
+EOF
+    chmod +x "$MOCK_DIR/docker"
+    When run bash -c "cd '$NET_DIR' && bash dev.sh e2e"
+    The output should not include 'creating network'
+    The status should be success
+  End
+End

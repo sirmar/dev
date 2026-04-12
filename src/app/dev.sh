@@ -99,6 +99,13 @@ ensure_network() {
 	fi
 }
 
+ensure_e2e_network() {
+	if ! docker network inspect "$DEV_E2E_NETWORK" &>/dev/null; then
+		info "creating network $DEV_E2E_NETWORK"
+		docker network create "$DEV_E2E_NETWORK"
+	fi
+}
+
 has_dockerfile_stage() {
 	local stage="$1"
 	grep -qE "^FROM .+ AS ${stage}$" "$ROOT_DIR/Dockerfile" 2>/dev/null
@@ -142,7 +149,8 @@ compose() {
 }
 
 compose_e2e() {
-	docker compose --project-name "$DEV_E2E_NETWORK" -f "$ROOT_DIR/docker-compose.e2e.yml" "$@"
+	ensure_e2e_network
+	docker compose --project-name "$DEV_E2E_NETWORK" -f "$ROOT_DIR/docker-compose.e2e.yml" -f "$SCRIPT_DIR/docker-compose.e2e-network.yml" "$@"
 }
 
 # ---------------------------------------------------------------------------
@@ -289,7 +297,7 @@ cmd_coverage() {
 			"$(image_name coverage)"
 		container=$(docker ps -aq --filter "name=$(image_name coverage)")
 		docker cp "$container:/workspace/coverage.md" "$ROOT_DIR/coverage.md" 2>/dev/null || true
-		docker rm "$container"
+		docker rm "$container" >/dev/null
 	fi
 }
 
@@ -350,13 +358,13 @@ cmd_e2e() {
 		info "no docker-compose.e2e.yml found — skipping e2e"
 		return 0
 	fi
+	compose_e2e down -v
 	build_image e2e true
 	info "running e2e tests"
 	if compose_e2e run --rm e2e; then
-		compose_e2e down -v
+		:
 	else
-		compose_e2e logs
-		compose_e2e down -v
+		[[ -n "${CI:-}" ]] && compose_e2e logs
 		return 1
 	fi
 }
@@ -387,12 +395,12 @@ cmd_run() {
 			info "no docker-compose.yml found — skipping"
 			return 0
 		fi
+		compose down -v
 		info "running e2e tests"
 		if compose run --rm e2e; then
-			compose down -v
+			:
 		else
-			compose logs
-			compose down -v
+			[[ -n "${CI:-}" ]] && compose logs
 			return 1
 		fi
 		return
@@ -437,6 +445,14 @@ cmd_up() {
 cmd_down() {
 	info "stopping services"
 	compose down "$@"
+}
+
+cmd_clean() {
+	info "removing services and volumes"
+	compose down -v
+	if [[ -f "$ROOT_DIR/docker-compose.e2e.yml" ]]; then
+		compose_e2e down -v
+	fi
 }
 
 cmd_logs() {
@@ -540,6 +556,7 @@ EOF
     shell               Open interactive shell in container
     up [service...]     Start services via Docker Compose
     down [args]         Stop services via Docker Compose
+    clean               Remove all containers and volumes
     logs [-f] [svc...] Show service logs (--follow to tail)
     db-shell            Enter shell in running database container
     db-migrate          Run database migrations
@@ -604,7 +621,7 @@ cmd_completions() {
 		cmds="$cmds exec"
 	fi
 	if [[ "$repo_type" == "service" ]]; then
-		cmds="$cmds watch shell up down logs db-shell db-migrate"
+		cmds="$cmds watch shell up down clean logs db-shell db-migrate"
 	fi
 	echo "$cmds"
 }
@@ -631,7 +648,7 @@ main() {
 	esac
 
 	case "$command" in
-	build | login | push | lint | lint-dockerfile | format | unit | e2e | check | coverage | types | security | watch | shell | run | exec | up | down | logs | db-shell | db-migrate) ;;
+	build | login | push | lint | lint-dockerfile | format | unit | e2e | check | coverage | types | security | watch | shell | run | exec | up | down | clean | logs | db-shell | db-migrate) ;;
 	*)
 		echo "error: unknown command '$command'" >&2
 		cmd_help
@@ -699,6 +716,10 @@ main() {
 	down)
 		assert_repo_type down service
 		cmd_down "$@"
+		;;
+	clean)
+		assert_repo_type clean service
+		cmd_clean "$@"
 		;;
 	logs)
 		assert_repo_type logs service

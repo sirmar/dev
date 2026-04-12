@@ -17,6 +17,7 @@
 | `exec <script>`    | Run a named script in the scripts stage   |
 | `up [service...]`  | Start services via Docker Compose         |
 | `down [args]`      | Stop services via Docker Compose          |
+| `clean`            | Remove all containers and volumes         |
 | `logs [-f] [svc]`  | Show service logs (use -f to follow)      |
 | `db-shell`         | Enter shell in running database container |
 | `db-migrate`       | Run database migrations                   |
