@@ -1,4 +1,4 @@
-FROM ghcr.io/sirmar/dev-bash:v0.0.1 AS base
+FROM ghcr.io/sirmar/dev-bash:v0.0.3 AS base
 
 FROM base AS lint
 ENTRYPOINT ["/usr/local/bin/lint-entrypoint.sh"]
