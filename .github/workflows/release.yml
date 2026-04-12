@@ -4,6 +4,10 @@ on:
   push:
     tags: ['v*']
 
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GITHUB_ACTOR: ${{ github.actor }}
+
 jobs:
   push:
     name: Push

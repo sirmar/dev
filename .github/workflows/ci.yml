@@ -7,6 +7,8 @@ on:
     branches: [main]
 
 env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GITHUB_ACTOR: ${{ github.actor }}
   DOCKER_DEFAULT_PLATFORM: linux/amd64
 
 jobs:
