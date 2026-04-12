@@ -215,10 +215,6 @@ cmd_push() {
 	fi
 }
 
-cmd_root() {
-	echo "$ROOT_DIR"
-}
-
 cmd_lint_dockerfiles() {
 	if [[ ! -f "$ROOT_DIR/Dockerfile" ]]; then return 0; fi
 	info "linting Dockerfile"
@@ -579,10 +575,6 @@ main() {
 	case "$command" in
 	help | -h | --help)
 		cmd_help
-		return
-		;;
-	root)
-		cmd_root
 		return
 		;;
 	release)

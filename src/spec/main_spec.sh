@@ -49,16 +49,6 @@ Describe 'completions'
   End
 End
 
-Describe 'root'
-  Before 'setup_mock_docker'
-  After 'teardown_mock_docker'
-
-  It 'prints the project root directory'
-    When run run_dev root
-    The status should be success
-    The output should equal "$MOCK_DIR"
-  End
-End
 
 Describe 'find_root'
   Before 'setup_mock_docker'
