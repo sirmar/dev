@@ -103,3 +103,16 @@ setup_mock_e2e() {
     touch "$MOCK_DIR/docker-compose.e2e.yml"
 }
 
+setup_mock_e2e_repo() {
+    _setup_mock_project
+    write_dev_config "$MOCK_DIR" dev e2e "DEV_NETWORK=dev_network"
+    touch "$MOCK_DIR/docker-compose.yml"
+    _finish_mock_docker_setup
+}
+
+setup_mock_e2e_repo_without_compose() {
+    _setup_mock_project
+    write_dev_config "$MOCK_DIR" dev e2e "DEV_NETWORK=dev_network"
+    _finish_mock_docker_setup
+}
+

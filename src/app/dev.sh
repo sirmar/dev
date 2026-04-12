@@ -318,7 +318,7 @@ cmd_check() {
 	cmd_format "$@"
 	cmd_lint "$@"
 	cmd_types "$@"
-	cmd_coverage "$@"
+	[[ "$DEV_REPO_TYPE" != "e2e" ]] && cmd_coverage "$@"
 }
 
 cmd_db_shell() {
@@ -382,6 +382,21 @@ cmd_watch() {
 }
 
 cmd_run() {
+	if [[ "$DEV_REPO_TYPE" == "e2e" ]]; then
+		if [[ ! -f "$ROOT_DIR/docker-compose.yml" ]]; then
+			info "no docker-compose.yml found — skipping"
+			return 0
+		fi
+		info "running e2e tests"
+		if compose run --rm e2e; then
+			compose down -v
+		else
+			compose logs
+			compose down -v
+			return 1
+		fi
+		return
+	fi
 	build_image prod true
 	info "running $DEV_NAME"
 	ensure_network
@@ -493,6 +508,18 @@ EOF
 EOF
 	fi
 
+	if [[ "$DEV_REPO_TYPE" == "e2e" ]]; then
+		cat <<EOF
+
+    lint [file]         Lint source files
+    format [file]       Format source files
+    check               Run format, lint, and types
+    types               Run static type checking
+    security            Run security scanning
+    run                 Run e2e tests via docker-compose.yml
+EOF
+	fi
+
 	if [[ "$DEV_REPO_TYPE" == "tool" ]]; then
 		cat <<EOF
     run [args]          Run the tool
@@ -558,7 +585,10 @@ cmd_completions() {
 	if [[ "$repo_type" == "service" || "$repo_type" == "tool" ]]; then
 		cmds="$cmds format unit coverage types security check e2e"
 	fi
-	if [[ "$repo_type" == "tool" ]]; then
+	if [[ "$repo_type" == "e2e" ]]; then
+		cmds="$cmds format types security check"
+	fi
+	if [[ "$repo_type" == "tool" || "$repo_type" == "e2e" ]]; then
 		cmds="$cmds run"
 	fi
 	local dev_scripts=""
@@ -619,7 +649,7 @@ main() {
 	lint) cmd_lint "$@" ;;
 	lint-dockerfile) cmd_lint_dockerfile ;;
 	format)
-		assert_repo_type format service tool
+		assert_repo_type format service tool e2e
 		cmd_format "$@"
 		;;
 	unit)
@@ -631,7 +661,7 @@ main() {
 		cmd_e2e "$@"
 		;;
 	check)
-		assert_repo_type check service tool
+		assert_repo_type check service tool e2e
 		cmd_check "$@"
 		;;
 	coverage)
@@ -639,11 +669,11 @@ main() {
 		cmd_coverage "$@"
 		;;
 	types)
-		assert_repo_type types service tool
+		assert_repo_type types service tool e2e
 		cmd_types "$@"
 		;;
 	security)
-		assert_repo_type security service tool
+		assert_repo_type security service tool e2e
 		cmd_security "$@"
 		;;
 	watch)
@@ -655,11 +685,11 @@ main() {
 		cmd_shell "$@"
 		;;
 	run)
-		assert_repo_type run tool
+		assert_repo_type run tool e2e
 		cmd_run "$@"
 		;;
 	exec)
-		assert_repo_type exec service tool
+		assert_repo_type exec service tool e2e
 		cmd_exec "$@"
 		;;
 	up)

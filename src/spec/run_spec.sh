@@ -67,3 +67,41 @@ Describe 'run for service repo'
 		The status should be failure
 	End
 End
+
+Describe 'run for e2e repo'
+	Before 'setup_mock_e2e_repo'
+	After 'teardown_mock_docker'
+
+	It 'runs e2e tests via compose'
+		When run run_dev run
+		The output should include 'running e2e tests'
+		The output should include 'compose'
+		The output should include 'run'
+		The output should include 'e2e'
+		The status should be success
+	End
+
+	It 'tears down with volumes removed'
+		When run run_dev run
+		The output should include 'compose'
+		The output should include 'down -v'
+		The status should be success
+	End
+
+	It 'uses the dev network overlay'
+		When run run_dev run
+		The output should include 'docker-compose.network.yml'
+		The status should be success
+	End
+End
+
+Describe 'run for e2e repo without docker-compose.yml'
+	Before 'setup_mock_e2e_repo_without_compose'
+	After 'teardown_mock_docker'
+
+	It 'skips without error'
+		When run run_dev run
+		The output should include 'no docker-compose.yml found'
+		The status should be success
+	End
+End

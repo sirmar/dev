@@ -89,6 +89,69 @@ Describe 'DEV_REPO_TYPE=tool'
   End
 End
 
+Describe 'DEV_REPO_TYPE=e2e'
+  setup_e2e_repo() {
+    setup_mock_docker
+    write_dev_config "$MOCK_DIR" dev e2e "DEV_NETWORK=dev_network"
+  }
+  Before 'setup_e2e_repo'
+  After 'teardown_mock_docker'
+
+  It 'shows e2e repo type in help'
+    When run run_dev help
+    The output should include 'e2e'
+    The status should be success
+  End
+
+  It 'shows lint/format/types/security commands in help'
+    When run run_dev help
+    The output should include 'lint'
+    The output should include 'format'
+    The output should include 'types'
+    The output should include 'security'
+    The status should be success
+  End
+
+  It 'shows run command in help'
+    When run run_dev help
+    The output should include 'run'
+    The status should be success
+  End
+
+  It 'does not show unit/coverage commands in help'
+    When run run_dev help
+    The output should not include 'unit'
+    The output should not include 'coverage'
+    The status should be success
+  End
+
+  It 'does not show service-only commands in help'
+    When run run_dev help
+    The output should not include 'up'
+    The output should not include 'down'
+    The output should not include 'shell'
+    The status should be success
+  End
+
+  It 'blocks unit command'
+    When run run_dev unit
+    The status should be failure
+    The stderr should include 'not available for e2e repos'
+  End
+
+  It 'blocks coverage command'
+    When run run_dev coverage
+    The status should be failure
+    The stderr should include 'not available for e2e repos'
+  End
+
+  It 'blocks e2e command'
+    When run run_dev e2e
+    The status should be failure
+    The stderr should include 'not available for e2e repos'
+  End
+End
+
 Describe 'assert_repo_type guard'
   setup_image_repo() {
     setup_mock_docker
