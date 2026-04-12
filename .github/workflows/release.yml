@@ -24,8 +24,8 @@ jobs:
       - name: Push
         run: dev push
 
-  push-bash-image:
-    name: Push Bash Image
+  push-image:
+    name: Push ${{ matrix.image }} Image
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -34,68 +34,14 @@ jobs:
       DEV_REGISTRY: ghcr.io/${{ github.repository_owner }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GITHUB_ACTOR: ${{ github.actor }}
+    strategy:
+      matrix:
+        image: [bash, nginx, python, typescript]
     steps:
       - uses: actions/checkout@v4
       - uses: ./
       - name: Login
         run: dev login
       - name: Push
-        working-directory: images/bash
-        run: dev push
-
-  push-nginx-image:
-    name: Push Nginx Image
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    env:
-      DEV_REGISTRY: ghcr.io/${{ github.repository_owner }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      GITHUB_ACTOR: ${{ github.actor }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./
-      - name: Login
-        run: dev login
-      - name: Push
-        working-directory: images/nginx
-        run: dev push
-
-  push-python-image:
-    name: Push Python Image
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    env:
-      DEV_REGISTRY: ghcr.io/${{ github.repository_owner }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      GITHUB_ACTOR: ${{ github.actor }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./
-      - name: Login
-        run: dev login
-      - name: Push
-        working-directory: images/python
-        run: dev push
-
-  push-typescript-image:
-    name: Push TypeScript Image
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    env:
-      DEV_REGISTRY: ghcr.io/${{ github.repository_owner }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      GITHUB_ACTOR: ${{ github.actor }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./
-      - name: Login
-        run: dev login
-      - name: Push
-        working-directory: images/typescript
+        working-directory: images/${{ matrix.image }}
         run: dev push
