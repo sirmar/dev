@@ -15,14 +15,6 @@ Describe 'lint (image repo)'
   Before 'setup_lint_image_repo'
   After 'teardown_mock_docker'
 
-  It 'runs hadolint on the Dockerfile'
-    When run run_dev lint
-    The output should include 'linting Dockerfile'
-    The output should include 'docker run'
-    The output should include 'hadolint'
-    The status should be success
-  End
-
   It 'does not run the lint stage'
     When run run_dev lint
     The output should not include 'building stage lint'
@@ -52,13 +44,6 @@ Describe 'lint'
     When run run_dev lint
     The output should include 'building stage lint'
     The output should include 'running lint'
-    The status should be success
-  End
-
-  It 'also runs hadolint on the Dockerfile after the lint stage'
-    When run run_dev lint
-    The output should include 'linting Dockerfile'
-    The output should include 'hadolint'
     The status should be success
   End
 

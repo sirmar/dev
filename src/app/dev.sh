@@ -223,18 +223,8 @@ cmd_push() {
 	fi
 }
 
-cmd_lint_dockerfiles() {
-	if [[ ! -f "$ROOT_DIR/Dockerfile" ]]; then return 0; fi
-	info "linting Dockerfile"
-	docker run --rm \
-		-v "$ROOT_DIR:/workspace" \
-		hadolint/hadolint \
-		hadolint /workspace/Dockerfile
-}
-
 cmd_lint() {
 	if [[ "$DEV_REPO_TYPE" == "image" ]]; then
-		cmd_lint_dockerfiles
 		return 0
 	fi
 	local target="${1:-}"
@@ -245,7 +235,6 @@ cmd_lint() {
 	else
 		info "no 'lint' stage found in Dockerfile — skipping"
 	fi
-	if [[ -z "$target" ]]; then cmd_lint_dockerfiles; fi
 }
 
 cmd_format() {
@@ -465,7 +454,7 @@ USAGE
 
 COMMANDS
     build [--no-cache]   Build Docker image(s)
-    lint                Lint Dockerfiles with hadolint
+    lint                Lint source files
     login               Log in to container registry
     push                Push built image(s) to registry
     release <type>      Create release tag (major|minor|patch)
