@@ -131,6 +131,7 @@ build_image() {
 run_in() {
 	local stage="$1"
 	shift
+	ensure_network
 	local network_flag=()
 	[[ -n "$DEV_NETWORK" ]] && network_flag=(--network "$DEV_NETWORK")
 	docker run --rm --name "$(image_name "$stage")" "${network_flag[@]}" -v "$ROOT_DIR/src:/workspace/src" "$(image_name "$stage")" "$@"
@@ -272,6 +273,7 @@ cmd_coverage() {
 		compose_e2e run --rm coverage
 		compose_e2e down -v
 	else
+		ensure_network
 		local network_flag=() container
 		[[ -n "$DEV_NETWORK" ]] && network_flag=(--network "$DEV_NETWORK")
 		docker run --name "$(image_name coverage)" "${network_flag[@]}" \
@@ -369,6 +371,7 @@ cmd_watch() {
 cmd_run() {
 	build_image prod true
 	info "running $DEV_NAME"
+	ensure_network
 	local network_flag=() port_flag=()
 	[[ -n "$DEV_NETWORK" ]] && network_flag=(--network "$DEV_NETWORK")
 	[[ -n "$DEV_PORT" ]] && port_flag=(-p "${DEV_PORT}:${DEV_PORT}")
