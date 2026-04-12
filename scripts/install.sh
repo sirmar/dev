@@ -14,7 +14,7 @@ mkdir -p "$INSTALL_DIR"
 ln -sf "$REPO_DIR/src/app/dev.sh" "$INSTALL_DIR/$LINK_NAME"
 echo "Installed: $INSTALL_DIR/$LINK_NAME -> $REPO_DIR/src/app/dev.sh"
 
-for hook in claude-lint claude-format; do
+for hook in claude-lint claude-lint-dockerfile claude-format; do
 	ln -sf "$REPO_DIR/src/app/$hook" "$INSTALL_DIR/$hook"
 	echo "Installed: $INSTALL_DIR/$hook -> $REPO_DIR/src/app/$hook"
 done

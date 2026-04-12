@@ -7,6 +7,7 @@ FROM base AS format
 ENTRYPOINT ["/usr/local/bin/format-entrypoint.sh"]
 
 FROM base AS unit
+WORKDIR /workspace
 COPY .shellspec ./
 ENTRYPOINT ["/usr/local/bin/unit-entrypoint.sh"]
 

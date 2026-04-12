@@ -13,7 +13,7 @@ fi
 rm "$LINK_PATH"
 echo "Uninstalled: $LINK_PATH"
 
-for hook in claude-lint claude-format; do
+for hook in claude-lint claude-lint-dockerfile claude-format; do
 	[[ -L "$INSTALL_DIR/$hook" ]] && rm "$INSTALL_DIR/$hook" && echo "Uninstalled: $INSTALL_DIR/$hook"
 done
 

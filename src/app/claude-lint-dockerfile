@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# Claude Code PostToolUse hook — runs lint on the edited file.
+# Claude Code PostToolUse hook — runs lint-dockerfile when Dockerfile is edited.
 # Reads a Claude tool-use JSON object from stdin.
 set -euo pipefail
 
 abs="$(jq -r '.tool_input.file_path')"
+
+[[ "$(basename "$abs")" == "Dockerfile" ]] || exit 0
 
 dev_dir="$(dirname "$abs")"
 while [[ "$dev_dir" != '/' && ! -f "$dev_dir/.dev" ]]; do
@@ -11,11 +13,7 @@ while [[ "$dev_dir" != '/' && ! -f "$dev_dir/.dev" ]]; do
 done
 [[ "$dev_dir" == '/' ]] && exit 0
 
-target="${abs#"$dev_dir"/}"
-
-[[ "$target" == src/* ]] || exit 0
-
-output="$(cd "$dev_dir" && dev lint "$target" 2>&1)" || {
+output="$(cd "$dev_dir" && dev lint-dockerfile 2>&1)" || {
   tail -n 20 <<<"$output" >&2
   exit 2
 }
