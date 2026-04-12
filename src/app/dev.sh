@@ -109,13 +109,23 @@ build_image() {
 	local flags=()
 	$quiet && flags+=(-q)
 	$no_cache && flags+=(--no-cache)
+	local cmd=docker\ build target_flags=() tag
 	if [[ -n "$stage" ]]; then
 		info "building stage $stage"
-		docker build "${flags[@]}" --target "$stage" -t "$(image_name "$stage")" -f "$ROOT_DIR/Dockerfile" "$ROOT_DIR/$DEV_CONTEXT"
+		target_flags=(--target "$stage")
+		tag="$(image_name "$stage")"
 	else
 		info "building image"
-		docker build "${flags[@]}" -t "$DEV_NAME" -f "$ROOT_DIR/Dockerfile" "$ROOT_DIR/$DEV_CONTEXT"
+		tag="$DEV_NAME"
 	fi
+	if [[ -n "${CI:-}" ]]; then
+		local scope="${DEV_NAME}${stage:+-${stage}}"
+		flags+=(--cache-from "type=gha,scope=${scope}")
+		flags+=(--cache-to "type=gha,mode=max,scope=${scope}")
+		flags+=(--load)
+		cmd=docker\ buildx\ build
+	fi
+	$cmd "${flags[@]}" "${target_flags[@]}" -t "$tag" -f "$ROOT_DIR/Dockerfile" "$ROOT_DIR/$DEV_CONTEXT"
 }
 
 run_in() {
@@ -272,7 +282,8 @@ cmd_coverage() {
 			-v "$ROOT_DIR/src:/workspace/src" \
 			"$(image_name coverage)"
 		container=$(docker ps -aq --filter "name=$(image_name coverage)")
-		docker cp "$container:/workspace/coverage/." "$ROOT_DIR/coverage"
+		docker cp "$container:/workspace/.coverage" "$ROOT_DIR/.coverage" 2>/dev/null || true
+		docker cp "$container:/workspace/coverage/." "$ROOT_DIR/coverage" 2>/dev/null || true
 		docker rm "$container"
 	fi
 }

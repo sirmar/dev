@@ -43,6 +43,39 @@ Describe 'build (service repo)'
   End
 End
 
+Describe 'build (CI mode)'
+  setup_ci() {
+    setup_mock_docker
+    export CI=true
+  }
+  teardown_ci() {
+    unset CI
+    teardown_mock_docker
+  }
+  Before 'setup_ci'
+  After 'teardown_ci'
+
+  It 'uses docker buildx build with --load'
+    When run run_dev build
+    The output should include 'docker buildx build'
+    The output should include '--load'
+    The status should be success
+  End
+
+  It 'does not use plain docker build'
+    When run run_dev build
+    The output should not include 'docker build --target'
+    The status should be success
+  End
+
+  It 'passes GHA cache-from and cache-to flags with DEV_NAME-stage scope'
+    When run run_dev lint
+    The output should include '--cache-from type=gha,scope=dev-lint'
+    The output should include '--cache-to type=gha,mode=max,scope=dev-lint'
+    The status should be success
+  End
+End
+
 Describe 'build (image repo with stages)'
   setup_image_repo() {
     setup_mock_docker
