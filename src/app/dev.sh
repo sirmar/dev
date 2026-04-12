@@ -352,8 +352,13 @@ cmd_e2e() {
 	fi
 	build_image e2e true
 	info "running e2e tests"
-	compose_e2e run --rm e2e
-	compose_e2e down -v
+	if compose_e2e run --rm e2e; then
+		compose_e2e down -v
+	else
+		compose_e2e logs
+		compose_e2e down -v
+		return 1
+	fi
 }
 
 cmd_shell() {
