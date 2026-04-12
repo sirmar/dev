@@ -8,16 +8,17 @@ ENTRYPOINT ["/usr/local/bin/format-entrypoint.sh"]
 
 FROM base AS unit
 WORKDIR /workspace
-COPY .shellspec .dev ./
-ENTRYPOINT ["shellspec", "src/spec"]
+COPY .shellspec ./
+ENTRYPOINT ["/usr/local/bin/unit-entrypoint.sh"]
 
 FROM kcov/kcov:latest-alpine AS coverage
 RUN apk add --no-cache bash=5.2.26-r0 git=2.45.4-r0 curl=8.14.1-r2
 WORKDIR /workspace
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN curl -fsSL https://git.io/shellspec | sh -s -- --yes --prefix /usr/local
+COPY --from=base /usr/local/bin/coverage-entrypoint.sh /usr/local/bin/coverage-entrypoint.sh
 COPY .shellspec ./
-ENTRYPOINT ["shellspec", "--kcov", "src/spec"]
+ENTRYPOINT ["/usr/local/bin/coverage-entrypoint.sh"]
 
 FROM alpine:3.19 AS prod
 LABEL org.opencontainers.image.source=https://github.com/sirmar/dev
