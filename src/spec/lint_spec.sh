@@ -36,6 +36,33 @@ Describe 'lint when lint stage is missing from Dockerfile'
   End
 End
 
+Describe 'lint-dockerfile'
+  Before 'setup_mock_docker'
+  After 'teardown_mock_docker'
+
+  It 'runs hadolint on the Dockerfile'
+    When run run_dev lint-dockerfile
+    The output should include 'linting Dockerfile'
+    The output should include 'hadolint'
+    The status should be success
+  End
+End
+
+Describe 'lint-dockerfile when Dockerfile is missing'
+  setup_lint_dockerfile_no_file() {
+    setup_mock_docker
+    rm -f "$MOCK_DIR/Dockerfile"
+  }
+  Before 'setup_lint_dockerfile_no_file'
+  After 'teardown_mock_docker'
+
+  It 'prints info and skips without error'
+    When run run_dev lint-dockerfile
+    The output should include 'no Dockerfile found'
+    The status should be success
+  End
+End
+
 Describe 'lint'
   Before 'setup_mock_docker'
   After 'teardown_mock_docker'

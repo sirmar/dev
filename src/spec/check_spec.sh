@@ -22,7 +22,7 @@ setup_check_lint_fails() {
 	cat >"$MOCK_DIR/docker" <<'EOF'
 #!/bin/sh
 case "$*" in
-run*lint*) echo "lint failed"; exit 1 ;;
+run*--name*lint*) echo "lint failed"; exit 1 ;;
 *) echo "docker $*"; exit 0 ;;
 esac
 EOF
@@ -37,8 +37,9 @@ Describe 'check'
     Before 'setup_mock_docker'
     After 'teardown_mock_docker'
 
-    It 'runs fmt, lint, types, and coverage in order'
+    It 'runs lint-dockerfile, fmt, lint, types, and coverage in order'
       When run run_dev check
+      The output should include 'linting Dockerfile'
       The output should include 'running format'
       The output should include 'running lint'
       The output should include 'running types'
@@ -51,8 +52,9 @@ Describe 'check'
     Before 'setup_check_no_stages'
     After 'teardown_check_no_stages'
 
-    It 'skips all checks and exits successfully'
+    It 'lints Dockerfile, skips all other checks, and exits successfully'
       When run run_dev check
+      The output should include 'linting Dockerfile'
       The output should include "no 'format' stage found in Dockerfile"
       The output should include "no 'lint' stage found in Dockerfile"
       The output should include "no 'types' stage found in Dockerfile"
@@ -67,6 +69,7 @@ Describe 'check'
 
     It 'stops after lint and does not run types or coverage'
       When run run_dev check
+      The output should include 'linting Dockerfile'
       The output should include 'running format'
       The output should include 'running lint'
       The output should not include 'running types'

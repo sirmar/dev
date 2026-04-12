@@ -223,6 +223,18 @@ cmd_push() {
 	fi
 }
 
+cmd_lint_dockerfile() {
+	if [[ ! -f "$ROOT_DIR/Dockerfile" ]]; then
+		info "no Dockerfile found — skipping"
+		return 0
+	fi
+	info "linting Dockerfile"
+	docker run --rm \
+		-v "$ROOT_DIR/Dockerfile:/Dockerfile:ro" \
+		hadolint/hadolint:v2.14.0 \
+		hadolint /Dockerfile
+}
+
 cmd_lint() {
 	if [[ "$DEV_REPO_TYPE" == "image" ]]; then
 		return 0
@@ -303,6 +315,7 @@ cmd_security() {
 }
 
 cmd_check() {
+	cmd_lint_dockerfile
 	cmd_format "$@"
 	cmd_lint "$@"
 	cmd_types "$@"
@@ -455,6 +468,7 @@ USAGE
 COMMANDS
     build [--no-cache]   Build Docker image(s)
     lint                Lint source files
+    lint-dockerfile     Lint Dockerfile with hadolint
     login               Log in to container registry
     push                Push built image(s) to registry
     release <type>      Create release tag (major|minor|patch)
@@ -536,7 +550,7 @@ cmd_completions() {
 		dir="$(dirname "$dir")"
 	done
 
-	local cmds="build lint login push release help"
+	local cmds="build lint lint-dockerfile login push release help"
 	if [[ "$repo_type" == "service" || "$repo_type" == "tool" ]]; then
 		cmds="$cmds format unit coverage types security check e2e"
 	fi
@@ -583,7 +597,7 @@ main() {
 	esac
 
 	case "$command" in
-	build | login | push | lint | format | unit | e2e | check | coverage | types | security | watch | shell | run | exec | up | down | logs | db-shell | db-migrate) ;;
+	build | login | push | lint | lint-dockerfile | format | unit | e2e | check | coverage | types | security | watch | shell | run | exec | up | down | logs | db-shell | db-migrate) ;;
 	*)
 		echo "error: unknown command '$command'" >&2
 		cmd_help
@@ -599,6 +613,7 @@ main() {
 	login) cmd_login "$@" ;;
 	push) cmd_push "$@" ;;
 	lint) cmd_lint "$@" ;;
+	lint-dockerfile) cmd_lint_dockerfile ;;
 	format)
 		assert_repo_type format service tool
 		cmd_format "$@"
