@@ -145,7 +145,9 @@ run_in() {
 }
 
 compose() {
-	docker compose --project-name "$DEV_NAME" -f "$ROOT_DIR/docker-compose.yml" -f "$SCRIPT_DIR/docker-compose.network.yml" "$@"
+	local network_args=()
+	[[ -n "$DEV_NETWORK" ]] && network_args=(-f "$SCRIPT_DIR/docker-compose.network.yml")
+	docker compose --project-name "$DEV_NAME" -f "$ROOT_DIR/docker-compose.yml" "${network_args[@]}" "$@"
 }
 
 compose_e2e() {
