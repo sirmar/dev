@@ -49,5 +49,18 @@ Describe 'watch'
       The output should not include '-p '
       The status should be success
     End
+
+    It 'always mounts out/ as /workspace/out'
+      When run run_dev watch
+      The output should include '/workspace/out'
+      The status should be success
+    End
+
+    It 'mounts extra volumes when DEV_MOUNTS is set'
+      write_dev_config "$MOCK_DIR" dev service "DEV_MOUNTS=./data:/workspace/data"
+      When run run_dev watch
+      The output should include '/workspace/data'
+      The status should be success
+    End
   End
 End

@@ -55,6 +55,26 @@ Describe 'run'
 		The output should not include '-p '
 		The status should be success
 	End
+
+	It 'always mounts out/ as /workspace/out'
+		When run run_dev run
+		The output should include '/workspace/out'
+		The status should be success
+	End
+
+	It 'always creates the out/ directory'
+		When run run_dev run
+		The output should include 'docker run'
+		The path "$MOCK_DIR/out" should be directory
+		The status should be success
+	End
+
+	It 'mounts extra volumes when DEV_MOUNTS is set'
+		write_dev_config "$MOCK_DIR" dev tool "DEV_MOUNTS=./data:/workspace/data"
+		When run run_dev run
+		The output should include '/workspace/data'
+		The status should be success
+	End
 End
 
 Describe 'run for service repo'
