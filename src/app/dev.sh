@@ -641,8 +641,6 @@ cmd_completions() {
 cmd_init() {
 	local repo_type="${1:-}" language="${2:-}" name="${3:-}"
 	[[ -z "$repo_type" ]] && error "usage: dev init image <name>  |  dev init <type> <language> <name>"
-	[[ -f ".dev" ]] && error "$(pwd) already has a .dev — aborting"
-
 	local template_dir label
 	if [[ "$repo_type" == "image" ]]; then
 		[[ -z "$language" ]] && error "usage: dev init image <name>"
@@ -677,7 +675,12 @@ cmd_init() {
 		*) dst="$rel" ;;
 		esac
 		mkdir -p "$(dirname "$dst")"
-		sed -e "s/{{DEV_NAME}}/$name/g" -e "s/{{DEV_VERSION}}/$dev_version/g" "$src" >"$dst"
+		if [[ -e "$dst" ]]; then
+			info "skip $dst"
+		else
+			sed -e "s/{{DEV_NAME}}/$name/g" -e "s/{{DEV_VERSION}}/$dev_version/g" "$src" >"$dst"
+			info "write $dst"
+		fi
 	done < <(find "$template_dir" -type f -print0)
 
 	find src/app -name "*.sh" -type f -print0 2>/dev/null | xargs -r -0 chmod +x || true

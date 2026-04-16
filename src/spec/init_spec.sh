@@ -24,6 +24,12 @@ Describe 'dev init'
     The output should include 'myapp'
   End
 
+  It 'logs written files'
+    When run run_dev_init "$INIT_DIR" tool bash myapp
+    The status should be success
+    The output should include 'write .dev'
+  End
+
   It 'creates .dev with correct name and repo type for bash/tool'
     run_dev_init "$INIT_DIR" tool bash myapp >/dev/null 2>&1
     When run cat "$INIT_DIR/.dev"
@@ -49,11 +55,11 @@ Describe 'dev init'
     The output should include 'DEV_REPO_TYPE=image'
   End
 
-  It 'fails if .dev already exists'
+  It 'skips .dev if it already exists'
     touch "$INIT_DIR/.dev"
     When run run_dev_init "$INIT_DIR" tool bash myapp
-    The status should be failure
-    The error should include 'already has a .dev'
+    The status should be success
+    The output should include 'skip .dev'
   End
 
   It 'fails with unknown language'
