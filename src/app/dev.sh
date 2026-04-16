@@ -54,6 +54,7 @@ load_config() {
 	DEV_NETWORK="${DEV_NETWORK:-}"
 	DEV_SCRIPTS="${DEV_SCRIPTS:-}"
 	DEV_PORT="${DEV_PORT:-}"
+	DEV_MOUNTS="${DEV_MOUNTS:-}"
 	DEV_DB_NAME="${DEV_DB_NAME:-}"
 	DEV_DB_USER="${DEV_DB_USER:-root}"
 	DEV_DB_PASSWORD="${DEV_DB_PASSWORD:-}"
@@ -67,7 +68,7 @@ load_config() {
 	DEV_E2E_DB_CONTAINER="${DEV_NAME}-db-e2e"
 	DEV_COVERAGE_CONTAINER="${DEV_NAME}-coverage"
 	DEV_E2E_NETWORK="${DEV_NAME}-e2e"
-	export DEV_NAME DEV_CONTEXT DEV_REPO_TYPE DEV_REGISTRY DEV_REGISTRY_USER DEV_REGISTRY_TOKEN DEV_NETWORK DEV_SCRIPTS DEV_PORT DEV_DB_NAME DEV_DB_USER DEV_DB_PASSWORD
+	export DEV_NAME DEV_CONTEXT DEV_REPO_TYPE DEV_REGISTRY DEV_REGISTRY_USER DEV_REGISTRY_TOKEN DEV_NETWORK DEV_SCRIPTS DEV_PORT DEV_MOUNTS DEV_DB_NAME DEV_DB_USER DEV_DB_PASSWORD
 	export DEV_IMAGE DEV_E2E_IMAGE DEV_COVERAGE_IMAGE DEV_CONTAINER DEV_DB_CONTAINER DEV_E2E_CONTAINER DEV_E2E_DB_CONTAINER DEV_COVERAGE_CONTAINER DEV_E2E_NETWORK
 }
 
@@ -135,13 +136,25 @@ build_image() {
 	$cmd "${flags[@]}" "${target_flags[@]}" -t "$tag" -f "$ROOT_DIR/Dockerfile" "$ROOT_DIR/$DEV_CONTEXT"
 }
 
+extra_mount_flags() {
+	mkdir -p "$ROOT_DIR/out"
+	local flags=(-v "$ROOT_DIR/out:/workspace/out")
+	for mount in $DEV_MOUNTS; do
+		local host_path="${mount%%:*}"
+		mkdir -p "$ROOT_DIR/$host_path"
+		flags+=(-v "$ROOT_DIR/$host_path:${mount#*:}")
+	done
+	echo "${flags[@]}"
+}
+
 run_in() {
 	local stage="$1"
 	shift
 	ensure_network
 	local network_flag=()
 	[[ -n "$DEV_NETWORK" ]] && network_flag=(--network "$DEV_NETWORK")
-	docker run --rm --name "$(image_name "$stage")" "${network_flag[@]}" -v "$ROOT_DIR/src:/workspace/src" "$(image_name "$stage")" "$@"
+	# shellcheck disable=SC2046
+	docker run --rm --name "$(image_name "$stage")" "${network_flag[@]}" -v "$ROOT_DIR/src:/workspace/src" $(extra_mount_flags) "$(image_name "$stage")" "$@"
 }
 
 compose() {
@@ -291,15 +304,7 @@ cmd_coverage() {
 		compose_e2e run --rm coverage
 		compose_e2e down -v
 	else
-		ensure_network
-		local network_flag=() container
-		[[ -n "$DEV_NETWORK" ]] && network_flag=(--network "$DEV_NETWORK")
-		docker run --name "$(image_name coverage)" "${network_flag[@]}" \
-			-v "$ROOT_DIR/src:/workspace/src" \
-			"$(image_name coverage)"
-		container=$(docker ps -aq --filter "name=$(image_name coverage)")
-		docker cp "$container:/workspace/coverage.md" "$ROOT_DIR/coverage.md" 2>/dev/null || true
-		docker rm "$container" >/dev/null
+		run_in coverage
 	fi
 }
 
@@ -388,7 +393,8 @@ cmd_watch() {
 	info "starting watch"
 	local port_flag=()
 	[[ -n "$DEV_PORT" ]] && port_flag=(-p "${DEV_PORT}:${DEV_PORT}")
-	docker run --rm -it --name "$(image_name watch)" "${port_flag[@]}" -v "$ROOT_DIR:/workspace" "$(image_name watch)"
+	# shellcheck disable=SC2046
+	docker run --rm -it --name "$(image_name watch)" "${port_flag[@]}" -v "$ROOT_DIR/src:/workspace/src" $(extra_mount_flags) "$(image_name watch)"
 }
 
 cmd_run() {
@@ -410,10 +416,12 @@ cmd_run() {
 	build_image prod true
 	info "running $DEV_NAME"
 	ensure_network
-	local network_flag=() port_flag=()
+	local network_flag=() port_flag=() tty_flag=()
 	[[ -n "$DEV_NETWORK" ]] && network_flag=(--network "$DEV_NETWORK")
 	[[ -n "$DEV_PORT" ]] && port_flag=(-p "${DEV_PORT}:${DEV_PORT}")
-	docker run --rm -it --name "$(image_name prod)" "${network_flag[@]}" "${port_flag[@]}" -v "$ROOT_DIR:/workspace" "$(image_name prod)" "$@"
+	[[ -t 0 ]] && tty_flag=(-it)
+	# shellcheck disable=SC2046
+	docker run --rm "${tty_flag[@]}" --name "$(image_name prod)" "${network_flag[@]}" "${port_flag[@]}" -v "$ROOT_DIR/src:/workspace/src" $(extra_mount_flags) "$(image_name prod)" "$@"
 }
 
 cmd_exec() {
@@ -503,6 +511,8 @@ USAGE
     dev <command> [args]
 
 COMMANDS
+    init image <n>         Scaffold a new base image project
+    init <type> <lang> <n> Scaffold a new project (type: tool|service, lang: bash|python|typescript)
     build [--no-cache]   Build Docker image(s)
     lint                Lint source files
     lint-dockerfile     Lint Dockerfile with hadolint
@@ -600,7 +610,7 @@ cmd_completions() {
 		dir="$(dirname "$dir")"
 	done
 
-	local cmds="build lint lint-dockerfile login push release help"
+	local cmds="init build lint lint-dockerfile login push release help"
 	if [[ "$repo_type" == "service" || "$repo_type" == "tool" ]]; then
 		cmds="$cmds format unit coverage types security check e2e"
 	fi
@@ -628,9 +638,61 @@ cmd_completions() {
 	echo "$cmds"
 }
 
+cmd_init() {
+	local repo_type="${1:-}" language="${2:-}" name="${3:-}"
+	[[ -z "$repo_type" ]] && error "usage: dev init image <name>  |  dev init <type> <language> <name>"
+	[[ -f ".dev" ]] && error "$(pwd) already has a .dev — aborting"
+
+	local template_dir label
+	if [[ "$repo_type" == "image" ]]; then
+		[[ -z "$language" ]] && error "usage: dev init image <name>"
+		name="$language"
+		template_dir="$SCRIPT_DIR/init/image"
+		label="image"
+	else
+		[[ -z "$language" || -z "$name" ]] && error "usage: dev init <type> <language> <name>"
+		case "$repo_type" in
+		tool | service) ;;
+		*) error "unknown repo-type '$repo_type' (tool|service|image)" ;;
+		esac
+		case "$language" in
+		bash) [[ "$repo_type" == "tool" ]] || error "bash is only supported for tool repos" ;;
+		python) ;;
+		typescript) [[ "$repo_type" == "service" ]] || error "typescript is only supported for service repos" ;;
+		*) error "unknown language '$language' (bash|python|typescript)" ;;
+		esac
+		template_dir="$SCRIPT_DIR/init/$language/$repo_type"
+		label="$language/$repo_type"
+	fi
+
+	local dev_version
+	dev_version=$(git -C "$SCRIPT_DIR" describe --tags --abbrev=0 2>/dev/null || echo "latest")
+
+	while IFS= read -r -d '' src; do
+		local rel="${src#"$template_dir/"}"
+		local dst
+		case "$rel" in
+		dev.tmpl) dst=".dev" ;;
+		Dockerfile.tmpl) dst="Dockerfile" ;;
+		*) dst="$rel" ;;
+		esac
+		mkdir -p "$(dirname "$dst")"
+		sed -e "s/{{DEV_NAME}}/$name/g" -e "s/{{DEV_VERSION}}/$dev_version/g" "$src" >"$dst"
+	done < <(find "$template_dir" -type f -print0)
+
+	find src/app -name "*.sh" -type f -print0 2>/dev/null | xargs -r -0 chmod +x || true
+	info "initialized $name ($label)"
+	info "next: dev build"
+}
+
 main() {
 	[[ "${1:-}" == "completions" ]] && {
 		cmd_completions
+		exit 0
+	}
+	[[ "${1:-}" == "init" ]] && {
+		shift
+		cmd_init "$@"
 		exit 0
 	}
 

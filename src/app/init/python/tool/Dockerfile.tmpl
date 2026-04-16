@@ -1,0 +1,30 @@
+FROM ghcr.io/sirmar/dev-python:{{DEV_VERSION}} AS base
+WORKDIR /workspace
+
+FROM base AS deps
+COPY pyproject.toml uv.lock ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --extra dev
+
+FROM deps AS lint
+ENTRYPOINT ["/usr/local/bin/lint-entrypoint.sh"]
+
+FROM deps AS format
+ENTRYPOINT ["/usr/local/bin/format-entrypoint.sh"]
+
+FROM deps AS unit
+ENTRYPOINT ["/usr/local/bin/unit-entrypoint.sh"]
+
+FROM deps AS coverage
+ENTRYPOINT ["/usr/local/bin/coverage-entrypoint.sh"]
+
+FROM deps AS types
+ENTRYPOINT ["/usr/local/bin/types-entrypoint.sh"]
+
+FROM base AS prod
+LABEL org.opencontainers.image.source=https://github.com/your-org/{{DEV_NAME}}
+COPY pyproject.toml uv.lock ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --no-dev
+COPY src/app/ src/app/
+ENTRYPOINT ["uv", "run", "python", "src/app/hello.py"]

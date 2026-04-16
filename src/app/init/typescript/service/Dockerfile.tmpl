@@ -1,0 +1,34 @@
+FROM ghcr.io/sirmar/dev-typescript:{{DEV_VERSION}} AS base
+
+FROM base AS deps
+WORKDIR /workspace
+COPY package.json pnpm-lock.yaml biome.json tsconfig.json vitest.config.ts ./
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
+
+FROM deps AS lint
+ENTRYPOINT ["/usr/local/bin/lint-entrypoint.sh"]
+
+FROM deps AS format
+ENTRYPOINT ["/usr/local/bin/format-entrypoint.sh"]
+
+FROM deps AS unit
+ENTRYPOINT ["/usr/local/bin/unit-entrypoint.sh"]
+
+FROM deps AS coverage
+ENTRYPOINT ["/usr/local/bin/coverage-entrypoint.sh"]
+
+FROM deps AS types
+ENTRYPOINT ["/usr/local/bin/types-entrypoint.sh"]
+
+FROM deps AS watch
+EXPOSE 8000
+ENTRYPOINT ["/usr/local/bin/watch-entrypoint.sh"]
+
+FROM node:22-slim AS prod
+LABEL org.opencontainers.image.source=https://github.com/your-org/{{DEV_NAME}}
+WORKDIR /workspace
+COPY package.json pnpm-lock.yaml ./
+RUN corepack enable && pnpm install --frozen-lockfile --prod
+COPY src/app/ src/app/
+ENTRYPOINT ["node", "src/app/hello.js"]

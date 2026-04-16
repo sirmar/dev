@@ -1,0 +1,6 @@
+FROM alpine:3.19
+LABEL org.opencontainers.image.source=https://github.com/your-org/{{DEV_NAME}}
+# hadolint ignore=DL3018
+RUN apk add --no-cache bash
+COPY scripts/ /usr/local/bin/
+RUN chmod +x /usr/local/bin/*.sh

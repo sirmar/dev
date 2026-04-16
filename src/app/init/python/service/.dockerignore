@@ -1,0 +1,9 @@
+.git
+.DS_Store
+.dev
+.gitignore
+.dockerignore
+out/
+.venv/
+__pycache__/
+README.md

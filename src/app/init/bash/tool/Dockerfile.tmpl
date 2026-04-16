@@ -1,0 +1,31 @@
+FROM ghcr.io/sirmar/dev-bash:{{DEV_VERSION}} AS base
+
+FROM base AS lint
+ENTRYPOINT ["/usr/local/bin/lint-entrypoint.sh"]
+
+FROM base AS format
+ENTRYPOINT ["/usr/local/bin/format-entrypoint.sh"]
+
+FROM base AS unit
+WORKDIR /workspace
+COPY .shellspec ./
+ENTRYPOINT ["/usr/local/bin/unit-entrypoint.sh"]
+
+FROM kcov/kcov:latest-alpine AS coverage
+# hadolint ignore=DL3018
+RUN apk add --no-cache bash git curl
+WORKDIR /workspace
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+RUN curl -fsSL https://git.io/shellspec | sh -s -- --yes --prefix /usr/local
+COPY --from=base /usr/local/bin/coverage-entrypoint.sh /usr/local/bin/coverage-entrypoint.sh
+COPY .shellspec ./
+ENTRYPOINT ["/usr/local/bin/coverage-entrypoint.sh"]
+
+FROM alpine:3.19 AS prod
+LABEL org.opencontainers.image.source=https://github.com/your-org/{{DEV_NAME}}
+# hadolint ignore=DL3018
+RUN apk add --no-cache bash
+WORKDIR /workspace
+COPY src/app/ /usr/local/bin/
+RUN chmod +x /usr/local/bin/*.sh
+ENTRYPOINT ["{{DEV_NAME}}"]

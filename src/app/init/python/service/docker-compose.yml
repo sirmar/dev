@@ -1,0 +1,8 @@
+services:
+  {{DEV_NAME}}:
+    build:
+      context: .
+      target: watch
+    volumes:
+      - ./src:/workspace/src
+      - ./out:/workspace/out

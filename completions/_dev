@@ -11,6 +11,17 @@ _dev() {
 	local subcmd="${words[2]}"
 
 	case "$subcmd" in
+		init)
+			if (( CURRENT == 3 )); then
+				local -a types
+				types=('tool:CLI tool' 'service:Long-running service' 'image:Base Docker image')
+				_describe 'repo type' types
+			elif (( CURRENT == 4 )) && [[ "${words[3]}" != "image" ]]; then
+				local -a langs
+				langs=('bash:Bash' 'python:Python' 'typescript:TypeScript')
+				_describe 'language' langs
+			fi
+			;;
 		build)
 			local -a build_opts
 			build_opts=('--no-cache:Build without using cache')

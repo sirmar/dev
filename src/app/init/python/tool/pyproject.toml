@@ -1,0 +1,32 @@
+[project]
+name = '{{DEV_NAME}}'
+version = '0.1.0'
+requires-python = '>=3.14'
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+  'pytest',
+  'pytest-cov',
+  'ruff',
+  'ty',
+]
+
+[tool.ruff]
+indent-width = 2
+
+[tool.ruff.format]
+quote-style = 'single'
+
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = 'single'
+
+[tool.coverage.paths]
+source = ['src/app/', '/workspace/src/app/']
+
+[tool.coverage.report]
+fail_under = 90
+
+[tool.pytest.ini_options]
+testpaths = ['src/tests']
+pythonpath = ['src']

@@ -26,6 +26,15 @@ _dev_completion() {
 	subcmd="${COMP_WORDS[1]}"
 
 	case "$subcmd" in
+		init)
+			if [[ $COMP_CWORD -eq 2 ]]; then
+				COMPREPLY=($(compgen -W "tool service image" -- "$cur"))
+				COMPREPLY=("${COMPREPLY[@]/%/ }")
+			elif [[ $COMP_CWORD -eq 3 && "${COMP_WORDS[2]}" != "image" ]]; then
+				COMPREPLY=($(compgen -W "bash python typescript" -- "$cur"))
+				COMPREPLY=("${COMPREPLY[@]/%/ }")
+			fi
+			;;
 		build)
 			COMPREPLY=($(compgen -W "--no-cache" -- "$cur"))
 			COMPREPLY=("${COMPREPLY[@]/%/ }")

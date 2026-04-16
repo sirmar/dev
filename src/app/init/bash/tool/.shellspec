@@ -1,0 +1,4 @@
+--shell bash
+--load-path src/spec
+--require spec_helper
+--kcov-options "--include-path=/workspace/src/app"
