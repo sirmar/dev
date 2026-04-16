@@ -1,0 +1,8 @@
+{
+  "name": "dev",
+  "description": "Skills for working with the dev CLI tool — migrate existing repos to dev tool conventions",
+  "author": {
+    "name": "Marcus Veibäck",
+    "email": "marcus@veiback.se"
+  }
+}

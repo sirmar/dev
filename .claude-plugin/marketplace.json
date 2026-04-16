@@ -1,0 +1,16 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "dev",
+  "description": "Skills for the dev CLI tool",
+  "owner": {
+    "name": "Marcus Veibäck",
+    "email": "marcus@veiback.se"
+  },
+  "plugins": [
+    {
+      "name": "dev",
+      "description": "Skills for working with the dev CLI tool — migrate existing repos to dev tool conventions",
+      "source": "./"
+    }
+  ]
+}
