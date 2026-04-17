@@ -153,10 +153,11 @@ run_in() {
 	local stage="$1"
 	shift
 	ensure_network
+	mkdir -p "$ROOT_DIR/out"
 	local network_flag=()
 	[[ -n "$DEV_NETWORK" ]] && network_flag=(--network "$DEV_NETWORK")
 	# shellcheck disable=SC2046
-	docker run --rm --name "$(image_name "$stage")" "${network_flag[@]}" -v "$ROOT_DIR/src:/workspace/src" $(extra_mount_flags) "$(image_name "$stage")" "$@"
+	docker run --rm --name "$(image_name "$stage")" "${network_flag[@]}" -v "$ROOT_DIR/src:/workspace/src" -v "$ROOT_DIR/out:/workspace/out" $(extra_mount_flags) "$(image_name "$stage")" "$@"
 }
 
 run_stage() {

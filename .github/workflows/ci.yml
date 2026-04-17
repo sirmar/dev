@@ -30,7 +30,7 @@ jobs:
         run: dev ${{ matrix.job }}
       - name: Coverage summary
         if: matrix.job == 'coverage'
-        run: echo '## Coverage' >> $GITHUB_STEP_SUMMARY && cat coverage.md >> $GITHUB_STEP_SUMMARY
+        run: echo '## Coverage' >> $GITHUB_STEP_SUMMARY && cat out/coverage.md >> $GITHUB_STEP_SUMMARY
 
   image:
     name: ${{ matrix.image }} / ${{ matrix.job }}
