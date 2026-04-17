@@ -213,12 +213,12 @@ cmd_build() {
 		shift
 	done
 
-	if [[ "$DEV_REPO_TYPE" == "library" ]]; then
+	if is_repo_type library; then
 		info "library repos have no prod stage — skipping build"
 		return 0
 	fi
 
-	if [[ "$DEV_REPO_TYPE" == "image" ]]; then
+	if is_repo_type image; then
 		local stages
 		mapfile -t stages < <(dockerfile_stages)
 		if [[ ${#stages[@]} -eq 0 ]]; then
@@ -271,7 +271,7 @@ cmd_push() {
 	info "pushing $remote"
 	docker buildx inspect dev-builder &>/dev/null || docker buildx create --name dev-builder --driver docker-container --use
 	docker buildx use dev-builder
-	if [[ "$DEV_REPO_TYPE" == "image" ]]; then
+	if is_repo_type image; then
 		docker buildx build --platform linux/amd64,linux/arm64 --push -t "$remote" -f "$ROOT_DIR/Dockerfile" "$ROOT_DIR/$DEV_CONTEXT"
 	else
 		docker buildx build --platform linux/amd64,linux/arm64 --push --target prod -t "$remote" -f "$ROOT_DIR/Dockerfile" "$ROOT_DIR/$DEV_CONTEXT"
@@ -291,7 +291,7 @@ cmd_lint_dockerfile() {
 }
 
 cmd_lint() {
-	[[ "$DEV_REPO_TYPE" == "image" ]] && return 0
+	is_repo_type image && return 0
 	run_stage lint "lint" "$@"
 }
 
@@ -331,7 +331,7 @@ cmd_check() {
 	cmd_format "$@"
 	cmd_lint "$@"
 	cmd_types "$@"
-	[[ "$DEV_REPO_TYPE" != "e2e" ]] && cmd_coverage "$@"
+	! is_repo_type e2e && cmd_coverage "$@"
 }
 
 assert_db() {
@@ -397,7 +397,7 @@ cmd_watch() {
 }
 
 cmd_run() {
-	if [[ "$DEV_REPO_TYPE" == "e2e" ]]; then
+	if is_repo_type e2e; then
 		if [[ ! -f "$ROOT_DIR/docker-compose.yml" ]]; then
 			info "no docker-compose.yml found — skipping"
 			return 0
@@ -516,7 +516,7 @@ COMMANDS
     help                Show this help
 EOF
 
-	if [[ "$DEV_REPO_TYPE" == "tool" || "$DEV_REPO_TYPE" == "service" || "$DEV_REPO_TYPE" == "library" ]]; then
+	if is_repo_type tool service library; then
 		cat <<EOF
 
     lint [file]         Lint source files
@@ -529,13 +529,13 @@ EOF
 EOF
 	fi
 
-	if [[ "$DEV_REPO_TYPE" == "tool" || "$DEV_REPO_TYPE" == "service" ]]; then
+	if is_repo_type tool service; then
 		cat <<EOF
     e2e                 Run e2e tests
 EOF
 	fi
 
-	if [[ "$DEV_REPO_TYPE" == "e2e" ]]; then
+	if is_repo_type e2e; then
 		cat <<EOF
 
     lint [file]         Lint source files
@@ -547,7 +547,7 @@ EOF
 EOF
 	fi
 
-	if [[ "$DEV_REPO_TYPE" == "tool" ]]; then
+	if is_repo_type tool; then
 		cat <<EOF
     run [args]          Run the tool
 EOF
@@ -561,7 +561,7 @@ EOF
 EOF
 	fi
 
-	if [[ "$DEV_REPO_TYPE" == "service" ]]; then
+	if is_repo_type service; then
 		cat <<EOF
     watch               Build watch stage and run with hot reload
     shell               Open interactive shell in container
@@ -588,14 +588,18 @@ EOF
 # Main
 # ---------------------------------------------------------------------------
 
+is_repo_type() {
+	local type
+	for type in "$@"; do
+		[[ "$DEV_REPO_TYPE" == "$type" ]] && return 0
+	done
+	return 1
+}
+
 assert_repo_type() {
 	local command="$1"
 	shift
-	local allowed=("$@")
-	for type in "${allowed[@]}"; do
-		[[ "$DEV_REPO_TYPE" == "$type" ]] && return 0
-	done
-	error "'$command' is not available for $DEV_REPO_TYPE repos"
+	is_repo_type "$@" || error "'$command' is not available for $DEV_REPO_TYPE repos"
 }
 
 cmd_completions() {
