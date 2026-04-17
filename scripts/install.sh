@@ -14,6 +14,9 @@ mkdir -p "$INSTALL_DIR"
 ln -sf "$REPO_DIR/src/app/dev.sh" "$INSTALL_DIR/$LINK_NAME"
 echo "Installed: $INSTALL_DIR/$LINK_NAME -> $REPO_DIR/src/app/dev.sh"
 
+ln -sf "$REPO_DIR/src/app/mdev.sh" "$INSTALL_DIR/mdev"
+echo "Installed: $INSTALL_DIR/mdev -> $REPO_DIR/src/app/mdev.sh"
+
 for hook in claude-lint claude-lint-dockerfile claude-format; do
 	ln -sf "$REPO_DIR/src/app/$hook" "$INSTALL_DIR/$hook"
 	echo "Installed: $INSTALL_DIR/$hook -> $REPO_DIR/src/app/$hook"
@@ -38,18 +41,35 @@ if [[ -f "$REPO_DIR/completions/_dev" ]]; then
 	echo "Installed zsh completion: $ZSH_COMPLETION_DIR/_dev"
 fi
 
-ZSHRC="${ZDOTDIR:-$HOME}/.zshrc"
-ZSH_BASH_COMPLETION_SNIPPET="# dev bash completion
-autoload bashcompinit && bashcompinit
-source \"$BASH_COMPLETION_DIR/dev\""
+if [[ -f "$REPO_DIR/completions/mdev.bash" ]]; then
+	mkdir -p "$BASH_COMPLETION_DIR"
+	ln -sf "$REPO_DIR/completions/mdev.bash" "$BASH_COMPLETION_DIR/mdev"
+	echo "Installed bash completion: $BASH_COMPLETION_DIR/mdev"
+fi
 
-if [[ "${SHELL}" == */zsh ]] && [[ -f "$BASH_COMPLETION_DIR/dev" ]]; then
-	if ! grep -qF "source \"$BASH_COMPLETION_DIR/dev\"" "$ZSHRC" 2>/dev/null; then
-		printf '\n%s\n' "$ZSH_BASH_COMPLETION_SNIPPET" >>"$ZSHRC"
-		echo "Added bash completion to $ZSHRC — restart your shell or run: source $ZSHRC"
-	else
-		echo "Bash completion already configured in $ZSHRC"
+if [[ -f "$REPO_DIR/completions/_mdev" ]]; then
+	mkdir -p "$ZSH_COMPLETION_DIR"
+	ln -sf "$REPO_DIR/completions/_mdev" "$ZSH_COMPLETION_DIR/_mdev"
+	echo "Installed zsh completion: $ZSH_COMPLETION_DIR/_mdev"
+fi
+
+ZSHRC="${ZDOTDIR:-$HOME}/.zshrc"
+
+if [[ "${SHELL}" == */zsh ]]; then
+	if ! grep -qF 'autoload bashcompinit' "$ZSHRC" 2>/dev/null; then
+		printf '\n# dev bash completion\nautoload bashcompinit && bashcompinit\n' >>"$ZSHRC"
 	fi
+	for tool in dev mdev; do
+		completion_file="$BASH_COMPLETION_DIR/$tool"
+		if [[ -f "$completion_file" ]]; then
+			if ! grep -qF "source \"$completion_file\"" "$ZSHRC" 2>/dev/null; then
+				printf 'source "%s"\n' "$completion_file" >>"$ZSHRC"
+				echo "Added $tool bash completion to $ZSHRC — restart your shell or run: source $ZSHRC"
+			else
+				echo "Bash completion for $tool already configured in $ZSHRC"
+			fi
+		fi
+	done
 elif [[ -f "$REPO_DIR/completions/_dev" ]]; then
 	echo "Ensure fpath includes $ZSH_COMPLETION_DIR and compinit is called in your .zshrc"
 fi
