@@ -133,11 +133,16 @@ else
 	_LABEL_COLORS=('' '' '' '' '' '' '' '')
 	_LABEL_RESET=''
 fi
+declare -A _LABEL_COLOR_MAP=()
+_LABEL_COLOR_NEXT=0
 
 _label_color() {
-	local idx
-	idx=$(($(printf '%s' "$1" | cksum | cut -d' ' -f1) % ${#_LABEL_COLORS[@]}))
-	printf '%s' "${_LABEL_COLORS[$idx]}"
+	local name="$1"
+	if [[ -z "${_LABEL_COLOR_MAP[$name]+_}" ]]; then
+		_LABEL_COLOR_MAP[$name]=$((_LABEL_COLOR_NEXT % ${#_LABEL_COLORS[@]}))
+		((_LABEL_COLOR_NEXT++)) || true
+	fi
+	_LABEL_COLOR_RESULT="${_LABEL_COLORS[${_LABEL_COLOR_MAP[$name]}]}"
 }
 
 mdev_labeled() {
@@ -145,7 +150,8 @@ mdev_labeled() {
 	shift
 	local label color dev_cmd
 	label="$(basename "$service")"
-	color="$(_label_color "$label")"
+	_label_color "$label"
+	color="$_LABEL_COLOR_RESULT"
 	dev_cmd="${1:-}"
 	if ! service_supports_cmd "$service" "$dev_cmd"; then
 		printf "${color}[%s]${_LABEL_RESET} skipping %s (not available for %s repos)\n" \
@@ -249,6 +255,7 @@ cmd_lint() { _run_for_services lint 'linting' "$@"; }
 cmd_format() { _run_for_services format 'formatting' "$@"; }
 cmd_unit() { _run_for_services unit 'unit testing' "$@"; }
 cmd_check() { _run_for_services check 'checking' "$@"; }
+cmd_types() { _run_for_services types 'type checking' "$@"; }
 
 cmd_changed() {
 	local ref="${1:-origin/main}"
@@ -299,7 +306,7 @@ EOF
 }
 
 cmd_completions() {
-	echo 'up down status logs build lint format unit check changed run init help'
+	echo 'up down status logs build lint format unit types check changed run init help'
 }
 
 cmd_help() {
@@ -318,6 +325,7 @@ COMMANDS
     lint [services...]      Run lint in each service
     format [services...]    Run format in each service
     unit [services...]      Run unit tests in each service
+    types [services...]     Run static type checking in each service
     check [services...]     Run full quality check in each service
     changed [ref]           List services changed since ref (default: origin/main)
     run <service> <cmd>     Run a dev command in a specific service
@@ -374,6 +382,7 @@ main() {
 	lint) cmd_lint "$@" ;;
 	format) cmd_format "$@" ;;
 	unit) cmd_unit "$@" ;;
+	types) cmd_types "$@" ;;
 	check) cmd_check "$@" ;;
 	changed) cmd_changed "$@" ;;
 	run) cmd_run "$@" ;;
