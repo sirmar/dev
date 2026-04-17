@@ -69,9 +69,28 @@ Describe 'dev init'
   End
 
   It 'fails with unknown repo-type'
-    When run run_dev_init "$INIT_DIR" library bash myapp
+    When run run_dev_init "$INIT_DIR" plugin bash myapp
     The status should be failure
     The error should include 'unknown repo-type'
+  End
+
+  It 'scaffolds a python/library project'
+    When run run_dev_init "$INIT_DIR" library python mylib
+    The status should be success
+    The output should include 'mylib'
+  End
+
+  It 'creates .dev with correct name and repo type for python/library'
+    run_dev_init "$INIT_DIR" library python mylib >/dev/null 2>&1
+    When run cat "$INIT_DIR/.dev"
+    The output should include 'DEV_NAME=mylib'
+    The output should include 'DEV_REPO_TYPE=library'
+  End
+
+  It 'fails when bash is used with library repo-type'
+    When run run_dev_init "$INIT_DIR" library bash mylib
+    The status should be failure
+    The error should include 'bash is only supported for tool repos'
   End
 
   It 'fails with missing arguments'

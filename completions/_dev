@@ -14,7 +14,7 @@ _dev() {
 		init)
 			if (( CURRENT == 3 )); then
 				local -a types
-				types=('tool:CLI tool' 'service:Long-running service' 'image:Base Docker image')
+				types=('tool:CLI tool' 'service:Long-running service' 'image:Base Docker image' 'library:Reusable library')
 				_describe 'repo type' types
 			elif (( CURRENT == 4 )) && [[ "${words[3]}" != "image" ]]; then
 				local -a langs

@@ -28,7 +28,7 @@ _dev_completion() {
 	case "$subcmd" in
 		init)
 			if [[ $COMP_CWORD -eq 2 ]]; then
-				COMPREPLY=($(compgen -W "tool service image" -- "$cur"))
+				COMPREPLY=($(compgen -W "tool service image library" -- "$cur"))
 				COMPREPLY=("${COMPREPLY[@]/%/ }")
 			elif [[ $COMP_CWORD -eq 3 && "${COMP_WORDS[2]}" != "image" ]]; then
 				COMPREPLY=($(compgen -W "bash python typescript" -- "$cur"))

@@ -212,6 +212,11 @@ cmd_build() {
 		shift
 	done
 
+	if [[ "$DEV_REPO_TYPE" == "library" ]]; then
+		info "library repos have no prod stage — skipping build"
+		return 0
+	fi
+
 	if [[ "$DEV_REPO_TYPE" == "image" ]]; then
 		local stages
 		mapfile -t stages < <(dockerfile_stages)
@@ -382,10 +387,12 @@ cmd_watch() {
 	fi
 	build_image watch true
 	info "starting watch"
-	local port_flag=()
+	ensure_network
+	local port_flag=() network_flag=()
 	[[ -n "$DEV_PORT" ]] && port_flag=(-p "${DEV_PORT}:${DEV_PORT}")
+	[[ -n "$DEV_NETWORK" ]] && network_flag=(--network "$DEV_NETWORK")
 	# shellcheck disable=SC2046
-	docker run --rm -it --name "$(image_name watch)" "${port_flag[@]}" -v "$ROOT_DIR/src:/workspace/src" $(extra_mount_flags) "$(image_name watch)"
+	docker run --rm -it --name "$(image_name watch)" "${port_flag[@]}" "${network_flag[@]}" -v "$ROOT_DIR/src:/workspace/src" $(extra_mount_flags) "$(image_name watch)"
 }
 
 cmd_run() {
@@ -498,7 +505,7 @@ USAGE
 
 COMMANDS
     init image <n>         Scaffold a new base image project
-    init <type> <lang> <n> Scaffold a new project (type: tool|service, lang: bash|python|typescript)
+    init <type> <lang> <n> Scaffold a new project (type: tool|service|library, lang: bash|python|typescript)
     build [--no-cache]   Build Docker image(s)
     lint                Lint source files
     lint-dockerfile     Lint Dockerfile with hadolint
@@ -508,17 +515,22 @@ COMMANDS
     help                Show this help
 EOF
 
-	if [[ "$DEV_REPO_TYPE" == "tool" || "$DEV_REPO_TYPE" == "service" ]]; then
+	if [[ "$DEV_REPO_TYPE" == "tool" || "$DEV_REPO_TYPE" == "service" || "$DEV_REPO_TYPE" == "library" ]]; then
 		cat <<EOF
 
     lint [file]         Lint source files
     format [file]       Format source files
     unit                Run unit tests
-    e2e                 Run e2e tests
     check               Run format, lint, types, and coverage
     coverage            Run tests with coverage report
     types               Run static type checking
     security            Run security scanning
+EOF
+	fi
+
+	if [[ "$DEV_REPO_TYPE" == "tool" || "$DEV_REPO_TYPE" == "service" ]]; then
+		cat <<EOF
+    e2e                 Run e2e tests
 EOF
 	fi
 
@@ -597,8 +609,11 @@ cmd_completions() {
 	done
 
 	local cmds="init build lint lint-dockerfile login push release help"
+	if [[ "$repo_type" == "service" || "$repo_type" == "tool" || "$repo_type" == "library" ]]; then
+		cmds="$cmds format unit coverage types security check"
+	fi
 	if [[ "$repo_type" == "service" || "$repo_type" == "tool" ]]; then
-		cmds="$cmds format unit coverage types security check e2e"
+		cmds="$cmds e2e"
 	fi
 	if [[ "$repo_type" == "e2e" ]]; then
 		cmds="$cmds format types security check"
@@ -627,8 +642,8 @@ cmd_init() {
 	else
 		[[ -z "$language" || -z "$name" ]] && error "usage: dev init <type> <language> <name>"
 		case "$repo_type" in
-		tool | service) ;;
-		*) error "unknown repo-type '$repo_type' (tool|service|image)" ;;
+		tool | service | library) ;;
+		*) error "unknown repo-type '$repo_type' (tool|service|library|image)" ;;
 		esac
 		case "$language" in
 		bash) [[ "$repo_type" == "tool" ]] || error "bash is only supported for tool repos" ;;
@@ -710,11 +725,11 @@ main() {
 	lint) cmd_lint "$@" ;;
 	lint-dockerfile) cmd_lint_dockerfile ;;
 	format)
-		assert_repo_type format service tool e2e
+		assert_repo_type format service tool library e2e
 		cmd_format "$@"
 		;;
 	unit)
-		assert_repo_type unit service tool
+		assert_repo_type unit service tool library
 		cmd_unit "$@"
 		;;
 	e2e)
@@ -722,19 +737,19 @@ main() {
 		cmd_e2e "$@"
 		;;
 	check)
-		assert_repo_type check service tool e2e
+		assert_repo_type check service tool library e2e
 		cmd_check "$@"
 		;;
 	coverage)
-		assert_repo_type coverage service tool
+		assert_repo_type coverage service tool library
 		cmd_coverage "$@"
 		;;
 	types)
-		assert_repo_type types service tool e2e
+		assert_repo_type types service tool library e2e
 		cmd_types "$@"
 		;;
 	security)
-		assert_repo_type security service tool e2e
+		assert_repo_type security service tool library e2e
 		cmd_security "$@"
 		;;
 	watch)
