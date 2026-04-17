@@ -12,6 +12,10 @@ info() {
 	echo -e "[${MDEV_NAME:-mdev}] \033[0;32m$*\033[0m"
 }
 
+warn() {
+	echo -e "[${MDEV_NAME:-mdev}] \033[0;33m$*\033[0m" >&2
+}
+
 error() {
 	echo -e "[${MDEV_NAME:-mdev}] \033[0;31m$*\033[0m" >&2
 	exit 1
@@ -40,6 +44,7 @@ find_mdev_root() {
 }
 
 load_mdev_config() {
+	# .mdev is a trusted shell script — sourcing is intentional (same pattern as dev's .dev config)
 	# shellcheck source=/dev/null
 	source "$MDEV_ROOT/.mdev"
 	[[ -z "${MDEV_NAME:-}" ]] && die 'MDEV_NAME is not set in .mdev'
@@ -110,27 +115,45 @@ ensure_mdev_network() {
 	fi
 }
 
-service_repo_type() {
-	grep -m1 '^DEV_REPO_TYPE=' "$MDEV_ROOT/$1/.dev" | cut -d= -f2 | tr -d '"'
+read_dev_var() {
+	grep -m1 "^$2=" "$MDEV_ROOT/$1/.dev" | cut -d= -f2 | tr -d '"'
 }
+
+service_repo_type() { read_dev_var "$1" DEV_REPO_TYPE; }
 
 service_supports_cmd() {
 	(cd "$MDEV_ROOT/$1" && dev completions 2>/dev/null) | grep -qw "$2"
 }
 
+# Palette of distinct terminal colors for service labels (suppressed when NO_COLOR is set)
+if [[ -z "${NO_COLOR:-}" ]]; then
+	_LABEL_COLORS=('\033[36m' '\033[35m' '\033[33m' '\033[34m' '\033[32m' '\033[31m' '\033[96m' '\033[95m')
+	_LABEL_RESET='\033[0m'
+else
+	_LABEL_COLORS=('' '' '' '' '' '' '' '')
+	_LABEL_RESET=''
+fi
+
+_label_color() {
+	local idx
+	idx=$(($(printf '%s' "$1" | cksum | cut -d' ' -f1) % ${#_LABEL_COLORS[@]}))
+	printf '%s' "${_LABEL_COLORS[$idx]}"
+}
+
 mdev_labeled() {
 	local service="$1"
 	shift
-	local label dev_cmd
+	local label color dev_cmd
 	label="$(basename "$service")"
+	color="$(_label_color "$label")"
 	dev_cmd="${1:-}"
 	if ! service_supports_cmd "$service" "$dev_cmd"; then
-		printf '[%s] skipping %s (not available for %s repos)\n' \
+		printf "${color}[%s]${_LABEL_RESET} skipping %s (not available for %s repos)\n" \
 			"$label" "$dev_cmd" "$(service_repo_type "$service")"
 		return 0
 	fi
 	(cd "$MDEV_ROOT/$service" && dev "$@") 2>&1 | while IFS= read -r line; do
-		printf '[%s] %s\n' "$label" "$line"
+		printf "${color}[%s]${_LABEL_RESET} %s\n" "$label" "$line"
 	done
 }
 
@@ -167,17 +190,17 @@ cmd_status() {
 		local label
 		label="$(basename "$service")"
 		local name
-		name="$(grep -m1 '^DEV_NAME=' "$MDEV_ROOT/$service/.dev" | cut -d= -f2 | tr -d '"' || true)"
+		name="$(read_dev_var "$service" DEV_NAME || true)"
 		if [[ -z "$name" ]]; then
-			printf '[%s] \033[0;31merror: could not read DEV_NAME\033[0m\n' "$label" >&2
+			echo -e "[$label] \033[0;31merror: could not read DEV_NAME\033[0m" >&2
 			continue
 		fi
 		local count
 		count="$(docker compose --project-name "$name" ps --status running --quiet 2>/dev/null | wc -l | tr -d ' ')"
 		if [[ "$count" -gt 0 ]]; then
-			printf '[%s] \033[0;32mrunning\033[0m (%s container(s))\n' "$label" "$count"
+			echo -e "[$label] \033[0;32mrunning\033[0m ($count container(s))"
 		else
-			printf '[%s] \033[0;33mstopped\033[0m\n' "$label"
+			echo -e "[$label] \033[0;33mstopped\033[0m"
 		fi
 	done
 }
@@ -195,12 +218,9 @@ cmd_logs() {
 	local services
 	mapfile -t services < <(filter_services "${service_args[@]}")
 	if $follow; then
-		local label pids=()
+		local pids=()
 		for service in "${services[@]}"; do
-			label="$(basename "$service")"
-			(cd "$MDEV_ROOT/$service" && dev logs -f) 2>&1 | while IFS= read -r line; do
-				printf '[%s] %s\n' "$label" "$line"
-			done &
+			mdev_labeled "$service" logs -f &
 			pids+=($!)
 		done
 		trap 'kill "${pids[@]}" 2>/dev/null; exit 0' INT TERM
@@ -212,55 +232,23 @@ cmd_logs() {
 	fi
 }
 
-cmd_build() {
+_run_for_services() {
+	local verb="$1" label="$2"
+	shift 2
 	check_docker
 	local services
 	mapfile -t services < <(filter_services "$@")
 	for service in "${services[@]}"; do
-		info "building $(basename "$service")"
-		mdev_labeled "$service" build
+		info "$label $(basename "$service")"
+		mdev_labeled "$service" "$verb"
 	done
 }
 
-cmd_lint() {
-	check_docker
-	local services
-	mapfile -t services < <(filter_services "$@")
-	for service in "${services[@]}"; do
-		info "linting $(basename "$service")"
-		mdev_labeled "$service" lint
-	done
-}
-
-cmd_format() {
-	check_docker
-	local services
-	mapfile -t services < <(filter_services "$@")
-	for service in "${services[@]}"; do
-		info "formatting $(basename "$service")"
-		mdev_labeled "$service" format
-	done
-}
-
-cmd_unit() {
-	check_docker
-	local services
-	mapfile -t services < <(filter_services "$@")
-	for service in "${services[@]}"; do
-		info "unit testing $(basename "$service")"
-		mdev_labeled "$service" unit
-	done
-}
-
-cmd_check() {
-	check_docker
-	local services
-	mapfile -t services < <(filter_services "$@")
-	for service in "${services[@]}"; do
-		info "checking $(basename "$service")"
-		mdev_labeled "$service" check
-	done
-}
+cmd_build() { _run_for_services build 'building' "$@"; }
+cmd_lint() { _run_for_services lint 'linting' "$@"; }
+cmd_format() { _run_for_services format 'formatting' "$@"; }
+cmd_unit() { _run_for_services unit 'unit testing' "$@"; }
+cmd_check() { _run_for_services check 'checking' "$@"; }
 
 cmd_changed() {
 	local ref="${1:-origin/main}"
@@ -363,6 +351,12 @@ main() {
 		cmd_init
 		exit 0
 	}
+	[[ "${1:-}" == 'services' ]] && {
+		MDEV_ROOT="$(find_mdev_root 2>/dev/null)" || exit 0
+		load_mdev_config
+		discover_services 2>/dev/null
+		exit 0
+	}
 
 	MDEV_ROOT="$(find_mdev_root)"
 	load_mdev_config
@@ -383,7 +377,6 @@ main() {
 	check) cmd_check "$@" ;;
 	changed) cmd_changed "$@" ;;
 	run) cmd_run "$@" ;;
-	completions) cmd_completions ;;
 	*)
 		echo "error: unknown command '$command'" >&2
 		cmd_help

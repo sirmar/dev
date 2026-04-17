@@ -1,22 +1,6 @@
 #compdef mdev
 
-_mdev_services() {
-	local dir="$PWD" root=''
-	while [[ "$dir" != '/' ]]; do
-		[[ -f "$dir/.mdev" ]] && { root="$dir"; break; }
-		dir="$(dirname "$dir")"
-	done
-	[[ -z "$root" ]] && return
-	local mdev_services=''
-	mdev_services="$(grep -m1 '^MDEV_SERVICES=' "$root/.mdev" | cut -d= -f2- | tr -d '"' || true)"
-	if [[ -n "$mdev_services" ]]; then
-		echo "$mdev_services" | tr ',' '\n' | tr -d ' '
-	else
-		find "$root" -mindepth 2 -name '.dev' -type f \
-			| sed "s|^$root/||;s|/.dev$||" \
-			| sort
-	fi
-}
+_mdev_services() { mdev services 2>/dev/null; }
 
 _mdev() {
 	if (( CURRENT == 2 )); then

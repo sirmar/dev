@@ -8,7 +8,7 @@ MDEV_SCRIPT="$DEV_ROOT/src/app/mdev.sh"
 . "$DEV_ROOT/src/spec/support/helpers.sh"
 
 run_mdev() {
-  (cd "$MOCK_DIR" && bash "$MDEV_SCRIPT" "$@")
+  (cd "$MOCK_DIR" && NO_COLOR=1 bash "$MDEV_SCRIPT" "$@")
 }
 
 write_mdev_config() {
