@@ -92,19 +92,21 @@ image_name() {
 	fi
 }
 
-ensure_network() {
-	if [[ -z "$DEV_NETWORK" ]]; then return 0; fi
-	if ! docker network inspect "$DEV_NETWORK" &>/dev/null; then
-		info "creating network $DEV_NETWORK"
-		docker network create "$DEV_NETWORK"
+ensure_network_exists() {
+	local network="$1"
+	if ! docker network inspect "$network" &>/dev/null; then
+		info "creating network $network"
+		docker network create "$network"
 	fi
 }
 
+ensure_network() {
+	[[ -z "$DEV_NETWORK" ]] && return 0
+	ensure_network_exists "$DEV_NETWORK"
+}
+
 ensure_e2e_network() {
-	if ! docker network inspect "$DEV_E2E_NETWORK" &>/dev/null; then
-		info "creating network $DEV_E2E_NETWORK"
-		docker network create "$DEV_E2E_NETWORK"
-	fi
+	ensure_network_exists "$DEV_E2E_NETWORK"
 }
 
 has_dockerfile_stage() {
@@ -157,6 +159,22 @@ run_in() {
 	docker run --rm --name "$(image_name "$stage")" "${network_flag[@]}" -v "$ROOT_DIR/src:/workspace/src" $(extra_mount_flags) "$(image_name "$stage")" "$@"
 }
 
+run_stage() {
+	local stage="$1" label="$2"
+	shift 2
+	if ! has_dockerfile_stage "$stage"; then
+		info "no '$stage' stage found in Dockerfile — skipping"
+		return 0
+	fi
+	build_image "$stage" true
+	if [[ $# -gt 0 ]]; then
+		info "running $label on $1"
+	else
+		info "running $label"
+	fi
+	run_in "$stage" "$@"
+}
+
 compose() {
 	local network_args=()
 	[[ -n "$DEV_NETWORK" ]] && network_args=(-f "$SCRIPT_DIR/docker-compose.network.yml")
@@ -166,6 +184,14 @@ compose() {
 compose_e2e() {
 	ensure_e2e_network
 	docker compose --project-name "$DEV_E2E_NETWORK" -f "$ROOT_DIR/docker-compose.e2e.yml" -f "$SCRIPT_DIR/docker-compose.e2e-network.yml" "$@"
+}
+
+run_compose_suite() {
+	local fn="$1"
+	if ! "$fn" run --rm e2e; then
+		[[ -n "${CI:-}" ]] && "$fn" logs
+		return 1
+	fi
 }
 
 # ---------------------------------------------------------------------------
@@ -259,38 +285,16 @@ cmd_lint_dockerfile() {
 }
 
 cmd_lint() {
-	if [[ "$DEV_REPO_TYPE" == "image" ]]; then
-		return 0
-	fi
-	local target="${1:-}"
-	if has_dockerfile_stage lint; then
-		build_image lint true
-		if [[ -n "$target" ]]; then info "running lint on $target"; else info "running lint"; fi
-		run_in lint ${target:+"$target"}
-	else
-		info "no 'lint' stage found in Dockerfile — skipping"
-	fi
+	[[ "$DEV_REPO_TYPE" == "image" ]] && return 0
+	run_stage lint "lint" "$@"
 }
 
 cmd_format() {
-	if ! has_dockerfile_stage format; then
-		info "no 'format' stage found in Dockerfile — skipping"
-		return 0
-	fi
-	build_image format true
-	local target="${1:-}"
-	if [[ -n "$target" ]]; then info "running format on $target"; else info "running format"; fi
-	run_in format ${target:+"$target"}
+	run_stage format "format" "$@"
 }
 
 cmd_unit() {
-	if ! has_dockerfile_stage unit; then
-		info "no 'unit' stage found in Dockerfile — skipping"
-		return 0
-	fi
-	build_image unit true
-	info "running unit tests"
-	run_in unit
+	run_stage unit "unit tests"
 }
 
 cmd_coverage() {
@@ -309,23 +313,11 @@ cmd_coverage() {
 }
 
 cmd_types() {
-	if ! has_dockerfile_stage types; then
-		info "no 'types' stage found in Dockerfile — skipping"
-		return 0
-	fi
-	build_image types true
-	info "running types"
-	run_in types
+	run_stage types "types"
 }
 
 cmd_security() {
-	if ! has_dockerfile_stage security; then
-		info "no 'security' stage found in Dockerfile — skipping"
-		return 0
-	fi
-	build_image security true
-	info "running security"
-	run_in security
+	run_stage security "security"
 }
 
 cmd_check() {
@@ -336,14 +328,18 @@ cmd_check() {
 	[[ "$DEV_REPO_TYPE" != "e2e" ]] && cmd_coverage "$@"
 }
 
-cmd_db_shell() {
+assert_db() {
 	if [[ -z "$DEV_DB_NAME" ]]; then error "DEV_DB_NAME is not set in .dev"; fi
+}
+
+cmd_db_shell() {
+	assert_db
 	info "entering database on $DEV_DB_CONTAINER"
 	docker exec -it "$DEV_DB_CONTAINER" mysql -u "$DEV_DB_USER" -p"$DEV_DB_PASSWORD" "$DEV_DB_NAME"
 }
 
 cmd_db_migrate() {
-	if [[ -z "$DEV_DB_NAME" ]]; then error "DEV_DB_NAME is not set in .dev"; fi
+	assert_db
 	local db_url="mysql://${DEV_DB_USER}:${DEV_DB_PASSWORD}@${DEV_DB_CONTAINER}/${DEV_DB_NAME}"
 	info "running migrations"
 	docker run --rm \
@@ -368,12 +364,7 @@ cmd_e2e() {
 	compose_e2e down -v
 	build_image e2e true
 	info "running e2e tests"
-	if compose_e2e run --rm e2e; then
-		:
-	else
-		[[ -n "${CI:-}" ]] && compose_e2e logs
-		return 1
-	fi
+	run_compose_suite compose_e2e
 }
 
 cmd_shell() {
@@ -405,12 +396,7 @@ cmd_run() {
 		fi
 		compose down -v
 		info "running e2e tests"
-		if compose run --rm e2e; then
-			:
-		else
-			[[ -n "${CI:-}" ]] && compose logs
-			return 1
-		fi
+		run_compose_suite compose
 		return
 	fi
 	build_image prod true
@@ -600,11 +586,11 @@ assert_repo_type() {
 }
 
 cmd_completions() {
-	local dir="$PWD"
-	local repo_type=""
+	local dir="$PWD" repo_type="" dev_scripts=""
 	while [[ "$dir" != "/" ]]; do
 		if [[ -f "$dir/.dev" ]]; then
 			repo_type="$(grep -m1 '^DEV_REPO_TYPE=' "$dir/.dev" | cut -d= -f2)"
+			dev_scripts="$(grep -m1 '^DEV_SCRIPTS=' "$dir/.dev" | cut -d= -f2- | tr -d '"' || true)"
 			break
 		fi
 		dir="$(dirname "$dir")"
@@ -620,15 +606,6 @@ cmd_completions() {
 	if [[ "$repo_type" == "tool" || "$repo_type" == "e2e" ]]; then
 		cmds="$cmds run"
 	fi
-	local dev_scripts=""
-	local dir2="$PWD"
-	while [[ "$dir2" != "/" ]]; do
-		if [[ -f "$dir2/.dev" ]]; then
-			dev_scripts="$(grep -m1 '^DEV_SCRIPTS=' "$dir2/.dev" | cut -d= -f2- | tr -d '"' || true)"
-			break
-		fi
-		dir2="$(dirname "$dir2")"
-	done
 	if [[ -n "$dev_scripts" ]]; then
 		cmds="$cmds exec"
 	fi
