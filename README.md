@@ -58,7 +58,7 @@ Available config keys:
 dev <command> [args]
 ```
 
-See [COMMANDS.md](COMMANDS.md) for the full command reference.
+See [docs/dev-commands.md](docs/dev-commands.md) for the full command reference.
 
 ## Dockerfile conventions
 

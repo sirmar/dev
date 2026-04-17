@@ -1,4 +1,4 @@
-# Commands
+# dev commands
 
 | Command            | Description                               |
 |--------------------|-------------------------------------------|

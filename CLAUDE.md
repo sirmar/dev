@@ -2,7 +2,7 @@
 
 ## Commands
 
-Full reference: [COMMANDS.md](COMMANDS.md)
+Full reference: [docs/dev-commands.md](docs/dev-commands.md) · [docs/mdev-commands.md](docs/mdev-commands.md)
 
 ## Code Style
 
@@ -15,7 +15,8 @@ Images live in `images/<language>/`. Follow the existing structure when adding n
 
 ## Completions
 
-- Keep `completions/dev.bash` and `completions/_dev` in sync when adding/removing commands.
+- Keep `completions/dev.bash` and `completions/_dev` in sync when adding/removing `dev` commands.
+- Keep `completions/mdev.bash` and `completions/_mdev` in sync when adding/removing `mdev` commands.
 
 ## Workflow
 
