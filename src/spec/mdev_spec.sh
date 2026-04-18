@@ -33,7 +33,7 @@ _write_mock_dev() {
 if [[ "$1" == "completions" ]]; then
   type="$(grep -m1 '^DEV_REPO_TYPE=' .dev 2>/dev/null | cut -d= -f2 | tr -d '"')"
   case "$type" in
-    service) echo 'up down logs build lint format unit check shell watch' ;;
+    service) echo 'up down logs build lint format unit check db-migrate shell db-shell watch' ;;
     tool)    echo 'build lint format unit check coverage types security' ;;
     image)   echo 'build lint' ;;
     *)       echo 'build lint format unit check' ;;
@@ -359,6 +359,74 @@ Describe 'build'
     When run run_mdev build api
     The status should be success
     The output should include '[api] dev build'
+  End
+End
+
+
+Describe 'db-migrate'
+  setup_db_migrate() {
+    setup_mock_mdev
+    write_service "$MOCK_DIR" api myapp-api service
+    write_service "$MOCK_DIR" worker myapp-worker service
+  }
+  Before 'setup_db_migrate'
+  After 'teardown_mock_mdev'
+
+  It 'migrates all services'
+    When run run_mdev db-migrate
+    The status should be success
+    The output should include '[api]'
+    The output should include '[worker]'
+  End
+
+  It 'labels migrate output with the service name'
+    When run run_mdev db-migrate api
+    The status should be success
+    The output should include '[api] dev db-migrate'
+  End
+End
+
+
+Describe 'shell'
+  setup_shell() {
+    setup_mock_mdev
+    write_service "$MOCK_DIR" api myapp-api service
+  }
+  Before 'setup_shell'
+  After 'teardown_mock_mdev'
+
+  It 'delegates to dev shell in the specified service'
+    When run run_mdev shell api
+    The status should be success
+    The output should include 'dev shell'
+  End
+
+  It 'errors when no service is specified'
+    When run run_mdev shell
+    The status should be failure
+    The stderr should include 'usage:'
+  End
+End
+
+
+Describe 'db-shell'
+  setup_db_shell() {
+    setup_mock_mdev
+    write_service "$MOCK_DIR" api myapp-api service
+  }
+  Before 'setup_db_shell'
+  After 'teardown_mock_mdev'
+
+  It 'delegates to dev db-shell in the specified service'
+    When run run_mdev db-shell api
+    The status should be success
+    The output should include 'dev db-shell'
+  End
+
+  It 'errors when no service is specified'
+    When run run_mdev db-shell
+    The status should be failure
+    The stderr should include 'usage:'
   End
 End
 

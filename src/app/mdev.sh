@@ -256,6 +256,19 @@ cmd_format() { _run_for_services format 'formatting' "$@"; }
 cmd_unit() { _run_for_services unit 'unit testing' "$@"; }
 cmd_check() { _run_for_services check 'checking' "$@"; }
 cmd_types() { _run_for_services types 'type checking' "$@"; }
+cmd_db_migrate() { _run_for_services db-migrate 'migrating' "$@"; }
+
+_run_interactive() {
+	local dev_cmd="$1" service="${2:-}"
+	[[ -z "$service" ]] && error "usage: mdev $dev_cmd <service>"
+	local resolved
+	resolved="$(filter_services "$service")"
+	check_docker
+	(cd "$MDEV_ROOT/$resolved" && dev "$dev_cmd")
+}
+
+cmd_shell() { _run_interactive shell "$@"; }
+cmd_db_shell() { _run_interactive db-shell "$@"; }
 
 cmd_changed() {
 	local ref="${1:-origin/main}"
@@ -306,7 +319,7 @@ EOF
 }
 
 cmd_completions() {
-	echo 'up down status logs build lint format unit types check changed run init help'
+	echo 'up down status logs build lint format unit types check db-migrate shell db-shell changed run init help'
 }
 
 cmd_help() {
@@ -327,6 +340,9 @@ COMMANDS
     unit [services...]      Run unit tests in each service
     types [services...]     Run static type checking in each service
     check [services...]     Run full quality check in each service
+    db-migrate [services...] Run database migrations in each service
+    shell <service>         Open a shell in a running service container
+    db-shell <service>      Open a shell in a running database container
     changed [ref]           List services changed since ref (default: origin/main)
     run <service> <cmd>     Run a dev command in a specific service
     init                    Scaffold a .mdev file in the current directory
@@ -384,6 +400,9 @@ main() {
 	unit) cmd_unit "$@" ;;
 	types) cmd_types "$@" ;;
 	check) cmd_check "$@" ;;
+	db-migrate) cmd_db_migrate "$@" ;;
+	shell) cmd_shell "$@" ;;
+	db-shell) cmd_db_shell "$@" ;;
 	changed) cmd_changed "$@" ;;
 	run) cmd_run "$@" ;;
 	*)
