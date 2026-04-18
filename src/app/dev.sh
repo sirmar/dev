@@ -130,6 +130,7 @@ build_image() {
 	fi
 	if [[ -n "${CI:-}" ]]; then
 		local scope="${DEV_NAME}${stage:+-${stage}}"
+		flags+=(--cache-from "type=gha,scope=${DEV_NAME}-deps")
 		flags+=(--cache-from "type=gha,scope=${scope}")
 		flags+=(--cache-to "type=gha,mode=max,scope=${scope}")
 		flags+=(--load)
