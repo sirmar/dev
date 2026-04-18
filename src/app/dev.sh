@@ -117,7 +117,7 @@ has_dockerfile_stage() {
 build_image() {
 	local stage="$1" quiet="${2:-false}" no_cache="${3:-false}"
 	local flags=()
-	$quiet && flags+=(-q)
+	$quiet && ! in_ci && flags+=(-q)
 	$no_cache && flags+=(--no-cache)
 	local cmd=docker\ build target_flags=() tag
 	if [[ -n "$stage" ]]; then
@@ -128,7 +128,7 @@ build_image() {
 		info "building image"
 		tag="$DEV_NAME"
 	fi
-	if [[ -n "${CI:-}" ]]; then
+	if in_ci; then
 		local scope="${DEV_NAME}${stage:+-${stage}}"
 		flags+=(--cache-from "type=gha,scope=${DEV_NAME}-deps")
 		flags+=(--cache-from "type=gha,scope=${scope}")
@@ -191,7 +191,7 @@ compose_e2e() {
 run_compose_suite() {
 	local fn="$1"
 	if ! "$fn" run --rm e2e; then
-		[[ -n "${CI:-}" ]] && "$fn" logs
+		in_ci && "$fn" logs
 		return 1
 	fi
 }
@@ -237,7 +237,7 @@ cmd_build() {
 
 cmd_login() {
 	local host user token
-	if [[ -n "${CI:-}" && -n "${GITHUB_TOKEN:-}" ]]; then
+	if in_ci && [[ -n "${GITHUB_TOKEN:-}" ]]; then
 		host="ghcr.io"
 		user="$GITHUB_ACTOR"
 		token="$GITHUB_TOKEN"
@@ -582,6 +582,8 @@ EOF
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
+in_ci() { [[ -n "${CI:-}" ]]; }
 
 is_repo_type() {
 	local type
