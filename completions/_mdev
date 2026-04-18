@@ -13,7 +13,7 @@ _mdev() {
 	local subcmd="${words[2]}"
 
 	case "$subcmd" in
-		up | down | build | lint | format | unit | types | check | db-migrate | shell | db-shell)
+		up | down | build | lint | format | unit | types | check | rebuild | db-migrate | shell | db-shell)
 			local -a services
 			services=(${(f)"$(_mdev_services)"})
 			_describe 'service' services

@@ -45,6 +45,13 @@ EOF
     The status should be success
   End
 
+  It 'rebuild builds then starts services'
+    When run bash -c "cd '$PROJ_DIR' && bash dev.sh rebuild"
+    The output should include 'building'
+    The output should include 'starting services'
+    The status should be success
+  End
+
   It 'ensures network exists before starting'
     write_dev_config "$PROJ_DIR" myapp service "DEV_NETWORK=shared-net"
     cat >"$MOCK_DIR/docker" <<'EOF'

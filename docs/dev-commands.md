@@ -15,6 +15,7 @@
 | `shell`            | Open shell in running container           |
 | `run [args]`       | Run the tool (tool repos only)            |
 | `exec <script>`    | Run a named script in the scripts stage   |
+| `rebuild`          | Build image(s) and start services         |
 | `up [service...]`  | Start services via Docker Compose         |
 | `down [args]`      | Stop services via Docker Compose          |
 | `clean`            | Remove all containers and volumes         |

@@ -247,6 +247,7 @@ cmd_format() { _run_for_services format 'formatting' "$@"; }
 cmd_unit() { _run_for_services unit 'unit testing' "$@"; }
 cmd_check() { _run_for_services check 'checking' "$@"; }
 cmd_types() { _run_for_services types 'type checking' "$@"; }
+cmd_rebuild() { _run_for_services rebuild 'rebuilding' "$@"; }
 cmd_db_migrate() { _run_for_services db-migrate 'migrating' "$@"; }
 
 _run_interactive() {
@@ -309,7 +310,7 @@ EOF
 }
 
 cmd_completions() {
-	echo 'up down status logs build lint format unit types check db-migrate shell db-shell changed run init help'
+	echo 'up down status logs build lint format unit types check rebuild db-migrate shell db-shell changed run init help'
 }
 
 cmd_help() {
@@ -330,6 +331,7 @@ COMMANDS
     unit [services...]      Run unit tests in each service
     types [services...]     Run static type checking in each service
     check [services...]     Run full quality check in each service
+    rebuild [services...]   Build images and start services
     db-migrate [services...] Run database migrations in each service
     shell <service>         Open a shell in a running service container
     db-shell <service>      Open a shell in a running database container
@@ -390,6 +392,7 @@ main() {
 	unit) cmd_unit "$@" ;;
 	types) cmd_types "$@" ;;
 	check) cmd_check "$@" ;;
+	rebuild) cmd_rebuild "$@" ;;
 	db-migrate) cmd_db_migrate "$@" ;;
 	shell) cmd_shell "$@" ;;
 	db-shell) cmd_db_shell "$@" ;;
