@@ -48,9 +48,8 @@ load_mdev_config() {
 	# shellcheck source=/dev/null
 	source "$MDEV_ROOT/.mdev"
 	[[ -z "${MDEV_NAME:-}" ]] && die 'MDEV_NAME is not set in .mdev'
-	MDEV_NETWORK="${MDEV_NETWORK:-}"
 	MDEV_SERVICES="${MDEV_SERVICES:-}"
-	export MDEV_NAME MDEV_NETWORK MDEV_SERVICES
+	export MDEV_NAME MDEV_SERVICES
 }
 
 check_docker() {
@@ -108,13 +107,6 @@ filter_services() {
 # Execution helpers
 # ---------------------------------------------------------------------------
 
-ensure_mdev_network() {
-	if ! docker network inspect "$MDEV_NETWORK" &>/dev/null; then
-		info "creating network $MDEV_NETWORK"
-		docker network create "$MDEV_NETWORK"
-	fi
-}
-
 read_dev_var() {
 	grep -m1 "^$2=" "$MDEV_ROOT/$1/.dev" | cut -d= -f2 | tr -d '"'
 }
@@ -169,7 +161,6 @@ mdev_labeled() {
 
 cmd_up() {
 	check_docker
-	[[ -n "$MDEV_NETWORK" ]] && ensure_mdev_network
 	local services
 	mapfile -t services < <(filter_services "$@")
 	for service in "${services[@]}"; do
@@ -312,7 +303,6 @@ cmd_init() {
 	[[ -f "$PWD/.mdev" ]] && die '.mdev already exists in this directory'
 	cat >"$PWD/.mdev" <<'EOF'
 MDEV_NAME=myapp
-# MDEV_NETWORK=myapp-infra
 # MDEV_SERVICES=api,frontend,worker
 EOF
 	echo 'wrote .mdev — edit it to configure your workspace'

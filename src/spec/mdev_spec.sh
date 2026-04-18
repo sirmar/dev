@@ -299,22 +299,6 @@ Describe 'up'
 End
 
 
-Describe 'up with network'
-  setup_up_network() {
-    setup_mock_mdev
-    write_mdev_config "$MOCK_DIR" myapp "MDEV_NETWORK=myapp-infra"
-    write_service "$MOCK_DIR" api myapp-api service
-  }
-  Before 'setup_up_network'
-  After 'teardown_mock_mdev'
-
-  It 'creates the Docker network when it does not exist'
-    When run run_mdev up
-    The status should be success
-    The output should include 'docker network create myapp-infra'
-  End
-End
-
 
 Describe 'down'
   setup_down() {
@@ -533,7 +517,6 @@ Describe 'status'
     cat >"$MOCK_DIR/docker" <<'EOF'
 #!/bin/sh
 case "$1 $2" in
-  "network inspect") exit 1 ;;
   "compose --project-name") : ;;
   *) echo "docker $*" ;;
 esac

@@ -28,12 +28,10 @@ Place a `.mdev` file at the monorepo root:
 
 ```sh
 MDEV_NAME=myapp
-# MDEV_NETWORK=myapp-infra
 # MDEV_SERVICES=api,frontend,worker
 ```
 
 | Key               | Description                                                                 |
 |-------------------|-----------------------------------------------------------------------------|
 | `MDEV_NAME`       | **Required.** Workspace name, used for logging and shared network naming    |
-| `MDEV_NETWORK`    | Optional. Docker network created before `up` and shared across services     |
 | `MDEV_SERVICES`   | Optional. Comma-separated list of service paths. Defaults to auto-discovery |
