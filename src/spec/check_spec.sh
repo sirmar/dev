@@ -63,6 +63,17 @@ Describe 'check'
     End
   End
 
+  Describe 'for e2e repos'
+    Before 'setup_mock_e2e_repo'
+    After 'teardown_mock_docker'
+
+    It 'skips coverage and exits successfully'
+      When run run_dev check
+      The output should not include 'running coverage'
+      The status should be success
+    End
+  End
+
   Describe 'when lint fails'
     Before 'setup_check_lint_fails'
     After 'teardown_check_lint_fails'

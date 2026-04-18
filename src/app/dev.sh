@@ -326,7 +326,7 @@ cmd_check() {
 	cmd_format "$@"
 	cmd_lint "$@"
 	cmd_types "$@"
-	! is_repo_type e2e && cmd_coverage "$@"
+	if ! is_repo_type e2e; then cmd_coverage "$@"; fi
 }
 
 assert_db() {
