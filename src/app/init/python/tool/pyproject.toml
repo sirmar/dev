@@ -21,6 +21,9 @@ quote-style = 'single'
 [tool.ruff.lint.flake8-quotes]
 inline-quotes = 'single'
 
+[tool.coverage.run]
+source = ['app']
+
 [tool.coverage.paths]
 source = ['src/app/', '/workspace/src/app/']
 
