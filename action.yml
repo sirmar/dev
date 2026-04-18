@@ -8,6 +8,7 @@ runs:
       shell: bash
       run: |
         cp "${{ github.action_path }}/src/app/dev.sh" /usr/local/bin/dev
+        cp "${{ github.action_path }}/src/app/mdev.sh" /usr/local/bin/mdev
         cp "${{ github.action_path }}/src/app/docker-compose.network.yml" /usr/local/bin/docker-compose.network.yml
         cp "${{ github.action_path }}/src/app/docker-compose.e2e-network.yml" /usr/local/bin/docker-compose.e2e-network.yml
-        chmod +x /usr/local/bin/dev
+        chmod +x /usr/local/bin/dev /usr/local/bin/mdev
