@@ -81,10 +81,10 @@ Describe 'run for service repo'
 	Before 'setup_mock_docker'
 	After 'teardown_mock_docker'
 
-	It 'is not available'
+	It 'skips gracefully'
 		When run run_dev run
-		The stderr should include 'not available'
-		The status should be failure
+		The output should include 'skipping run'
+		The status should be success
 	End
 End
 

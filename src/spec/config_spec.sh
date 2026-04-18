@@ -133,22 +133,22 @@ Describe 'DEV_REPO_TYPE=e2e'
     The status should be success
   End
 
-  It 'blocks unit command'
+  It 'skips unit command'
     When run run_dev unit
-    The status should be failure
-    The stderr should include 'not available for e2e repos'
+    The status should be success
+    The output should include 'skipping unit'
   End
 
-  It 'blocks coverage command'
+  It 'skips coverage command'
     When run run_dev coverage
-    The status should be failure
-    The stderr should include 'not available for e2e repos'
+    The status should be success
+    The output should include 'skipping coverage'
   End
 
-  It 'blocks e2e command'
+  It 'skips e2e command'
     When run run_dev e2e
-    The status should be failure
-    The stderr should include 'not available for e2e repos'
+    The status should be success
+    The output should include 'skipping e2e'
   End
 End
 
@@ -160,76 +160,76 @@ Describe 'assert_repo_type guard'
   Before 'setup_image_repo'
   After 'teardown_mock_docker'
 
-  It 'blocks unit command on image repos'
+  It 'skips unit command on image repos'
     When run run_dev unit
-    The status should be failure
-    The stderr should include 'not available for image repos'
+    The status should be success
+    The output should include 'skipping unit'
   End
 
-  It 'blocks shell command on image repos'
+  It 'skips shell command on image repos'
     When run run_dev shell
-    The status should be failure
-    The stderr should include 'not available for image repos'
+    The status should be success
+    The output should include 'skipping shell'
   End
 
-  It 'blocks format command on image repos'
+  It 'skips format command on image repos'
     When run run_dev format
-    The status should be failure
-    The stderr should include 'not available for image repos'
+    The status should be success
+    The output should include 'skipping format'
   End
 
-  It 'blocks check command on image repos'
+  It 'skips check command on image repos'
     When run run_dev check
-    The status should be failure
-    The stderr should include 'not available for image repos'
+    The status should be success
+    The output should include 'skipping check'
   End
 
-  It 'blocks coverage command on image repos'
+  It 'skips coverage command on image repos'
     When run run_dev coverage
-    The status should be failure
-    The stderr should include 'not available for image repos'
+    The status should be success
+    The output should include 'skipping coverage'
   End
 
-  It 'blocks types command on image repos'
+  It 'skips types command on image repos'
     When run run_dev types
-    The status should be failure
-    The stderr should include 'not available for image repos'
+    The status should be success
+    The output should include 'skipping types'
   End
 
-  It 'blocks security command on image repos'
+  It 'skips security command on image repos'
     When run run_dev security
-    The status should be failure
-    The stderr should include 'not available for image repos'
+    The status should be success
+    The output should include 'skipping security'
   End
 
-  It 'blocks run command on image repos'
+  It 'skips run command on image repos'
     When run run_dev run
-    The status should be failure
-    The stderr should include 'not available for image repos'
+    The status should be success
+    The output should include 'skipping run'
   End
 
-  It 'blocks up command on image repos'
+  It 'skips up command on image repos'
     When run run_dev up
-    The status should be failure
-    The stderr should include 'not available for image repos'
+    The status should be success
+    The output should include 'skipping up'
   End
 
-  It 'blocks down command on image repos'
+  It 'skips down command on image repos'
     When run run_dev down
-    The status should be failure
-    The stderr should include 'not available for image repos'
+    The status should be success
+    The output should include 'skipping down'
   End
 
-  It 'blocks db-shell command on image repos'
+  It 'skips db-shell command on image repos'
     When run run_dev db-shell
-    The status should be failure
-    The stderr should include 'not available for image repos'
+    The status should be success
+    The output should include 'skipping db-shell'
   End
 
-  It 'blocks db-migrate command on image repos'
+  It 'skips db-migrate command on image repos'
     When run run_dev db-migrate
-    The status should be failure
-    The stderr should include 'not available for image repos'
+    The status should be success
+    The output should include 'skipping db-migrate'
   End
 End
 
@@ -241,40 +241,40 @@ Describe 'assert_repo_type guard on tool repos'
   Before 'setup_tool_repo'
   After 'teardown_mock_docker'
 
-  It 'blocks watch command on tool repos'
+  It 'skips watch command on tool repos'
     When run run_dev watch
-    The status should be failure
-    The stderr should include 'not available for tool repos'
+    The status should be success
+    The output should include 'skipping watch'
   End
 
-  It 'blocks shell command on tool repos'
+  It 'skips shell command on tool repos'
     When run run_dev shell
-    The status should be failure
-    The stderr should include 'not available for tool repos'
+    The status should be success
+    The output should include 'skipping shell'
   End
 
-  It 'blocks up command on tool repos'
+  It 'skips up command on tool repos'
     When run run_dev up
-    The status should be failure
-    The stderr should include 'not available for tool repos'
+    The status should be success
+    The output should include 'skipping up'
   End
 
-  It 'blocks down command on tool repos'
+  It 'skips down command on tool repos'
     When run run_dev down
-    The status should be failure
-    The stderr should include 'not available for tool repos'
+    The status should be success
+    The output should include 'skipping down'
   End
 
-  It 'blocks db-shell command on tool repos'
+  It 'skips db-shell command on tool repos'
     When run run_dev db-shell
-    The status should be failure
-    The stderr should include 'not available for tool repos'
+    The status should be success
+    The output should include 'skipping db-shell'
   End
 
-  It 'blocks db-migrate command on tool repos'
+  It 'skips db-migrate command on tool repos'
     When run run_dev db-migrate
-    The status should be failure
-    The stderr should include 'not available for tool repos'
+    The status should be success
+    The output should include 'skipping db-migrate'
   End
 End
 

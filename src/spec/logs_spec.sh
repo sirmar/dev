@@ -52,10 +52,10 @@ Describe 'logs'
     The status should be success
   End
 
-  It 'is not available for tool repos'
+  It 'skips gracefully for tool repos'
     write_dev_config "$PROJ_DIR" myapp tool
     When run bash -c "cd '$PROJ_DIR' && bash dev.sh logs"
-    The status should be failure
-    The stderr should include "'logs' is not available for tool repos"
+    The status should be success
+    The output should include 'skipping logs'
   End
 End

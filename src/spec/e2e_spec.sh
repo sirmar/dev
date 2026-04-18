@@ -99,7 +99,7 @@ EOF
   End
 End
 
-Describe 'e2e is not available for image repos'
+Describe 'e2e skips on image repos'
   setup_e2e_image_repo() {
     setup_mock_e2e
     write_dev_config "$MOCK_DIR" dev image
@@ -107,9 +107,9 @@ Describe 'e2e is not available for image repos'
   Before 'setup_e2e_image_repo'
   After 'teardown_mock_docker'
 
-  It 'exits with error'
+  It 'skips gracefully'
     When run run_dev e2e
-    The status should be failure
-    The stderr should include "'e2e' is not available for image repos"
+    The status should be success
+    The output should include 'skipping e2e'
   End
 End
