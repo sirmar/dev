@@ -232,13 +232,6 @@ cmd_build() {
 		fi
 	else
 		build_image prod false "$no_cache"
-		if [[ -n "${CI:-}" && -n "$DEV_REGISTRY" && -n "${GITHUB_SHA:-}" ]]; then
-			local remote="${DEV_REGISTRY}/${DEV_NAME}:${GITHUB_SHA}"
-			cmd_login
-			info "pushing $remote"
-			docker tag "$DEV_NAME" "$remote"
-			docker push "$remote"
-		fi
 	fi
 }
 
