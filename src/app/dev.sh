@@ -305,7 +305,7 @@ cmd_coverage() {
 	build_image coverage true
 	info "running coverage"
 	if [[ -f "$ROOT_DIR/docker-compose.e2e.yml" ]]; then
-		mkdir -p "$ROOT_DIR/out"
+		mkdir -p "$ROOT_DIR/$DEV_CONTEXT/out"
 		compose_e2e run --rm coverage
 		compose_e2e down -v
 	else
@@ -340,7 +340,10 @@ cmd_db_shell() {
 }
 
 cmd_db_migrate() {
-	assert_db
+	[[ -z "$DEV_DB_NAME" ]] && {
+		info "skipping db-migrate (DEV_DB_NAME not set)"
+		return 0
+	}
 	local db_url="mysql://${DEV_DB_USER}:${DEV_DB_PASSWORD}@${DEV_DB_CONTAINER}/${DEV_DB_NAME}"
 	info "running migrations"
 	docker run --rm \
@@ -433,6 +436,11 @@ cmd_exec() {
 	[[ -z "$script_path" ]] && error "unknown script '$script' — available: $(echo "$DEV_SCRIPTS" | tr ' ' '\n' | cut -d: -f1 | tr '\n' ' ')"
 	info "running $script"
 	run_in scripts "$script_path" "$@"
+}
+
+cmd_rebuild() {
+	cmd_build
+	cmd_up "$@"
 }
 
 cmd_up() {
@@ -560,6 +568,7 @@ EOF
 		cat <<EOF
     watch               Build watch stage and run with hot reload
     shell               Open interactive shell in container
+    rebuild             Build image(s) and start services
     up [service...]     Start services via Docker Compose
     down [args]         Stop services via Docker Compose
     clean               Remove all containers and volumes
@@ -596,7 +605,10 @@ is_repo_type() {
 assert_repo_type() {
 	local command="$1"
 	shift
-	is_repo_type "$@" || error "'$command' is not available for $DEV_REPO_TYPE repos"
+	if ! is_repo_type "$@"; then
+		info "skipping $command (not available for $DEV_REPO_TYPE repos)"
+		exit 0
+	fi
 }
 
 cmd_completions() {
@@ -627,7 +639,7 @@ cmd_completions() {
 		cmds="$cmds exec"
 	fi
 	if [[ "$repo_type" == "service" ]]; then
-		cmds="$cmds watch shell up down clean logs db-shell db-migrate"
+		cmds="$cmds watch shell rebuild up down clean logs db-shell db-migrate"
 	fi
 	echo "$cmds"
 }
@@ -709,7 +721,7 @@ main() {
 	esac
 
 	case "$command" in
-	build | login | push | lint | lint-dockerfile | format | unit | e2e | check | coverage | types | security | watch | shell | run | exec | up | down | clean | logs | db-shell | db-migrate) ;;
+	build | login | push | lint | lint-dockerfile | format | unit | e2e | check | coverage | types | security | watch | shell | run | exec | rebuild | up | down | clean | logs | db-shell | db-migrate) ;;
 	*)
 		echo "error: unknown command '$command'" >&2
 		cmd_help
@@ -769,6 +781,10 @@ main() {
 	exec)
 		assert_repo_type exec service tool e2e
 		cmd_exec "$@"
+		;;
+	rebuild)
+		assert_repo_type rebuild service
+		cmd_rebuild "$@"
 		;;
 	up)
 		assert_repo_type up service

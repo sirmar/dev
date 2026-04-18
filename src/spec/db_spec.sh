@@ -42,10 +42,10 @@ Describe 'db-migrate'
 		Before 'setup_mock_docker'
 		After 'teardown_mock_docker'
 
-		It 'errors with helpful message'
+		It 'skips gracefully'
 			When run run_dev db-migrate
-			The status should be failure
-			The stderr should include 'DEV_DB_NAME is not set'
+			The status should be success
+			The output should include 'skipping db-migrate'
 		End
 	End
 
