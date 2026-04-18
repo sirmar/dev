@@ -311,6 +311,7 @@ cmd_coverage() {
 	build_image coverage true
 	info "running coverage"
 	if [[ -f "$ROOT_DIR/docker-compose.e2e.yml" ]]; then
+		mkdir -p "$ROOT_DIR/out"
 		compose_e2e run --rm coverage
 		compose_e2e down -v
 	else
