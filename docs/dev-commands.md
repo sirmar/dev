@@ -10,6 +10,7 @@
 | `types`            | Run static type checking                  |
 | `security`         | Run security scanning                     |
 | `check`            | Run format, lint, types, and coverage     |
+| `ci`               | Build and run full quality check          |
 | `e2e`              | Run e2e tests                             |
 | `watch`            | Run with hot reload                       |
 | `shell`            | Open shell in running container           |

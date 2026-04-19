@@ -13,6 +13,7 @@
 | `format [services...]`     | Run format in each service                               |
 | `unit [services...]`       | Run unit tests in each service                           |
 | `check [services...]`      | Run full quality check in each service                   |
+| `ci [services...]`         | Build and run full quality check                         |
 | `rebuild [services...]`    | Build images and start services                          |
 | `db-migrate [services...]` | Run database migrations in each service                  |
 | `shell <service>`          | Open a shell in a running service container              |

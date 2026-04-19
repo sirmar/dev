@@ -438,8 +438,20 @@ cmd_exec() {
 	run_in scripts "$script_path" "$@"
 }
 
-cmd_rebuild() {
+cmd_ci() {
 	cmd_build
+	cmd_check "$@"
+}
+
+cmd_rebuild() {
+	local no_cache=false
+	[[ "${1:-}" == "--no-cache" ]] && {
+		no_cache=true
+		shift
+	}
+	local build_args=()
+	$no_cache && build_args+=(--no-cache)
+	cmd_build "${build_args[@]}"
 	cmd_up "$@"
 }
 
@@ -526,6 +538,7 @@ EOF
     format [file]       Format source files
     unit                Run unit tests
     check               Run format, lint, types, and coverage
+    ci                  Build and run full quality check
     coverage            Run tests with coverage report
     types               Run static type checking
     security            Run security scanning
@@ -624,7 +637,7 @@ cmd_completions() {
 
 	local cmds="init build lint lint-dockerfile login push release help"
 	if [[ "$repo_type" == "service" || "$repo_type" == "tool" || "$repo_type" == "library" ]]; then
-		cmds="$cmds format unit coverage types security check"
+		cmds="$cmds format unit coverage types security check ci"
 	fi
 	if [[ "$repo_type" == "service" || "$repo_type" == "tool" ]]; then
 		cmds="$cmds e2e"
@@ -721,7 +734,7 @@ main() {
 	esac
 
 	case "$command" in
-	build | login | push | lint | lint-dockerfile | format | unit | e2e | check | coverage | types | security | watch | shell | run | exec | rebuild | up | down | clean | logs | db-shell | db-migrate) ;;
+	build | login | push | lint | lint-dockerfile | format | unit | e2e | check | ci | coverage | types | security | watch | shell | run | exec | rebuild | up | down | clean | logs | db-shell | db-migrate) ;;
 	*)
 		echo "error: unknown command '$command'" >&2
 		cmd_help
@@ -753,6 +766,10 @@ main() {
 	check)
 		assert_repo_type check service tool library e2e
 		cmd_check "$@"
+		;;
+	ci)
+		assert_repo_type ci service tool library e2e
+		cmd_ci "$@"
 		;;
 	coverage)
 		assert_repo_type coverage service tool library

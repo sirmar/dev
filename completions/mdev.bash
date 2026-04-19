@@ -28,7 +28,7 @@ _mdev_completion() {
 	subcmd="${COMP_WORDS[1]}"
 
 	case "$subcmd" in
-		up | down | build | lint | format | unit | types | check | rebuild | db-migrate | shell | db-shell)
+		up | down | build | lint | format | unit | types | check | ci | rebuild | db-migrate | shell | db-shell)
 			local services
 			services="$(_mdev_services)"
 			COMPREPLY=($(compgen -W "$services" -- "$cur"))

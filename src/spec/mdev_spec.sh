@@ -33,7 +33,7 @@ _write_mock_dev() {
 if [[ "$1" == "completions" ]]; then
   type="$(grep -m1 '^DEV_REPO_TYPE=' .dev 2>/dev/null | cut -d= -f2 | tr -d '"')"
   case "$type" in
-    service) echo 'up down logs build lint format unit check db-migrate shell db-shell watch rebuild' ;;
+    service) echo 'up down logs build lint format unit check ci db-migrate shell db-shell watch rebuild' ;;
     tool)    echo 'build lint format unit check coverage types security' ;;
     image)   echo 'build lint' ;;
     *)       echo 'build lint format unit check' ;;
@@ -312,6 +312,22 @@ Describe 'rebuild'
     When run run_mdev rebuild
     The status should be success
     The output should include '[api] dev rebuild'
+  End
+End
+
+
+Describe 'ci'
+  setup_ci() {
+    setup_mock_mdev
+    write_service "$MOCK_DIR" api myapp-api service
+  }
+  Before 'setup_ci'
+  After 'teardown_mock_mdev'
+
+  It 'delegates to dev ci and labels output'
+    When run run_mdev ci
+    The status should be success
+    The output should include '[api] dev ci'
   End
 End
 
