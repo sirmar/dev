@@ -17,6 +17,7 @@ FROM scratch AS unit
 FROM scratch AS coverage
 FROM scratch AS types
 FROM scratch AS security
+FROM scratch AS lock
 FROM scratch AS watch
 FROM scratch AS prod'
 

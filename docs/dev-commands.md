@@ -9,6 +9,7 @@
 | `coverage`         | Run tests with coverage report            |
 | `types`            | Run static type checking                  |
 | `security`         | Run security scanning                     |
+| `lock`             | Regenerate lock file                      |
 | `check`            | Run format, lint, types, and coverage     |
 | `ci`               | Build and run full quality check          |
 | `e2e`              | Run e2e tests                             |

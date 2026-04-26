@@ -33,7 +33,7 @@ _write_mock_dev() {
 if [[ "$1" == "completions" ]]; then
   type="$(grep -m1 '^DEV_REPO_TYPE=' .dev 2>/dev/null | cut -d= -f2 | tr -d '"')"
   case "$type" in
-    service) echo 'up down logs build lint format unit check ci db-migrate shell db-shell watch rebuild' ;;
+    service) echo 'up down logs build lint format unit lock check ci db-migrate shell db-shell watch rebuild' ;;
     tool)    echo 'build lint format unit check coverage types security' ;;
     image)   echo 'build lint' ;;
     *)       echo 'build lint format unit check' ;;
@@ -87,6 +87,7 @@ Describe 'completions'
     The output should include 'run'
     The output should include 'init'
     The output should include 'help'
+    The output should include 'lock'
   End
 
   It 'works without a .mdev file'
@@ -328,6 +329,22 @@ Describe 'ci'
     When run run_mdev ci
     The status should be success
     The output should include '[api] dev ci'
+  End
+End
+
+
+Describe 'lock'
+  setup_lock() {
+    setup_mock_mdev
+    write_service "$MOCK_DIR" api myapp-api service
+  }
+  Before 'setup_lock'
+  After 'teardown_mock_mdev'
+
+  It 'delegates to dev lock and labels output'
+    When run run_mdev lock
+    The status should be success
+    The output should include '[api] dev lock'
   End
 End
 

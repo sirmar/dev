@@ -21,6 +21,12 @@ ENTRYPOINT ["/usr/local/bin/coverage-entrypoint.sh"]
 FROM deps AS types
 ENTRYPOINT ["/usr/local/bin/types-entrypoint.sh"]
 
+FROM deps AS security
+ENTRYPOINT ["/usr/local/bin/security-entrypoint.sh"]
+
+FROM deps AS lock
+ENTRYPOINT ["/usr/local/bin/lock-entrypoint.sh"]
+
 FROM base AS prod
 LABEL org.opencontainers.image.source=https://github.com/your-org/{{DEV_NAME}}
 COPY pyproject.toml uv.lock ./

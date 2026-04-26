@@ -247,6 +247,7 @@ cmd_format() { _run_for_services format 'formatting' "$@"; }
 cmd_unit() { _run_for_services unit 'unit testing' "$@"; }
 cmd_check() { _run_for_services check 'checking' "$@"; }
 cmd_types() { _run_for_services types 'type checking' "$@"; }
+cmd_lock() { _run_for_services lock 'locking' "$@"; }
 cmd_ci() { _run_for_services ci 'running ci' "$@"; }
 cmd_rebuild() { _run_for_services rebuild 'rebuilding' "$@"; }
 cmd_db_migrate() { _run_for_services db-migrate 'migrating' "$@"; }
@@ -311,7 +312,7 @@ EOF
 }
 
 cmd_completions() {
-	echo 'up down status logs build lint format unit types check ci rebuild db-migrate shell db-shell changed run init help'
+	echo 'up down status logs build lint format unit types lock check ci rebuild db-migrate shell db-shell changed run init help'
 }
 
 cmd_help() {
@@ -331,6 +332,7 @@ COMMANDS
     format [services...]    Run format in each service
     unit [services...]      Run unit tests in each service
     types [services...]     Run static type checking in each service
+    lock [services...]      Regenerate lock file in each service
     check [services...]     Run full quality check in each service
     ci [services...]        Build and run full quality check
     rebuild [services...]   Build images and start services
@@ -393,6 +395,7 @@ main() {
 	format) cmd_format "$@" ;;
 	unit) cmd_unit "$@" ;;
 	types) cmd_types "$@" ;;
+	lock) cmd_lock "$@" ;;
 	check) cmd_check "$@" ;;
 	ci) cmd_ci "$@" ;;
 	rebuild) cmd_rebuild "$@" ;;

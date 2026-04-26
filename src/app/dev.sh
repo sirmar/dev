@@ -321,6 +321,13 @@ cmd_security() {
 	run_stage security "security"
 }
 
+cmd_lock() {
+	run_stage lock "lock"
+	for lockfile in pnpm-lock.yaml uv.lock; do
+		if [[ -f "$ROOT_DIR/out/$lockfile" ]]; then cp "$ROOT_DIR/out/$lockfile" "$ROOT_DIR/$lockfile"; fi
+	done
+}
+
 cmd_check() {
 	cmd_lint_dockerfile
 	cmd_format "$@"
@@ -542,6 +549,7 @@ EOF
     coverage            Run tests with coverage report
     types               Run static type checking
     security            Run security scanning
+    lock                Regenerate lock file
 EOF
 	fi
 
@@ -559,6 +567,7 @@ EOF
     check               Run format, lint, and types
     types               Run static type checking
     security            Run security scanning
+    lock                Regenerate lock file
     run                 Run e2e tests via docker-compose.yml
 EOF
 	fi
@@ -637,13 +646,13 @@ cmd_completions() {
 
 	local cmds="init build lint lint-dockerfile login push release help"
 	if [[ "$repo_type" == "service" || "$repo_type" == "tool" || "$repo_type" == "library" ]]; then
-		cmds="$cmds format unit coverage types security check ci"
+		cmds="$cmds format unit coverage types security lock check ci"
 	fi
 	if [[ "$repo_type" == "service" || "$repo_type" == "tool" ]]; then
 		cmds="$cmds e2e"
 	fi
 	if [[ "$repo_type" == "e2e" ]]; then
-		cmds="$cmds format types security check"
+		cmds="$cmds format types security lock check"
 	fi
 	if [[ "$repo_type" == "tool" || "$repo_type" == "e2e" ]]; then
 		cmds="$cmds run"
@@ -734,7 +743,7 @@ main() {
 	esac
 
 	case "$command" in
-	build | login | push | lint | lint-dockerfile | format | unit | e2e | check | ci | coverage | types | security | watch | shell | run | exec | rebuild | up | down | clean | logs | db-shell | db-migrate) ;;
+	build | login | push | lint | lint-dockerfile | format | unit | e2e | check | ci | coverage | types | security | lock | watch | shell | run | exec | rebuild | up | down | clean | logs | db-shell | db-migrate) ;;
 	*)
 		echo "error: unknown command '$command'" >&2
 		cmd_help
@@ -782,6 +791,10 @@ main() {
 	security)
 		assert_repo_type security service tool library e2e
 		cmd_security "$@"
+		;;
+	lock)
+		assert_repo_type lock service tool library e2e
+		cmd_lock "$@"
 		;;
 	watch)
 		assert_repo_type watch service
