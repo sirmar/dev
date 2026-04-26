@@ -333,6 +333,7 @@ cmd_check() {
 	cmd_format "$@"
 	cmd_lint "$@"
 	cmd_types "$@"
+	cmd_security "$@"
 	if ! is_repo_type e2e; then cmd_coverage "$@"; fi
 }
 
