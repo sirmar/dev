@@ -16,7 +16,7 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.2
       - name: Install dev
         run: |
           cp src/app/dev.sh /usr/local/bin/dev
@@ -34,7 +34,7 @@ jobs:
       matrix:
         image: [bash, nginx, python, typescript]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.2
       - uses: ./
       - name: Login
         run: dev login

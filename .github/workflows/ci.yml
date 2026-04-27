@@ -22,7 +22,7 @@ jobs:
       matrix:
         job: [lint-dockerfile, lint, coverage]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.2
       - uses: ./
       - name: Login
         run: dev login
@@ -42,7 +42,7 @@ jobs:
         image: [bash, nginx, python, typescript]
         job: [lint-dockerfile, build]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.2
       - uses: ./
       - name: Login
         run: dev login
