@@ -62,5 +62,11 @@ Describe 'watch'
       The output should include '/workspace/data'
       The status should be success
     End
+
+    It 'does not pass -it when stdin is not a TTY'
+      When run run_dev watch
+      The output should not include ' -it'
+      The status should be success
+    End
   End
 End

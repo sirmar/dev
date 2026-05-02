@@ -155,10 +155,12 @@ run_in() {
 	shift
 	ensure_network
 	mkdir -p "$ROOT_DIR/out"
-	local network_flag=()
+	local network_flag=() port_flag=() tty_flag=()
 	[[ -n "$DEV_NETWORK" ]] && network_flag=(--network "$DEV_NETWORK")
+	[[ -n "$DEV_PORT" ]] && port_flag=(-p "${DEV_PORT}:${DEV_PORT}")
+	[[ -t 0 ]] && tty_flag=(-it)
 	# shellcheck disable=SC2046
-	docker run --rm --name "$(image_name "$stage")" "${network_flag[@]}" -v "$ROOT_DIR/src:/workspace/src" -v "$ROOT_DIR/out:/workspace/out" $(extra_mount_flags) "$(image_name "$stage")" "$@"
+	docker run --rm "${tty_flag[@]}" --name "$(image_name "$stage")" "${port_flag[@]}" "${network_flag[@]}" -v "$ROOT_DIR/src:/workspace/src" -v "$ROOT_DIR/out:/workspace/out" $(extra_mount_flags) "$(image_name "$stage")" "$@"
 }
 
 run_stage() {
@@ -394,12 +396,7 @@ cmd_watch() {
 	fi
 	build_image watch true
 	info "starting watch"
-	ensure_network
-	local port_flag=() network_flag=()
-	[[ -n "$DEV_PORT" ]] && port_flag=(-p "${DEV_PORT}:${DEV_PORT}")
-	[[ -n "$DEV_NETWORK" ]] && network_flag=(--network "$DEV_NETWORK")
-	# shellcheck disable=SC2046
-	docker run --rm -it --name "$(image_name watch)" "${port_flag[@]}" "${network_flag[@]}" -v "$ROOT_DIR/src:/workspace/src" $(extra_mount_flags) "$(image_name watch)"
+	run_in watch
 }
 
 cmd_run() {
@@ -415,13 +412,7 @@ cmd_run() {
 	fi
 	build_image prod true
 	info "running $DEV_NAME"
-	ensure_network
-	local network_flag=() port_flag=() tty_flag=()
-	[[ -n "$DEV_NETWORK" ]] && network_flag=(--network "$DEV_NETWORK")
-	[[ -n "$DEV_PORT" ]] && port_flag=(-p "${DEV_PORT}:${DEV_PORT}")
-	[[ -t 0 ]] && tty_flag=(-it)
-	# shellcheck disable=SC2046
-	docker run --rm "${tty_flag[@]}" --name "$(image_name prod)" "${network_flag[@]}" "${port_flag[@]}" -v "$ROOT_DIR/src:/workspace/src" $(extra_mount_flags) "$(image_name prod)" "$@"
+	run_in prod "$@"
 }
 
 cmd_exec() {
