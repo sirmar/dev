@@ -90,7 +90,7 @@ Describe 'run'
 	End
 
 	It 'does not pass -it when stdin is not a TTY'
-		When run run_dev run
+		When run bash -c "cd '$MOCK_DIR' && bash '$DEV_SCRIPT' run </dev/null"
 		The output should not include ' -it'
 		The status should be success
 	End

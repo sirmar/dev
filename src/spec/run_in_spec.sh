@@ -57,7 +57,7 @@ Describe 'run_in'
   End
 
   It 'does not pass -it when stdin is not a TTY'
-    When run run_dev unit
+    When run bash -c "cd '$MOCK_DIR' && bash '$DEV_SCRIPT' unit </dev/null"
     The output should not include ' -it'
     The status should be success
   End

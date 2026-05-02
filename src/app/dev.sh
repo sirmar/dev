@@ -608,14 +608,31 @@ is_repo_type() {
 	return 1
 }
 
+cmd_repo_types() {
+	case "$1" in
+	init | build | lint | lint-dockerfile | login | push | release | help) echo '*' ;;
+	format | check | ci | types | security | lock) echo 'service tool library e2e' ;;
+	unit | coverage) echo 'service tool library' ;;
+	run) echo 'tool e2e' ;;
+	exec) echo 'service tool e2e' ;;
+	e2e) echo 'service tool' ;;
+	watch | shell | rebuild | up | down | clean | logs | db-shell | db-migrate) echo 'service' ;;
+	esac
+}
+
 assert_repo_type() {
 	local command="$1"
-	shift
-	if ! is_repo_type "$@"; then
+	local allowed
+	allowed="$(cmd_repo_types "$command")"
+	if [[ "$allowed" != '*' ]] && [[ " $allowed " != *" $DEV_REPO_TYPE "* ]]; then
 		info "skipping $command (not available for $DEV_REPO_TYPE repos)"
 		exit 0
 	fi
 }
+
+_DEV_COMMANDS=(init build lint lint-dockerfile login push release help
+	format unit e2e check ci coverage types security lock
+	watch shell run exec rebuild up down clean logs db-shell db-migrate)
 
 cmd_completions() {
 	local dir="$PWD" repo_type="" dev_scripts=""
@@ -628,26 +645,18 @@ cmd_completions() {
 		dir="$(dirname "$dir")"
 	done
 
-	local cmds="init build lint lint-dockerfile login push release help"
-	if [[ "$repo_type" == "service" || "$repo_type" == "tool" || "$repo_type" == "library" ]]; then
-		cmds="$cmds format unit coverage types security lock check ci"
-	fi
-	if [[ "$repo_type" == "service" || "$repo_type" == "tool" ]]; then
-		cmds="$cmds e2e"
-	fi
-	if [[ "$repo_type" == "e2e" ]]; then
-		cmds="$cmds format types security lock check"
-	fi
-	if [[ "$repo_type" == "tool" || "$repo_type" == "e2e" ]]; then
-		cmds="$cmds run"
-	fi
-	if [[ -n "$dev_scripts" ]]; then
-		cmds="$cmds exec"
-	fi
-	if [[ "$repo_type" == "service" ]]; then
-		cmds="$cmds watch shell rebuild up down clean logs db-shell db-migrate"
-	fi
-	echo "$cmds"
+	local cmds="" cmd allowed
+	for cmd in "${_DEV_COMMANDS[@]}"; do
+		if [[ "$cmd" == "exec" ]]; then
+			[[ -n "$dev_scripts" ]] && cmds="$cmds $cmd"
+			continue
+		fi
+		allowed="$(cmd_repo_types "$cmd")"
+		if [[ "$allowed" == '*' ]] || [[ " $allowed " == *" $repo_type "* ]]; then
+			cmds="$cmds $cmd"
+		fi
+	done
+	echo "${cmds# }"
 }
 
 cmd_init() {
@@ -745,86 +754,86 @@ main() {
 	lint) cmd_lint "$@" ;;
 	lint-dockerfile) cmd_lint_dockerfile ;;
 	format)
-		assert_repo_type format service tool library e2e
+		assert_repo_type format
 		cmd_format "$@"
 		;;
 	unit)
-		assert_repo_type unit service tool library
+		assert_repo_type unit
 		cmd_unit "$@"
 		;;
 	e2e)
-		assert_repo_type e2e service tool
+		assert_repo_type e2e
 		cmd_e2e "$@"
 		;;
 	check)
-		assert_repo_type check service tool library e2e
+		assert_repo_type check
 		cmd_check "$@"
 		;;
 	ci)
-		assert_repo_type ci service tool library e2e
+		assert_repo_type ci
 		cmd_ci "$@"
 		;;
 	coverage)
-		assert_repo_type coverage service tool library
+		assert_repo_type coverage
 		cmd_coverage "$@"
 		;;
 	types)
-		assert_repo_type types service tool library e2e
+		assert_repo_type types
 		cmd_types "$@"
 		;;
 	security)
-		assert_repo_type security service tool library e2e
+		assert_repo_type security
 		cmd_security "$@"
 		;;
 	lock)
-		assert_repo_type lock service tool library e2e
+		assert_repo_type lock
 		cmd_lock "$@"
 		;;
 	watch)
-		assert_repo_type watch service
+		assert_repo_type watch
 		cmd_watch "$@"
 		;;
 	shell)
-		assert_repo_type shell service
+		assert_repo_type shell
 		cmd_shell "$@"
 		;;
 	run)
-		assert_repo_type run tool e2e
+		assert_repo_type run
 		cmd_run "$@"
 		;;
 	exec)
-		assert_repo_type exec service tool e2e
+		assert_repo_type exec
 		cmd_exec "$@"
 		;;
 	rebuild)
-		assert_repo_type rebuild service
+		assert_repo_type rebuild
 		cmd_rebuild "$@"
 		;;
 	up)
-		assert_repo_type up service
+		assert_repo_type up
 		cmd_up "$@"
 		;;
 	down)
-		assert_repo_type down service
+		assert_repo_type down
 		cmd_down "$@"
 		;;
 	clean)
-		assert_repo_type clean service
+		assert_repo_type clean
 		cmd_clean "$@"
 		;;
 	logs)
-		assert_repo_type logs service
+		assert_repo_type logs
 		cmd_logs "$@"
 		;;
 	db-shell)
-		assert_repo_type db-shell service
+		assert_repo_type db-shell
 		cmd_db_shell "$@"
 		;;
 	db-migrate)
-		assert_repo_type db-migrate service
+		assert_repo_type db-migrate
 		cmd_db_migrate "$@"
 		;;
 	esac
 }
 
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && main "$@"
+if [[ "${BASH_SOURCE[0]:-}" == "${0}" ]]; then main "$@"; fi

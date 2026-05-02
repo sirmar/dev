@@ -13,39 +13,45 @@ Describe 'completions'
   Before 'setup'
   After 'teardown'
 
-  It 'lists base commands for image repos'
+  It 'returns exact set for image repos'
     write_dev_config "$MOCK_DIR" myapp image
     When run bash -c "cd '$MOCK_DIR' && bash '$DEV_SCRIPT' completions"
     The status should be success
-    The output should include 'build'
-    The output should include 'lint'
-    The output should not include 'format'
-    The output should not include 'watch'
+    The output should equal 'init build lint lint-dockerfile login push release help'
   End
 
-  It 'lists tool commands for tool repos'
-    write_dev_config "$MOCK_DIR" myapp tool
-    When run bash -c "cd '$MOCK_DIR' && bash '$DEV_SCRIPT' completions"
-    The status should be success
-    The output should include 'format'
-    The output should include 'unit'
-    The output should not include 'watch'
-    The output should not include 'shell'
-  End
-
-  It 'lists all commands for service repos'
+  It 'returns exact set for service repos'
     write_dev_config "$MOCK_DIR" myapp service
     When run bash -c "cd '$MOCK_DIR' && bash '$DEV_SCRIPT' completions"
     The status should be success
-    The output should include 'watch'
-    The output should include 'db-shell'
+    The output should equal 'init build lint lint-dockerfile login push release help format unit e2e check ci coverage types security lock watch shell rebuild up down clean logs db-shell db-migrate'
   End
 
-  It 'lists base commands when no .dev found'
+  It 'returns exact set for tool repos'
+    write_dev_config "$MOCK_DIR" myapp tool
+    When run bash -c "cd '$MOCK_DIR' && bash '$DEV_SCRIPT' completions"
+    The status should be success
+    The output should equal 'init build lint lint-dockerfile login push release help format unit e2e check ci coverage types security lock run'
+  End
+
+  It 'returns exact set for library repos'
+    write_dev_config "$MOCK_DIR" myapp library
+    When run bash -c "cd '$MOCK_DIR' && bash '$DEV_SCRIPT' completions"
+    The status should be success
+    The output should equal 'init build lint lint-dockerfile login push release help format unit check ci coverage types security lock'
+  End
+
+  It 'returns exact set for e2e repos'
+    write_dev_config "$MOCK_DIR" myapp e2e
+    When run bash -c "cd '$MOCK_DIR' && bash '$DEV_SCRIPT' completions"
+    The status should be success
+    The output should equal 'init build lint lint-dockerfile login push release help format check ci types security lock run'
+  End
+
+  It 'returns base set when no .dev found'
     When run bash -c "cd /tmp && bash '$DEV_SCRIPT' completions"
     The status should be success
-    The output should include 'build'
-    The output should not include 'watch'
+    The output should equal 'init build lint lint-dockerfile login push release help'
   End
 End
 

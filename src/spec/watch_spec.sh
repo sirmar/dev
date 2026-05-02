@@ -64,7 +64,7 @@ Describe 'watch'
     End
 
     It 'does not pass -it when stdin is not a TTY'
-      When run run_dev watch
+      When run bash -c "cd '$MOCK_DIR' && bash '$DEV_SCRIPT' watch </dev/null"
       The output should not include ' -it'
       The status should be success
     End
