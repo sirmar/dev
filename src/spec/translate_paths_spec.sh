@@ -35,3 +35,19 @@ Describe 'translate_paths'
     The status should be failure
   End
 End
+
+Describe 'translate_paths with DEV_CONTEXT=..'
+  setup_translate_paths_parent_context() {
+    setup_mock_docker
+    printf 'DEV_CONTEXT=..\n' >>"$MOCK_DIR/.dev"
+  }
+  Before 'setup_translate_paths_parent_context'
+  After 'teardown_mock_docker'
+
+  It 'includes the project directory name in the workspace path'
+    project_name="$(basename "$MOCK_DIR")"
+    When run translate_paths_from "$MOCK_DIR" src/foo_spec.sh
+    The output should equal "/workspace/${project_name}/src/foo_spec.sh"
+    The status should be success
+  End
+End
