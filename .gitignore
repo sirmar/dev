@@ -5,3 +5,5 @@ coverage.md
 out/
 completions/dev.bash
 completions/_dev
+completions/mdev.bash
+completions/_mdev
