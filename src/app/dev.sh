@@ -178,7 +178,7 @@ run_stage() {
 	fi
 	build_image "$stage" true
 	if [[ $# -gt 0 ]]; then
-		info "running $label on $1"
+		info "running $label in $1"
 	else
 		info "running $label"
 	fi
@@ -324,8 +324,33 @@ cmd_format() {
 	run_stage format "format" "$@"
 }
 
+translate_paths() {
+	local result=()
+	for path in "$@"; do
+		local abs
+		if [[ "$path" = /* ]]; then
+			abs="$path"
+		else
+			abs="$PWD/$path"
+		fi
+		if [[ "$abs" != "$ROOT_DIR/src/"* ]]; then
+			echo "error: path must be under src/: $path" >&2
+			return 1
+		fi
+		result+=("/workspace/${abs#"$ROOT_DIR/"}")
+	done
+	echo "${result[@]}"
+}
+
 cmd_unit() {
-	run_stage unit "unit tests"
+	if [[ $# -gt 0 ]]; then
+		local translated
+		translated=$(translate_paths "$@") || return 1
+		# shellcheck disable=SC2086
+		run_stage unit "unit tests" $translated
+	else
+		run_stage unit "unit tests"
+	fi
 }
 
 cmd_coverage() {
@@ -765,6 +790,12 @@ main() {
 		return
 		;;
 	esac
+
+	[[ "$command" == "translate_paths" ]] && {
+		shift
+		translate_paths "$@"
+		return
+	}
 
 	case "$command" in
 	build | login | push | lint | lint-dockerfile | format | unit | e2e | check | ci | coverage | types | security | lock | watch | shell | run | exec | rebuild | up | down | clean | logs | db-shell | db-migrate) ;;

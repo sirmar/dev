@@ -77,7 +77,7 @@ Describe 'lint'
   It 'lints a specific file when target given'
     When run run_dev lint dev.sh
     The output should include 'building stage lint'
-    The output should include 'running lint on dev.sh'
+    The output should include 'running lint in dev.sh'
     The status should be success
   End
 End
