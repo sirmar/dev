@@ -1,2 +1,6 @@
 #!/bin/sh
-exec shellspec src/spec
+if [ $# -gt 0 ]; then
+	exec shellspec "$@"
+else
+	exec shellspec src/spec
+fi

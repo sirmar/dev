@@ -206,6 +206,7 @@ run_compose_suite() {
 
 run_stage_compose() {
 	local stage="$1" label="$2" compose_fn="$3" compose_file="$4" compose_mode="${5:-optional}"
+	shift 5
 	if ! has_dockerfile_stage "$stage"; then
 		info "no '$stage' stage found in Dockerfile — skipping"
 		return 0
@@ -217,7 +218,7 @@ run_stage_compose() {
 		fi
 		build_image "$stage" true
 		info "running $label"
-		run_in "$stage"
+		run_in "$stage" "$@"
 		return 0
 	fi
 	"$compose_fn" down -v
@@ -354,7 +355,14 @@ cmd_unit() {
 }
 
 cmd_coverage() {
-	run_stage_compose coverage "coverage" compose_e2e "$ROOT_DIR/docker-compose.e2e.yml" optional
+	if [[ $# -gt 0 ]]; then
+		local translated
+		translated=$(translate_paths "$@") || return 1
+		# shellcheck disable=SC2086
+		run_stage_compose coverage "coverage" compose_e2e "$ROOT_DIR/docker-compose.e2e.yml" optional $translated
+	else
+		run_stage_compose coverage "coverage" compose_e2e "$ROOT_DIR/docker-compose.e2e.yml" optional
+	fi
 }
 
 cmd_types() {

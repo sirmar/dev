@@ -1,0 +1,133 @@
+#!/usr/bin/env bash
+# shellcheck shell=bash
+# shellcheck disable=SC2317
+
+DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
+
+_setup_entrypoint_env() {
+  ENTRYPOINT_TMP="$(mktemp -d)"
+  printf '#!/bin/sh\necho "uv $*"\n' >"$ENTRYPOINT_TMP/uv"
+  printf '#!/bin/sh\necho "shellspec $*"\nmkdir -p coverage && printf '"'"'<coverage line-rate="0.90"></coverage>\n'"'"' >coverage/cobertura.xml\n' >"$ENTRYPOINT_TMP/shellspec"
+  printf '#!/bin/sh\necho "pnpm $*"\n' >"$ENTRYPOINT_TMP/pnpm"
+  printf '#!/bin/sh\necho "90.0"\n' >"$ENTRYPOINT_TMP/bc"
+  printf '#!/bin/sh\necho "node $*"\n' >"$ENTRYPOINT_TMP/node"
+  chmod +x "$ENTRYPOINT_TMP/uv" "$ENTRYPOINT_TMP/shellspec" "$ENTRYPOINT_TMP/pnpm" "$ENTRYPOINT_TMP/bc" "$ENTRYPOINT_TMP/node"
+  export ENTRYPOINT_TMP
+}
+
+_teardown_entrypoint_env() {
+  rm -rf "$ENTRYPOINT_TMP"
+}
+
+run_entrypoint() {
+  local script="$1"; shift
+  PATH="$ENTRYPOINT_TMP:$PATH" sh "$DEV_ROOT/$script" "$@"
+}
+
+Describe 'python unit-entrypoint'
+  Before '_setup_entrypoint_env'
+  After '_teardown_entrypoint_env'
+
+  It 'runs default suite when no args given'
+    When run run_entrypoint images/python/scripts/unit-entrypoint.sh
+    The output should include 'src/tests/unit'
+    The status should be success
+  End
+
+  It 'passes file args to pytest'
+    When run run_entrypoint images/python/scripts/unit-entrypoint.sh src/tests/unit/foo_test.py
+    The output should include 'pytest src/tests/unit/foo_test.py'
+    The status should be success
+  End
+End
+
+Describe 'python coverage-entrypoint'
+  Before '_setup_entrypoint_env'
+  After '_teardown_entrypoint_env'
+
+  It 'runs default suite when no args given'
+    When run run_entrypoint images/python/scripts/coverage-entrypoint.sh
+    The output should include 'src/tests'
+    The output should include '--cov'
+  End
+
+  It 'passes file args to pytest with coverage flags'
+    When run run_entrypoint images/python/scripts/coverage-entrypoint.sh src/tests/foo_test.py
+    The output should include 'pytest'
+    The output should include '--cov'
+    The output should include 'src/tests/foo_test.py'
+    The status should be success
+  End
+End
+
+Describe 'bash unit-entrypoint'
+  Before '_setup_entrypoint_env'
+  After '_teardown_entrypoint_env'
+
+  It 'runs default suite when no args given'
+    When run run_entrypoint images/bash/scripts/unit-entrypoint.sh
+    The output should include 'src/spec'
+    The status should be success
+  End
+
+  It 'passes file args to shellspec'
+    When run run_entrypoint images/bash/scripts/unit-entrypoint.sh src/spec/foo_spec.sh
+    The output should equal 'shellspec src/spec/foo_spec.sh'
+    The status should be success
+  End
+End
+
+Describe 'bash coverage-entrypoint'
+  Before '_setup_entrypoint_env'
+  After '_teardown_entrypoint_env'
+
+  It 'runs default suite when no args given'
+    When run run_entrypoint images/bash/scripts/coverage-entrypoint.sh
+    The output should include '--kcov'
+    The output should include 'src/spec'
+  End
+
+  It 'passes file args to shellspec with kcov'
+    When run run_entrypoint images/bash/scripts/coverage-entrypoint.sh src/spec/foo_spec.sh
+    The output should include '--kcov'
+    The output should include 'src/spec/foo_spec.sh'
+    The status should be success
+  End
+End
+
+Describe 'typescript unit-entrypoint'
+  Before '_setup_entrypoint_env'
+  After '_teardown_entrypoint_env'
+
+  It 'runs default suite when no args given'
+    When run run_entrypoint images/typescript/scripts/unit-entrypoint.sh
+    The output should include 'vitest run'
+    The status should be success
+  End
+
+  It 'passes file args to vitest'
+    When run run_entrypoint images/typescript/scripts/unit-entrypoint.sh src/foo.test.ts
+    The output should include 'vitest run'
+    The output should include 'src/foo.test.ts'
+    The status should be success
+  End
+End
+
+Describe 'typescript coverage-entrypoint'
+  Before '_setup_entrypoint_env'
+  After '_teardown_entrypoint_env'
+
+  It 'runs default suite when no args given'
+    When run run_entrypoint images/typescript/scripts/coverage-entrypoint.sh
+    The output should include 'vitest run'
+    The output should include '--coverage'
+  End
+
+  It 'passes file args to vitest with coverage flags'
+    When run run_entrypoint images/typescript/scripts/coverage-entrypoint.sh src/foo.test.ts
+    The output should include 'vitest run'
+    The output should include '--coverage'
+    The output should include 'src/foo.test.ts'
+    The status should be success
+  End
+End

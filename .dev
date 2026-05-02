@@ -1,2 +1,3 @@
 DEV_NAME=dev
 DEV_REPO_TYPE=tool
+DEV_MOUNTS=images:/workspace/images
