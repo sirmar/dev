@@ -27,17 +27,23 @@ die() {
 # Core utilities
 # ---------------------------------------------------------------------------
 
-find_root() {
+find_dev_file() {
 	local dir
 	dir="$(pwd)"
+	ROOT_DIR=""
 	while [[ "$dir" != "/" ]]; do
 		if [[ -f "$dir/.dev" ]]; then
-			echo "$dir"
+			ROOT_DIR="$dir"
 			return 0
 		fi
 		dir="$(dirname "$dir")"
 	done
-	error "no .dev file found in this directory or any parent"
+}
+
+find_root() {
+	find_dev_file
+	[[ -z "$ROOT_DIR" ]] && error "no .dev file found in this directory or any parent"
+	echo "$ROOT_DIR"
 }
 
 load_config() {
@@ -635,24 +641,21 @@ _DEV_COMMANDS=(init build lint lint-dockerfile login push release help
 	watch shell run exec rebuild up down clean logs db-shell db-migrate)
 
 cmd_completions() {
-	local dir="$PWD" repo_type="" dev_scripts=""
-	while [[ "$dir" != "/" ]]; do
-		if [[ -f "$dir/.dev" ]]; then
-			repo_type="$(grep -m1 '^DEV_REPO_TYPE=' "$dir/.dev" | cut -d= -f2)"
-			dev_scripts="$(grep -m1 '^DEV_SCRIPTS=' "$dir/.dev" | cut -d= -f2- | tr -d '"' || true)"
-			break
-		fi
-		dir="$(dirname "$dir")"
-	done
+	find_dev_file
+	local DEV_REPO_TYPE="" DEV_SCRIPTS=""
+	# shellcheck source=/dev/null
+	[[ -f "${XDG_CONFIG_HOME:-$HOME/.config}/dev/config" ]] && source "${XDG_CONFIG_HOME:-$HOME/.config}/dev/config"
+	# shellcheck source=/dev/null
+	[[ -n "$ROOT_DIR" ]] && source "$ROOT_DIR/.dev"
 
 	local cmds="" cmd allowed
 	for cmd in "${_DEV_COMMANDS[@]}"; do
 		if [[ "$cmd" == "exec" ]]; then
-			[[ -n "$dev_scripts" ]] && cmds="$cmds $cmd"
+			[[ -n "$DEV_SCRIPTS" ]] && cmds="$cmds $cmd"
 			continue
 		fi
 		allowed="$(cmd_repo_types "$cmd")"
-		if [[ "$allowed" == '*' ]] || [[ " $allowed " == *" $repo_type "* ]]; then
+		if [[ "$allowed" == '*' ]] || [[ " $allowed " == *" $DEV_REPO_TYPE "* ]]; then
 			cmds="$cmds $cmd"
 		fi
 	done

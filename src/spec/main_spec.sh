@@ -48,36 +48,48 @@ Describe 'completions'
     The output should equal 'init build lint lint-dockerfile login push release help format check ci types security lock run'
   End
 
+  It 'returns correct set from a subdirectory'
+    write_dev_config "$MOCK_DIR" myapp tool
+    When run bash -c "mkdir -p '$MOCK_DIR/nested/deep' && cd '$MOCK_DIR/nested/deep' && bash '$DEV_SCRIPT' completions"
+    The status should be success
+    The output should equal 'init build lint lint-dockerfile login push release help format unit e2e check ci coverage types security lock run'
+  End
+
   It 'returns base set when no .dev found'
     When run bash -c "cd /tmp && bash '$DEV_SCRIPT' completions"
     The status should be success
     The output should equal 'init build lint lint-dockerfile login push release help'
   End
+
+  Describe 'with DEV_SCRIPTS from user config'
+    setup() {
+      MOCK_DIR="$(mktemp -d)"
+      MOCK_CONFIG_DIR="$(mktemp -d)"
+      write_dev_config "$MOCK_DIR" myapp tool
+      mkdir -p "$MOCK_CONFIG_DIR/dev"
+      printf 'DEV_SCRIPTS=deploy:scripts/deploy.sh\n' >"$MOCK_CONFIG_DIR/dev/config"
+    }
+    teardown() { rm -rf "$MOCK_DIR" "$MOCK_CONFIG_DIR"; }
+    Before 'setup'
+    After 'teardown'
+
+    It 'includes exec when DEV_SCRIPTS set in user config'
+      When run bash -c "cd '$MOCK_DIR' && XDG_CONFIG_HOME='$MOCK_CONFIG_DIR' bash '$DEV_SCRIPT' completions"
+      The status should be success
+      The output should include 'exec'
+    End
+  End
 End
 
 
 Describe 'find_root'
-  Before 'setup_mock_docker'
-  After 'teardown_mock_docker'
-
-  It 'finds .dev file from project root'
-    When run run_dev help
-    The status should be success
-    The output should include 'USAGE'
-  End
-
-  It 'finds .dev file from a subdirectory'
-    When run bash -c "mkdir -p '$MOCK_DIR/nested' && cd '$MOCK_DIR/nested' && bash '$DEV_SCRIPT' help"
-    The status should be success
-    The output should include 'USAGE'
-  End
-
   It 'fails when no .dev file exists'
     When run bash -c "cd /tmp && bash '$DEV_SCRIPT' help"
     The status should be failure
     The stderr should include 'no .dev file found'
   End
 End
+
 
 Describe 'main dispatch'
   Before 'setup_mock_docker'
