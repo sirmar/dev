@@ -76,20 +76,29 @@ teardown_mock_mdev() {
 }
 
 
-Describe 'completions'
-  It 'lists all mdev commands'
-    When run bash "$SHELLSPEC_PROJECT_ROOT/src/app/mdev.sh" completions
-    The status should be success
-    The output should include 'up'
-    The output should include 'down'
-    The output should include 'build'
-    The output should include 'lint'
-    The output should include 'run'
-    The output should include 'init'
-    The output should include 'help'
-    The output should include 'lock'
+Describe 'cmd_arg_type'
+  It 'returns services for up'
+    When run bash "$MDEV_SCRIPT" cmd_arg_type up
+    The output should equal 'services'
   End
 
+  It 'returns services for build'
+    When run bash "$MDEV_SCRIPT" cmd_arg_type build
+    The output should equal 'services'
+  End
+
+  It 'returns run for run'
+    When run bash "$MDEV_SCRIPT" cmd_arg_type run
+    The output should equal 'run'
+  End
+
+  It 'returns none for init'
+    When run bash "$MDEV_SCRIPT" cmd_arg_type init
+    The output should equal 'none'
+  End
+End
+
+Describe 'completions'
   It 'works without a .mdev file'
     When run bash -c "cd /tmp && bash '$MDEV_SCRIPT' completions"
     The status should be success

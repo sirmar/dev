@@ -7,10 +7,12 @@ GENERATOR="$DEV_ROOT/src/generate-completions.sh"
 
 run_generator() {
   OUT_DIR="$(mktemp -d)"
-  bash "$GENERATOR" "$DEV_ROOT/src/app/dev.sh" "$OUT_DIR"
+  bash "$GENERATOR" "$DEV_ROOT/src/app/dev.sh" "$OUT_DIR" "$DEV_ROOT/src/app/mdev.sh" >/dev/null
   BASH_OUT="$OUT_DIR/dev.bash"
   ZSH_OUT="$OUT_DIR/_dev"
-  export OUT_DIR BASH_OUT ZSH_OUT
+  MDEV_BASH_OUT="$OUT_DIR/mdev.bash"
+  MDEV_ZSH_OUT="$OUT_DIR/_mdev"
+  export OUT_DIR BASH_OUT ZSH_OUT MDEV_BASH_OUT MDEV_ZSH_OUT
 }
 
 cleanup_generator() { rm -rf "$OUT_DIR"; }
@@ -40,5 +42,20 @@ Describe 'generate-completions.sh'
     When call cat "$ZSH_OUT"
     The output should include 'docker-compose'
     The output should include 'DEV_SCRIPTS'
+  End
+
+  It 'generates mdev bash completion file'
+    When call test -f "$MDEV_BASH_OUT"
+    The status should be success
+  End
+
+  It 'generates mdev zsh completion file'
+    When call test -f "$MDEV_ZSH_OUT"
+    The status should be success
+  End
+
+  It 'mdev bash completion includes lock (bug fix)'
+    When call cat "$MDEV_BASH_OUT"
+    The output should include 'lock'
   End
 End

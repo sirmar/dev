@@ -30,7 +30,7 @@ COMPLETIONS_DIR="$REPO_DIR/completions"
 BASH_COMPLETION_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/bash-completion/completions"
 ZSH_COMPLETION_DIR="${ZDOTDIR:-$HOME}/.zfunc"
 
-bash "$REPO_DIR/src/generate-completions.sh" "$REPO_DIR/src/app/dev.sh" "$COMPLETIONS_DIR"
+bash "$REPO_DIR/src/generate-completions.sh" "$REPO_DIR/src/app/dev.sh" "$COMPLETIONS_DIR" "$REPO_DIR/src/app/mdev.sh"
 
 mkdir -p "$BASH_COMPLETION_DIR"
 ln -sf "$COMPLETIONS_DIR/dev.bash" "$BASH_COMPLETION_DIR/dev"
@@ -40,17 +40,11 @@ mkdir -p "$ZSH_COMPLETION_DIR"
 ln -sf "$COMPLETIONS_DIR/_dev" "$ZSH_COMPLETION_DIR/_dev"
 echo "Installed zsh completion: $ZSH_COMPLETION_DIR/_dev"
 
-if [[ -f "$REPO_DIR/completions/mdev.bash" ]]; then
-	mkdir -p "$BASH_COMPLETION_DIR"
-	ln -sf "$REPO_DIR/completions/mdev.bash" "$BASH_COMPLETION_DIR/mdev"
-	echo "Installed bash completion: $BASH_COMPLETION_DIR/mdev"
-fi
+ln -sf "$COMPLETIONS_DIR/mdev.bash" "$BASH_COMPLETION_DIR/mdev"
+echo "Installed bash completion: $BASH_COMPLETION_DIR/mdev"
 
-if [[ -f "$REPO_DIR/completions/_mdev" ]]; then
-	mkdir -p "$ZSH_COMPLETION_DIR"
-	ln -sf "$REPO_DIR/completions/_mdev" "$ZSH_COMPLETION_DIR/_mdev"
-	echo "Installed zsh completion: $ZSH_COMPLETION_DIR/_mdev"
-fi
+ln -sf "$COMPLETIONS_DIR/_mdev" "$ZSH_COMPLETION_DIR/_mdev"
+echo "Installed zsh completion: $ZSH_COMPLETION_DIR/_mdev"
 
 ZSHRC="${ZDOTDIR:-$HOME}/.zshrc"
 

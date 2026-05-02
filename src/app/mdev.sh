@@ -311,8 +311,21 @@ EOF
 	echo 'wrote .mdev — edit it to configure your workspace'
 }
 
+MDEV_COMMANDS=(up down status logs build lint format unit types lock check ci rebuild db-migrate shell db-shell changed run init help)
+
+cmd_arg_type() {
+	case "$1" in
+	up | down | build | lint | format | unit | types | lock | check | ci | rebuild | db-migrate) echo 'services' ;;
+	shell | db-shell) echo 'service' ;;
+	logs) echo 'logs' ;;
+	changed) echo 'changed' ;;
+	run) echo 'run' ;;
+	*) echo 'none' ;;
+	esac
+}
+
 cmd_completions() {
-	echo 'up down status logs build lint format unit types lock check ci rebuild db-migrate shell db-shell changed run init help'
+	echo "${MDEV_COMMANDS[*]}"
 }
 
 cmd_help() {
@@ -367,6 +380,10 @@ main() {
 		cmd_completions
 		exit 0
 	}
+	[[ "${1:-}" == 'cmd_arg_type' ]] && {
+		cmd_arg_type "${2:-}"
+		exit 0
+	}
 	[[ "${1:-}" == 'init' ]] && {
 		cmd_init
 		exit 0
@@ -412,4 +429,4 @@ main() {
 	esac
 }
 
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && main "$@"
+if [[ "${BASH_SOURCE[0]:-}" == "${0}" ]]; then main "$@"; fi
