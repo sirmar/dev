@@ -614,6 +614,14 @@ is_repo_type() {
 	return 1
 }
 
+cmd_args() {
+	case "$1" in
+	build) echo '--no-cache' ;;
+	release) echo 'major minor patch' ;;
+	init) echo 'tool service image library' ;;
+	esac
+}
+
 cmd_repo_types() {
 	case "$1" in
 	init | build | lint | lint-dockerfile | login | push | release | help) echo '*' ;;
@@ -715,6 +723,11 @@ cmd_init() {
 main() {
 	[[ "${1:-}" == "completions" ]] && {
 		cmd_completions
+		exit 0
+	}
+	[[ "${1:-}" == "cmd_args" ]] && {
+		shift
+		cmd_args "$@"
 		exit 0
 	}
 	[[ "${1:-}" == "init" ]] && {

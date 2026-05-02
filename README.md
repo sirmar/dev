@@ -16,7 +16,9 @@ cd dev
 ./scripts/install.sh
 ```
 
-This creates a symlink at `~/.local/bin/dev` pointing to `app/dev.sh`, installs shell completions, and creates a user config file at `~/.config/dev/config`. Make sure `~/.local/bin` is in your `PATH`.
+This creates a symlink at `~/.local/bin/dev` pointing to `app/dev.sh`, generates and installs shell completions, and creates a user config file at `~/.config/dev/config`. Make sure `~/.local/bin` is in your `PATH`.
+
+> Shell completions are generated at install time from the command registry. Re-run `./scripts/install.sh` after pulling updates to keep completions current.
 
 ### User config
 
