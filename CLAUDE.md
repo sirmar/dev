@@ -22,3 +22,17 @@ Images live in `images/<language>/`. Follow the existing structure when adding n
 
 - Don't run shellspec/shellcheck/shfmt directly — hooks handle this.
 - Add or update tests when changing implementation.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues (`gh` CLI). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default label vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context — `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
