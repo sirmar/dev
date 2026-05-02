@@ -390,13 +390,7 @@ cmd_shell() {
 }
 
 cmd_watch() {
-	if ! has_dockerfile_stage watch; then
-		info "no 'watch' stage found in Dockerfile — skipping"
-		return 0
-	fi
-	build_image watch true
-	info "starting watch"
-	run_in watch
+	run_stage watch "watch"
 }
 
 cmd_run() {
@@ -410,9 +404,7 @@ cmd_run() {
 		run_compose_suite compose
 		return
 	fi
-	build_image prod true
-	info "running $DEV_NAME"
-	run_in prod "$@"
+	run_stage prod "$DEV_NAME" "$@"
 }
 
 cmd_exec() {

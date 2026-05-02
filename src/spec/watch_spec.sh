@@ -27,7 +27,7 @@ Describe 'watch'
     It 'builds and runs the watch stage'
       When run run_dev watch
       The output should include 'building stage watch'
-      The output should include 'starting watch'
+      The output should include 'running watch'
       The status should be success
     End
 
@@ -66,6 +66,19 @@ Describe 'watch'
     It 'does not pass -it when stdin is not a TTY'
       When run run_dev watch
       The output should not include ' -it'
+      The status should be success
+    End
+
+    It 'includes network flag when DEV_NETWORK is set'
+      write_dev_config "$MOCK_DIR" dev service "DEV_NETWORK=dev_network"
+      When run run_dev watch
+      The output should include '--network dev_network'
+      The status should be success
+    End
+
+    It 'omits network flag when DEV_NETWORK is unset'
+      When run run_dev watch
+      The output should not include '--network'
       The status should be success
     End
   End

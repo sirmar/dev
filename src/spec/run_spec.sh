@@ -75,6 +75,25 @@ Describe 'run'
 		The output should include '/workspace/data'
 		The status should be success
 	End
+
+	It 'includes network flag when DEV_NETWORK is set'
+		write_dev_config "$MOCK_DIR" dev tool "DEV_NETWORK=dev_network"
+		When run run_dev run
+		The output should include '--network dev_network'
+		The status should be success
+	End
+
+	It 'omits network flag when DEV_NETWORK is unset'
+		When run run_dev run
+		The output should not include '--network'
+		The status should be success
+	End
+
+	It 'does not pass -it when stdin is not a TTY'
+		When run run_dev run
+		The output should not include ' -it'
+		The status should be success
+	End
 End
 
 Describe 'run for service repo'
