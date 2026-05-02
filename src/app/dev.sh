@@ -197,11 +197,34 @@ compose_e2e() {
 }
 
 run_compose_suite() {
-	local fn="$1"
-	if ! "$fn" run --rm e2e; then
+	local fn="$1" service="${2:-e2e}"
+	if ! "$fn" run --rm "$service"; then
 		in_ci && "$fn" logs
 		return 1
 	fi
+}
+
+run_stage_compose() {
+	local stage="$1" label="$2" compose_fn="$3" compose_file="$4" compose_mode="${5:-optional}"
+	if ! has_dockerfile_stage "$stage"; then
+		info "no '$stage' stage found in Dockerfile — skipping"
+		return 0
+	fi
+	if [[ ! -f "$compose_file" ]]; then
+		if [[ "$compose_mode" == "required" ]]; then
+			info "no $(basename "$compose_file") found — skipping $label"
+			return 0
+		fi
+		build_image "$stage" true
+		info "running $label"
+		run_in "$stage"
+		return 0
+	fi
+	"$compose_fn" down -v
+	mkdir -p "$ROOT_DIR/$DEV_CONTEXT/out"
+	build_image "$stage" true
+	info "running $label"
+	run_compose_suite "$compose_fn" "$stage"
 }
 
 # ---------------------------------------------------------------------------
@@ -306,19 +329,7 @@ cmd_unit() {
 }
 
 cmd_coverage() {
-	if ! has_dockerfile_stage coverage; then
-		info "no 'coverage' stage found in Dockerfile — skipping"
-		return 0
-	fi
-	build_image coverage true
-	info "running coverage"
-	if [[ -f "$ROOT_DIR/docker-compose.e2e.yml" ]]; then
-		mkdir -p "$ROOT_DIR/$DEV_CONTEXT/out"
-		compose_e2e run --rm coverage
-		compose_e2e down -v
-	else
-		run_in coverage
-	fi
+	run_stage_compose coverage "coverage" compose_e2e "$ROOT_DIR/docker-compose.e2e.yml" optional
 }
 
 cmd_types() {
@@ -373,18 +384,7 @@ cmd_db_migrate() {
 }
 
 cmd_e2e() {
-	if ! has_dockerfile_stage e2e; then
-		info "no 'e2e' stage found in Dockerfile — skipping"
-		return 0
-	fi
-	if [[ ! -f "$ROOT_DIR/docker-compose.e2e.yml" ]]; then
-		info "no docker-compose.e2e.yml found — skipping e2e"
-		return 0
-	fi
-	compose_e2e down -v
-	build_image e2e true
-	info "running e2e tests"
-	run_compose_suite compose_e2e
+	run_stage_compose e2e "e2e tests" compose_e2e "$ROOT_DIR/docker-compose.e2e.yml" required
 }
 
 cmd_shell() {
@@ -728,6 +728,21 @@ main() {
 	[[ "${1:-}" == "cmd_args" ]] && {
 		shift
 		cmd_args "$@"
+		exit 0
+	}
+	[[ "${1:-}" == "supports" ]] && {
+		ROOT_DIR="$(find_root)"
+		load_config
+		local allowed
+		allowed="$(cmd_repo_types "${2:-}")"
+		if [[ "$allowed" == '*' ]] || [[ " $allowed " == *" $DEV_REPO_TYPE "* ]]; then exit 0; else exit 1; fi
+	}
+	[[ "${1:-}" == "list-scripts" ]] && {
+		find_dev_file
+		local DEV_SCRIPTS=""
+		# shellcheck source=/dev/null
+		[[ -n "$ROOT_DIR" ]] && source "$ROOT_DIR/.dev"
+		echo "$DEV_SCRIPTS" | tr ' ' '\n' | cut -d: -f1 | grep -v '^$' || true
 		exit 0
 	}
 	[[ "${1:-}" == "init" ]] && {

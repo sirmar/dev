@@ -99,7 +99,7 @@ teardown_mock_git_repo() {
 # e2e mock
 # ---------------------------------------------------------------------------
 
-setup_mock_e2e() {
+setup_mock_service_with_e2e() {
     setup_mock_docker_with_stage e2e
     touch "$MOCK_DIR/docker-compose.e2e.yml"
 }

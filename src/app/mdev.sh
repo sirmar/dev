@@ -108,13 +108,14 @@ filter_services() {
 # ---------------------------------------------------------------------------
 
 read_dev_var() {
-	grep -m1 "^$2=" "$MDEV_ROOT/$1/.dev" | cut -d= -f2 | tr -d '"'
+	# shellcheck source=/dev/null
+	(source "$MDEV_ROOT/$1/.dev" 2>/dev/null && eval "echo \"\${$2:-}\"")
 }
 
 service_repo_type() { read_dev_var "$1" DEV_REPO_TYPE; }
 
 service_supports_cmd() {
-	(cd "$MDEV_ROOT/$1" && dev completions 2>/dev/null) | grep -qw "$2"
+	(cd "$MDEV_ROOT/$1" && dev supports "$2" 2>/dev/null)
 }
 
 # Palette of distinct terminal colors for service labels (suppressed when NO_COLOR is set)

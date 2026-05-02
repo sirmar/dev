@@ -95,17 +95,7 @@ HEADER
 			COMPREPLY=("${COMPREPLY[@]/%/ }")
 			;;
 		exec)
-			local dev_scripts="" script_names=""
-			local dir="$PWD"
-			while [[ "$dir" != "/" ]]; do
-				if [[ -f "$dir/.dev" ]]; then
-					dev_scripts="$(grep -m1 '^DEV_SCRIPTS=' "$dir/.dev" | cut -d= -f2- | tr -d '"' || true)"
-					break
-				fi
-				dir="$(dirname "$dir")"
-			done
-			script_names="$(echo "$dev_scripts" | tr ' ' '\n' | cut -d: -f1 | tr '\n' ' ')"
-			COMPREPLY=($(compgen -W "$script_names" -- "$cur"))
+			COMPREPLY=($(compgen -W "$(dev list-scripts 2>/dev/null)" -- "$cur"))
 			COMPREPLY=("${COMPREPLY[@]/%/ }")
 			;;
 		*)
@@ -214,17 +204,9 @@ ZSH_RELEASE
 			fi
 			;;
 		exec)
-			local dev_scripts=""
-			local dir="$PWD"
-			while [[ "$dir" != "/" ]]; do
-				[[ -f "$dir/.dev" ]] && { dev_scripts="$(grep -m1 '^DEV_SCRIPTS=' "$dir/.dev" | cut -d= -f2- | tr -d '"' || true)"; break; }
-				dir="$(dirname "$dir")"
-			done
-			if [[ -n "$dev_scripts" ]]; then
-				local -a scripts
-				scripts=(${(f)"$(echo "$dev_scripts" | tr ' ' '\n' | cut -d: -f1)"})
-				_describe 'script' scripts
-			fi
+			local -a scripts
+			scripts=(${(f)"$(dev list-scripts 2>/dev/null)"})
+			_describe 'script' scripts
 			;;
 		*)
 			_default

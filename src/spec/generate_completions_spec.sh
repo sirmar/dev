@@ -35,13 +35,13 @@ Describe 'generate-completions.sh'
   It 'includes dynamic up logs exec blocks in bash completion'
     When call cat "$BASH_OUT"
     The output should include 'docker-compose'
-    The output should include 'DEV_SCRIPTS'
+    The output should include 'list-scripts'
   End
 
   It 'includes dynamic up logs exec blocks in zsh completion'
     When call cat "$ZSH_OUT"
     The output should include 'docker-compose'
-    The output should include 'DEV_SCRIPTS'
+    The output should include 'list-scripts'
   End
 
   It 'generates mdev bash completion file'

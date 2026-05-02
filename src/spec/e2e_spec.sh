@@ -32,7 +32,7 @@ Describe 'e2e when docker-compose.e2e.yml is missing'
 End
 
 Describe 'e2e'
-  Before 'setup_mock_e2e'
+  Before 'setup_mock_service_with_e2e'
   After 'teardown_mock_docker'
 
   It 'builds the e2e stage'
@@ -101,7 +101,7 @@ End
 
 Describe 'e2e skips on image repos'
   setup_e2e_image_repo() {
-    setup_mock_e2e
+    setup_mock_service_with_e2e
     write_dev_config "$MOCK_DIR" dev image
   }
   Before 'setup_e2e_image_repo'

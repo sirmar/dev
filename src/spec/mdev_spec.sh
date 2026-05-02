@@ -30,13 +30,21 @@ _write_mock_dev() {
   local dir="$1"
   cat >"$dir/dev" <<'EOF'
 #!/usr/bin/env bash
+type="$(grep -m1 '^DEV_REPO_TYPE=' .dev 2>/dev/null | cut -d= -f2 | tr -d '"')"
 if [[ "$1" == "completions" ]]; then
-  type="$(grep -m1 '^DEV_REPO_TYPE=' .dev 2>/dev/null | cut -d= -f2 | tr -d '"')"
   case "$type" in
     service) echo 'up down logs build lint format unit lock check ci db-migrate shell db-shell watch rebuild' ;;
     tool)    echo 'build lint format unit check coverage types security' ;;
     image)   echo 'build lint' ;;
     *)       echo 'build lint format unit check' ;;
+  esac
+elif [[ "$1" == "supports" ]]; then
+  cmd="$2"
+  case "$type" in
+    service) [[ " up down logs build lint format unit lock check ci db-migrate shell db-shell watch rebuild " == *" $cmd "* ]] && exit 0 || exit 1 ;;
+    tool)    [[ " build lint format unit check coverage types security " == *" $cmd "* ]] && exit 0 || exit 1 ;;
+    image)   [[ " build lint " == *" $cmd "* ]] && exit 0 || exit 1 ;;
+    *)       [[ " build lint format unit check " == *" $cmd "* ]] && exit 0 || exit 1 ;;
   esac
 else
   echo "dev $*"
