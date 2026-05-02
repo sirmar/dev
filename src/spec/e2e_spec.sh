@@ -68,6 +68,18 @@ Describe 'e2e'
     The output should include 'docker-compose.e2e-network.yml'
     The status should be success
   End
+
+  It 'forwards translated file path to docker compose run'
+    When run run_dev e2e src/tests/foo_test.py
+    The output should include '/workspace/src/tests/foo_test.py'
+    The status should be success
+  End
+
+  It 'runs full suite when no file args given'
+    When run run_dev e2e
+    The output should not include 'run --rm e2e /workspace/'
+    The status should be success
+  End
 End
 
 Describe 'e2e on failure'

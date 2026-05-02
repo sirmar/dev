@@ -198,7 +198,8 @@ compose_e2e() {
 
 run_compose_suite() {
 	local fn="$1" service="${2:-e2e}"
-	if ! "$fn" run --rm "$service"; then
+	shift 2
+	if ! "$fn" run --rm "$service" "$@"; then
 		in_ci && "$fn" logs
 		return 1
 	fi
@@ -225,7 +226,7 @@ run_stage_compose() {
 	mkdir -p "$ROOT_DIR/$DEV_CONTEXT/out"
 	build_image "$stage" true
 	info "running $label"
-	run_compose_suite "$compose_fn" "$stage"
+	run_compose_suite "$compose_fn" "$stage" "$@"
 }
 
 # ---------------------------------------------------------------------------
@@ -326,7 +327,8 @@ cmd_format() {
 }
 
 translate_paths() {
-	local result=()
+	local context_dir result=()
+	context_dir=$(cd "$ROOT_DIR/$DEV_CONTEXT" && pwd)
 	for path in "$@"; do
 		local abs
 		if [[ "$path" = /* ]]; then
@@ -338,7 +340,7 @@ translate_paths() {
 			echo "error: path must be under src/: $path" >&2
 			return 1
 		fi
-		result+=("/workspace/${abs#"$ROOT_DIR/"}")
+		result+=("/workspace/${abs#"$context_dir/"}")
 	done
 	echo "${result[@]}"
 }
@@ -417,7 +419,14 @@ cmd_db_migrate() {
 }
 
 cmd_e2e() {
-	run_stage_compose e2e "e2e tests" compose_e2e "$ROOT_DIR/docker-compose.e2e.yml" required
+	if [[ $# -gt 0 ]]; then
+		local translated
+		translated=$(translate_paths "$@") || return 1
+		# shellcheck disable=SC2086
+		run_stage_compose e2e "e2e tests" compose_e2e "$ROOT_DIR/docker-compose.e2e.yml" required $translated
+	else
+		run_stage_compose e2e "e2e tests" compose_e2e "$ROOT_DIR/docker-compose.e2e.yml" required
+	fi
 }
 
 cmd_shell() {
@@ -440,7 +449,7 @@ cmd_run() {
 		fi
 		compose down -v
 		info "running e2e tests"
-		run_compose_suite compose
+		run_compose_suite compose e2e
 		return
 	fi
 	run_stage prod "$DEV_NAME" "$@"

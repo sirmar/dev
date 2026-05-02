@@ -72,4 +72,16 @@ Describe 'coverage (with docker-compose.e2e.yml)'
     The output should not include 'docker run'
     The status should be success
   End
+
+  It 'forwards translated file path to docker compose run'
+    When run run_dev coverage src/tests/foo_test.py
+    The output should include '/workspace/src/tests/foo_test.py'
+    The status should be success
+  End
+
+  It 'runs full suite when no file args given'
+    When run run_dev coverage
+    The output should not include 'run --rm coverage /workspace/'
+    The status should be success
+  End
 End

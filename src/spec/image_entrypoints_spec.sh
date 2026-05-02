@@ -131,3 +131,21 @@ Describe 'typescript coverage-entrypoint'
     The status should be success
   End
 End
+
+Describe 'python e2e-entrypoint'
+  Before '_setup_entrypoint_env'
+  After '_teardown_entrypoint_env'
+
+  It 'runs default suite when no args given'
+    When run run_entrypoint images/python/scripts/e2e-entrypoint.sh
+    The output should include 'pytest'
+    The output should include 'src/tests/e2e'
+    The status should be success
+  End
+
+  It 'passes file args to pytest'
+    When run run_entrypoint images/python/scripts/e2e-entrypoint.sh src/tests/e2e/foo_test.py
+    The output should include 'pytest src/tests/e2e/foo_test.py'
+    The status should be success
+  End
+End
