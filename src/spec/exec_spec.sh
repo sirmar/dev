@@ -21,7 +21,7 @@ setup_mock_exec_tool() {
 
 Describe 'exec'
 	Before 'setup_mock_exec'
-	After 'teardown_mock_docker'
+	After 'teardown'
 
 	It 'builds the scripts stage'
 		When run run_dev exec evaluate
@@ -53,7 +53,7 @@ End
 
 Describe 'exec without scripts stage'
 	Before 'fixture_service_repo'
-	After 'teardown_mock_docker'
+	After 'teardown'
 
 	It 'skips gracefully'
 		When run run_dev exec evaluate
@@ -64,7 +64,7 @@ End
 
 Describe 'exec for tool repo'
 	Before 'setup_mock_exec_tool'
-	After 'teardown_mock_docker'
+	After 'teardown'
 
 	It 'is available'
 		When run run_dev exec evaluate

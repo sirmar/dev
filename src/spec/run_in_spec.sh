@@ -9,7 +9,7 @@ DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 
 Describe 'run_in'
   Before 'fixture_service_repo'
-  After 'teardown_mock_docker'
+  After 'teardown'
 
   It 'mounts src/ as /workspace/src'
     When run run_dev unit

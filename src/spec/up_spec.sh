@@ -24,12 +24,8 @@ EOF
     chmod +x "$MOCK_DIR/docker"
   }
 
-  teardown_env() {
-    rm -rf "$MOCK_DIR" "$PROJ_DIR"
-  }
-
   Before 'setup_env'
-  After 'teardown_env'
+  After 'teardown'
 
   It 'starts services with docker compose using DEV_NAME as project name'
     When run bash -c "cd '$PROJ_DIR' && bash dev.sh up"

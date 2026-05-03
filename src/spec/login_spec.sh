@@ -16,7 +16,7 @@ Describe 'login via CI (GITHUB_TOKEN)'
     export GITHUB_ACTOR=ciuser
   }
   cleanup_login_ci() {
-    teardown_mock_docker
+    teardown
     unset CI GITHUB_TOKEN GITHUB_ACTOR
   }
   Before 'setup_login_ci'
@@ -44,7 +44,7 @@ EOF
     chmod +x "$MOCK_DIR/gh"
   }
   Before 'setup_login_gh'
-  After 'teardown_mock_docker'
+  After 'teardown'
 
   It 'logs in to ghcr.io using gh credentials'
     When run run_dev login
@@ -62,7 +62,7 @@ Describe 'login via DEV_REGISTRY config'
     rm -f "$MOCK_DIR/gh"
   }
   Before 'setup_login_config'
-  After 'teardown_mock_docker'
+  After 'teardown'
 
   It 'logs in to the configured registry host'
     When run run_dev login
@@ -78,7 +78,7 @@ Describe 'login with no credentials'
     rm -f "$MOCK_DIR/gh"
   }
   Before 'setup_login_none'
-  After 'teardown_mock_docker'
+  After 'teardown'
 
   It 'errors with helpful message'
     When run run_dev login

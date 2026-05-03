@@ -13,7 +13,7 @@ Describe 'DEV_NAME validation'
     printf 'DEV_REPO_TYPE=service\n' >"$MOCK_DIR/.dev"
   }
   Before 'setup_missing_dev_name'
-  After 'teardown_mock_docker'
+  After 'teardown'
 
   It 'errors when DEV_NAME is not set'
     When run run_dev help
@@ -28,7 +28,7 @@ Describe 'DEV_REPO_TYPE validation'
     printf 'DEV_NAME=dev\n' >"$MOCK_DIR/.dev"
   }
   Before 'setup_missing_repo_type'
-  After 'teardown_mock_docker'
+  After 'teardown'
 
   It 'errors when DEV_REPO_TYPE is not set'
     When run run_dev help
@@ -38,12 +38,8 @@ Describe 'DEV_REPO_TYPE validation'
 End
 
 Describe 'DEV_REPO_TYPE=image'
-  setup_image_repo() {
-    fixture_service_repo
-    write_dev_config "$MOCK_DIR" dev image
-  }
-  Before 'setup_image_repo'
-  After 'teardown_mock_docker'
+  Before 'fixture_image_repo'
+  After 'teardown'
 
   It 'shows image repo type in help'
     When run run_dev help
@@ -61,7 +57,7 @@ End
 
 Describe 'DEV_REPO_TYPE=tool'
   Before 'fixture_tool_repo'
-  After 'teardown_mock_docker'
+  After 'teardown'
 
   It 'shows tool repo type in help'
     When run run_dev help
@@ -87,7 +83,7 @@ End
 
 Describe 'DEV_REPO_TYPE=e2e'
   Before 'fixture_e2e_repo'
-  After 'teardown_mock_docker'
+  After 'teardown'
 
   It 'shows e2e repo type in help'
     When run run_dev help
@@ -145,12 +141,8 @@ Describe 'DEV_REPO_TYPE=e2e'
 End
 
 Describe 'assert_repo_type guard'
-  setup_image_repo() {
-    fixture_service_repo
-    write_dev_config "$MOCK_DIR" dev image
-  }
-  Before 'setup_image_repo'
-  After 'teardown_mock_docker'
+  Before 'fixture_image_repo'
+  After 'teardown'
 
   It 'skips unit command on image repos'
     When run run_dev unit
@@ -227,7 +219,7 @@ End
 
 Describe 'assert_repo_type guard on tool repos'
   Before 'fixture_tool_repo'
-  After 'teardown_mock_docker'
+  After 'teardown'
 
   It 'skips watch command on tool repos'
     When run run_dev watch
@@ -268,7 +260,7 @@ End
 
 Describe 'DEV_CONTEXT default'
   Before 'fixture_service_repo'
-  After 'teardown_mock_docker'
+  After 'teardown'
 
   It 'defaults to . as the build context'
     When run run_dev build
@@ -283,7 +275,7 @@ Describe 'DEV_CONTEXT custom'
     write_dev_config "$MOCK_DIR" dev service "DEV_CONTEXT=services/api"
   }
   Before 'setup_custom_context'
-  After 'teardown_mock_docker'
+  After 'teardown'
 
   It 'uses DEV_CONTEXT as build context while Dockerfile stays at project root'
     When run run_dev build

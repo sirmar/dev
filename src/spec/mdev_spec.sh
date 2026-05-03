@@ -79,10 +79,6 @@ setup_mock_mdev() {
   export MOCK_DIR
 }
 
-teardown_mock_mdev() {
-  rm -rf "$MOCK_DIR"
-}
-
 
 Describe 'cmd_arg_type'
   It 'returns services for up'
@@ -116,27 +112,25 @@ End
 
 
 Describe 'init'
-  setup_init() { INIT_DIR="$(mktemp -d)"; export INIT_DIR; }
-  teardown_init() { rm -rf "$INIT_DIR"; }
-  Before 'setup_init'
-  After 'teardown_init'
+  Before 'fixture_empty_dir'
+  After 'teardown'
 
   It 'creates a .mdev file'
-    When run bash -c "cd '$INIT_DIR' && bash '$MDEV_SCRIPT' init"
+    When run bash -c "cd '$PROJ_DIR' && bash '$MDEV_SCRIPT' init"
     The status should be success
     The output should include 'wrote .mdev'
-    The file "$INIT_DIR/.mdev" should be exist
+    The file "$PROJ_DIR/.mdev" should be exist
   End
 
   It 'scaffolds MDEV_NAME into the file'
-    bash -c "cd '$INIT_DIR' && bash '$MDEV_SCRIPT' init" >/dev/null 2>&1
-    When run cat "$INIT_DIR/.mdev"
+    bash -c "cd '$PROJ_DIR' && bash '$MDEV_SCRIPT' init" >/dev/null 2>&1
+    When run cat "$PROJ_DIR/.mdev"
     The output should include 'MDEV_NAME'
   End
 
   It 'fails when .mdev already exists'
-    touch "$INIT_DIR/.mdev"
-    When run bash -c "cd '$INIT_DIR' && bash '$MDEV_SCRIPT' init"
+    touch "$PROJ_DIR/.mdev"
+    When run bash -c "cd '$PROJ_DIR' && bash '$MDEV_SCRIPT' init"
     The status should be failure
     The stderr should include '.mdev already exists'
   End
@@ -145,7 +139,7 @@ End
 
 Describe 'find_mdev_root'
   Before 'setup_mock_mdev'
-  After 'teardown_mock_mdev'
+  After 'teardown'
 
   It 'finds .mdev in the current directory'
     When run run_mdev help
@@ -174,7 +168,7 @@ Describe 'MDEV_NAME validation'
     printf '\n' >"$MOCK_DIR/.mdev"
   }
   Before 'setup_missing_name'
-  After 'teardown_mock_mdev'
+  After 'teardown'
 
   It 'errors when MDEV_NAME is not set'
     When run run_mdev help
@@ -186,7 +180,7 @@ End
 
 Describe 'main dispatch'
   Before 'setup_mock_mdev'
-  After 'teardown_mock_mdev'
+  After 'teardown'
 
   It 'shows help for the help command'
     When run run_mdev help
@@ -224,7 +218,7 @@ Describe 'discover_services (auto-discovery)'
     write_service "$MOCK_DIR" worker myapp-worker service
   }
   Before 'setup_discover'
-  After 'teardown_mock_mdev'
+  After 'teardown'
 
   It 'shows discovered services in help output'
     When run run_mdev help
@@ -237,7 +231,7 @@ End
 
 Describe 'discover_services (no services)'
   Before 'setup_mock_mdev'
-  After 'teardown_mock_mdev'
+  After 'teardown'
 
   It 'reports no services found on stderr'
     When run run_mdev build
@@ -254,7 +248,7 @@ Describe 'discover_services (MDEV_SERVICES)'
     write_service "$MOCK_DIR" worker myapp-worker service
   }
   Before 'setup_explicit'
-  After 'teardown_mock_mdev'
+  After 'teardown'
 
   It 'uses the explicit service list from MDEV_SERVICES'
     When run run_mdev help
@@ -278,7 +272,7 @@ Describe 'filter_services'
     write_service "$MOCK_DIR" worker myapp-worker service
   }
   Before 'setup_filter'
-  After 'teardown_mock_mdev'
+  After 'teardown'
 
   It 'runs a command on a specific service only'
     When run run_mdev build api
@@ -300,7 +294,7 @@ Describe 'up'
     write_service "$MOCK_DIR" api myapp-api service
   }
   Before 'setup_up'
-  After 'teardown_mock_mdev'
+  After 'teardown'
 
   It 'logs that it is starting each service'
     When run run_mdev up
@@ -324,7 +318,7 @@ Describe 'rebuild'
     write_service "$MOCK_DIR" api myapp-api service
   }
   Before 'setup_rebuild'
-  After 'teardown_mock_mdev'
+  After 'teardown'
 
   It 'delegates to dev rebuild and labels output'
     When run run_mdev rebuild
@@ -340,7 +334,7 @@ Describe 'ci'
     write_service "$MOCK_DIR" api myapp-api service
   }
   Before 'setup_ci'
-  After 'teardown_mock_mdev'
+  After 'teardown'
 
   It 'delegates to dev ci and labels output'
     When run run_mdev ci
@@ -356,7 +350,7 @@ Describe 'lock'
     write_service "$MOCK_DIR" api myapp-api service
   }
   Before 'setup_lock'
-  After 'teardown_mock_mdev'
+  After 'teardown'
 
   It 'delegates to dev lock and labels output'
     When run run_mdev lock
@@ -372,7 +366,7 @@ Describe 'down'
     write_service "$MOCK_DIR" api myapp-api service
   }
   Before 'setup_down'
-  After 'teardown_mock_mdev'
+  After 'teardown'
 
   It 'logs that it is stopping each service'
     When run run_mdev down
@@ -396,7 +390,7 @@ Describe 'build'
     write_service "$MOCK_DIR" worker myapp-worker service
   }
   Before 'setup_build'
-  After 'teardown_mock_mdev'
+  After 'teardown'
 
   It 'builds all services'
     When run run_mdev build
@@ -420,7 +414,7 @@ Describe 'db-migrate'
     write_service "$MOCK_DIR" worker myapp-worker service
   }
   Before 'setup_db_migrate'
-  After 'teardown_mock_mdev'
+  After 'teardown'
 
   It 'migrates all services'
     When run run_mdev db-migrate
@@ -443,7 +437,7 @@ Describe 'shell'
     write_service "$MOCK_DIR" api myapp-api service
   }
   Before 'setup_shell'
-  After 'teardown_mock_mdev'
+  After 'teardown'
 
   It 'delegates to dev shell in the specified service'
     When run run_mdev shell api
@@ -465,7 +459,7 @@ Describe 'db-shell'
     write_service "$MOCK_DIR" api myapp-api service
   }
   Before 'setup_db_shell'
-  After 'teardown_mock_mdev'
+  After 'teardown'
 
   It 'delegates to dev db-shell in the specified service'
     When run run_mdev db-shell api
@@ -487,7 +481,7 @@ Describe 'skip unsupported commands'
     write_service "$MOCK_DIR" myimage myimage image
   }
   Before 'setup_image'
-  After 'teardown_mock_mdev'
+  After 'teardown'
 
   It 'skips format for image repos'
     When run run_mdev format
@@ -511,7 +505,7 @@ Describe 'run'
     write_service "$MOCK_DIR" api myapp-api service
   }
   Before 'setup_run'
-  After 'teardown_mock_mdev'
+  After 'teardown'
 
   It 'delegates to dev in the specified service'
     When run run_mdev run api shell
@@ -559,7 +553,7 @@ Describe 'changed'
     export MOCK_DIR
   }
   Before 'setup_changed'
-  After 'teardown_mock_mdev'
+  After 'teardown'
 
   It 'lists services with changed files'
     When run bash -c "cd '$MOCK_DIR' && bash '$MDEV_SCRIPT' changed HEAD~1"
@@ -590,7 +584,7 @@ EOF
     write_service "$MOCK_DIR" api myapp-api service
   }
   Before 'setup_status'
-  After 'teardown_mock_mdev'
+  After 'teardown'
 
   It 'shows stopped when no containers are running'
     When run run_mdev status
@@ -635,7 +629,7 @@ EOF
     chmod +x "$MOCK_DIR/dev"
   }
   Before 'setup_diagnose'
-  After 'teardown_mock_mdev'
+  After 'teardown'
 
   It 'runs system checks once then repo-only checks per service'
     When run run_mdev diagnose

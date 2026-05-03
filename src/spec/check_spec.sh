@@ -29,7 +29,7 @@ EOF
 Describe 'check'
   Describe 'when all stages are present'
     Before 'fixture_service_repo'
-    After 'teardown_mock_docker'
+    After 'teardown'
 
     It 'runs lint-dockerfile, fmt, lint, types, and coverage in order'
       When run run_dev check
@@ -44,7 +44,7 @@ Describe 'check'
 
   Describe 'when no stages are present'
     Before 'setup_check_no_stages'
-    After 'teardown_mock_docker'
+    After 'teardown'
 
     It 'lints Dockerfile, skips all other checks, and exits successfully'
       When run run_dev check
@@ -59,7 +59,7 @@ Describe 'check'
 
   Describe 'for e2e repos'
     Before 'fixture_e2e_repo'
-    After 'teardown_mock_docker'
+    After 'teardown'
 
     It 'skips coverage and exits successfully'
       When run run_dev check
@@ -70,7 +70,7 @@ Describe 'check'
 
   Describe 'when lint fails'
     Before 'setup_check_lint_fails'
-    After 'teardown_mock_docker'
+    After 'teardown'
 
     It 'stops after lint and does not run types or coverage'
       When run run_dev check

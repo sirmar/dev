@@ -8,12 +8,8 @@ DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 . "$DEV_ROOT/src/spec/support/helpers.sh"
 
 Describe 'lint (image repo)'
-  setup_lint_image_repo() {
-    fixture_service_repo
-    write_dev_config "$MOCK_DIR" dev image
-  }
-  Before 'setup_lint_image_repo'
-  After 'teardown_mock_docker'
+  Before 'fixture_image_repo'
+  After 'teardown'
 
   It 'does not run the lint stage'
     When run run_dev lint
@@ -22,22 +18,9 @@ Describe 'lint (image repo)'
   End
 End
 
-Describe 'lint when lint stage is missing from Dockerfile'
-  setup_lint_no_stage() { fixture_service_repo_without_stage lint; }
-  Before 'setup_lint_no_stage'
-  After 'teardown_mock_docker'
-
-  It 'prints info and skips without error'
-    When run run_dev lint
-    The output should include "no 'lint' stage found in Dockerfile"
-    The output should not include 'running lint'
-    The status should be success
-  End
-End
-
 Describe 'lint-dockerfile'
   Before 'fixture_service_repo'
-  After 'teardown_mock_docker'
+  After 'teardown'
 
   It 'runs hadolint on the Dockerfile'
     When run run_dev lint-dockerfile
@@ -53,7 +36,7 @@ Describe 'lint-dockerfile when Dockerfile is missing'
     rm -f "$MOCK_DIR/Dockerfile"
   }
   Before 'setup_lint_dockerfile_no_file'
-  After 'teardown_mock_docker'
+  After 'teardown'
 
   It 'prints info and skips without error'
     When run run_dev lint-dockerfile
@@ -64,7 +47,7 @@ End
 
 Describe 'lint'
   Before 'fixture_service_repo'
-  After 'teardown_mock_docker'
+  After 'teardown'
 
   It 'lints all files when no target given'
     When run run_dev lint

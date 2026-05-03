@@ -35,7 +35,7 @@ EOF
 
 Describe 'shell'
     Before 'setup_mock_docker_shell_running'
-    After 'teardown_mock_docker'
+    After 'teardown'
 
     It 'execs into the running container'
         When run run_dev shell
@@ -53,7 +53,7 @@ End
 
 Describe 'shell when container is not running'
     Before 'setup_mock_docker_shell_not_running'
-    After 'teardown_mock_docker'
+    After 'teardown'
 
     It 'errors with a helpful message'
         When run run_dev shell

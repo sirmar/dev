@@ -15,7 +15,7 @@ translate_paths_from() {
 
 Describe 'translate_paths'
   Before 'fixture_service_repo'
-  After 'teardown_mock_docker'
+  After 'teardown'
 
   It 'converts a src/-relative path to /workspace/src/...'
     When run translate_paths_from "$MOCK_DIR" src/foo_spec.sh
@@ -42,7 +42,7 @@ Describe 'translate_paths with DEV_CONTEXT=..'
     printf 'DEV_CONTEXT=..\n' >>"$MOCK_DIR/.dev"
   }
   Before 'setup_translate_paths_parent_context'
-  After 'teardown_mock_docker'
+  After 'teardown'
 
   It 'includes the project directory name in the workspace path'
     project_name="$(basename "$MOCK_DIR")"

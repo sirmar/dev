@@ -3,29 +3,13 @@
 # shellcheck disable=SC2317
 
 DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
-DEV_SCRIPT="$DEV_ROOT/src/app/dev.sh"
 
 # shellcheck disable=SC1091
 . "$DEV_ROOT/src/spec/support/helpers.sh"
 
 Describe 'clean'
-  setup_env() {
-    MOCK_DIR="$(mktemp -d)"
-    export PATH="$MOCK_DIR:$PATH"
-    PROJ_DIR="$(mktemp -d)"
-    cp "$DEV_SCRIPT" "$PROJ_DIR/dev.sh"
-    write_dev_config "$PROJ_DIR" myapp service
-    printf 'services:\n  api:\n    image: test\n' >"$PROJ_DIR/docker-compose.yml"
-    printf '#!/bin/sh\necho "docker $*"\n' >"$MOCK_DIR/docker"
-    chmod +x "$MOCK_DIR/docker"
-  }
-
-  teardown_env() {
-    rm -rf "$MOCK_DIR" "$PROJ_DIR"
-  }
-
-  Before 'setup_env'
-  After 'teardown_env'
+  Before 'fixture_service_proj'
+  After 'teardown'
 
   It 'removes containers and volumes via compose down -v'
     When run bash -c "cd '$PROJ_DIR' && bash dev.sh clean"

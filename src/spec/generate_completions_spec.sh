@@ -5,21 +5,22 @@
 DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 GENERATOR="$DEV_ROOT/src/generate-completions.sh"
 
-run_generator() {
-  OUT_DIR="$(mktemp -d)"
-  bash "$GENERATOR" "$DEV_ROOT/src/app/dev.sh" "$OUT_DIR" "$DEV_ROOT/src/app/mdev.sh" >/dev/null
-  BASH_OUT="$OUT_DIR/dev.bash"
-  ZSH_OUT="$OUT_DIR/_dev"
-  MDEV_BASH_OUT="$OUT_DIR/mdev.bash"
-  MDEV_ZSH_OUT="$OUT_DIR/_mdev"
-  export OUT_DIR BASH_OUT ZSH_OUT MDEV_BASH_OUT MDEV_ZSH_OUT
-}
+# shellcheck disable=SC1091
+. "$DEV_ROOT/src/spec/support/helpers.sh"
 
-cleanup_generator() { rm -rf "$OUT_DIR"; }
+run_generator() {
+  PROJ_DIR="$(mktemp -d)"
+  bash "$GENERATOR" "$DEV_ROOT/src/app/dev.sh" "$PROJ_DIR" "$DEV_ROOT/src/app/mdev.sh" >/dev/null
+  BASH_OUT="$PROJ_DIR/dev.bash"
+  ZSH_OUT="$PROJ_DIR/_dev"
+  MDEV_BASH_OUT="$PROJ_DIR/mdev.bash"
+  MDEV_ZSH_OUT="$PROJ_DIR/_mdev"
+  export PROJ_DIR BASH_OUT ZSH_OUT MDEV_BASH_OUT MDEV_ZSH_OUT
+}
 
 Describe 'generate-completions.sh'
   Before 'run_generator'
-  After 'cleanup_generator'
+  After 'teardown'
 
   It 'produces a case branch for build with --no-cache in bash completion'
     When call cat "$BASH_OUT"

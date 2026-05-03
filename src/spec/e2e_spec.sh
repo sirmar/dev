@@ -9,8 +9,8 @@ DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 
 Describe 'e2e when e2e stage is missing from Dockerfile'
   setup_e2e_no_stage() { fixture_service_repo_without_stage e2e; }
-  Before 'setup_e2e_no_stage'
-  After 'teardown_mock_docker'
+  Before 'fixture_service_repo_without_e2e'
+  After 'teardown'
 
   It 'prints info and skips without error'
     When run run_dev e2e
@@ -25,7 +25,7 @@ Describe 'e2e when docker-compose.e2e.yml is missing'
     printf 'FROM scratch AS e2e\n' >>"$MOCK_DIR/Dockerfile"
   }
   Before 'setup_e2e_no_compose'
-  After 'teardown_mock_docker'
+  After 'teardown'
 
   It 'prints info and skips without error'
     When run run_dev e2e
@@ -36,7 +36,7 @@ End
 
 Describe 'e2e'
   Before 'fixture_service_repo_with_e2e'
-  After 'teardown_mock_docker'
+  After 'teardown'
 
   It 'builds the e2e stage'
     When run run_dev e2e
@@ -98,7 +98,7 @@ EOF
     chmod +x "$MOCK_DIR/docker"
   }
   Before 'setup_e2e_failing'
-  After 'teardown_mock_docker'
+  After 'teardown'
 
   It 'dumps logs in CI'
     When run env CI=1 bash -c "cd '$MOCK_DIR' && bash '$DEV_ROOT/src/app/dev.sh' e2e"
@@ -119,7 +119,7 @@ Describe 'e2e skips on image repos'
     write_dev_config "$MOCK_DIR" dev image
   }
   Before 'setup_e2e_image_repo'
-  After 'teardown_mock_docker'
+  After 'teardown'
 
   It 'skips gracefully'
     When run run_dev e2e

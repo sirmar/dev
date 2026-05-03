@@ -19,26 +19,7 @@ write_dev_config() {
     done
 }
 
-teardown_mock_docker() {
-    rm -rf "$MOCK_DIR"
-}
-
-# ---------------------------------------------------------------------------
-# Git repo mock (for release/tag operations)
-# ---------------------------------------------------------------------------
-
-setup_mock_git_repo() {
-    MOCK_DIR="$(mktemp -d)"
-    git init -q "$MOCK_DIR"
-    git -C "$MOCK_DIR" config user.email 'test@test.com'
-    git -C "$MOCK_DIR" config user.name 'Test'
-    write_dev_config "$MOCK_DIR" dev service
-    cp "$DEV_SCRIPT" "$MOCK_DIR/dev.sh"
-    git -C "$MOCK_DIR" add .
-    git -C "$MOCK_DIR" commit -q -m 'init'
-    export MOCK_DIR
-}
-
-teardown_mock_git_repo() {
-    rm -rf "$MOCK_DIR"
+teardown() {
+    rm -rf "$MOCK_DIR" ${PROJ_DIR:+"$PROJ_DIR"}
+    unset PROJ_DIR
 }

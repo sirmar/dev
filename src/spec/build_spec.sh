@@ -9,7 +9,7 @@ DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 
 Describe 'build (service repo)'
   Before 'fixture_service_repo'
-  After 'teardown_mock_docker'
+  After 'teardown'
 
   It 'builds the prod image'
     When run run_dev build
@@ -44,15 +44,7 @@ Describe 'build (service repo)'
 End
 
 Describe 'build (CI mode)'
-  setup_ci() {
-    fixture_service_repo
-    export CI=true
-  }
-  teardown_ci() {
-    unset CI
-    teardown_mock_docker
-  }
-  Before 'setup_ci'
+  Before 'fixture_service_repo_with_ci'
   After 'teardown_ci'
 
   It 'uses docker buildx build with --load'
@@ -83,7 +75,7 @@ Describe 'build (image repo with stages)'
     printf 'FROM scratch AS base\nFROM scratch AS amd64\nFROM scratch AS arm64\n' >"$MOCK_DIR/Dockerfile"
   }
   Before 'setup_image_repo'
-  After 'teardown_mock_docker'
+  After 'teardown'
 
   It 'builds base stage first, then each other stage'
     When run run_dev build
@@ -101,7 +93,7 @@ Describe 'build (image repo with no stages)'
     printf 'FROM scratch\n' >"$MOCK_DIR/Dockerfile"
   }
   Before 'setup_image_repo_no_stages'
-  After 'teardown_mock_docker'
+  After 'teardown'
 
   It 'builds image without a target stage'
     When run run_dev build

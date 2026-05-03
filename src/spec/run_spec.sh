@@ -9,7 +9,7 @@ DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 
 Describe 'run'
 	Before 'fixture_tool_repo'
-	After 'teardown_mock_docker'
+	After 'teardown'
 
 	It 'builds the prod image'
 		When run run_dev run
@@ -92,7 +92,7 @@ End
 
 Describe 'run for service repo'
 	Before 'fixture_service_repo'
-	After 'teardown_mock_docker'
+	After 'teardown'
 
 	It 'skips gracefully'
 		When run run_dev run
@@ -103,7 +103,7 @@ End
 
 Describe 'run for e2e repo'
 	Before 'fixture_e2e_repo'
-	After 'teardown_mock_docker'
+	After 'teardown'
 
 	It 'runs e2e tests via compose'
 		When run run_dev run
@@ -134,7 +134,7 @@ Describe 'run for e2e repo without docker-compose.yml'
 		rm "$MOCK_DIR/docker-compose.yml"
 	}
 	Before 'setup_e2e_repo_without_compose'
-	After 'teardown_mock_docker'
+	After 'teardown'
 
 	It 'skips without error'
 		When run run_dev run

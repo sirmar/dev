@@ -23,7 +23,7 @@ setup_push() {
 
 Describe 'push without DEV_REGISTRY'
 	Before 'fixture_service_repo'
-	After 'teardown_mock_docker'
+	After 'teardown'
 
 	It 'errors when DEV_REGISTRY is not set'
 		When run run_dev push
@@ -34,7 +34,7 @@ End
 
 Describe 'push (service repo)'
 	Before 'setup_push'
-	After 'teardown_mock_docker'
+	After 'teardown'
 
 	It 'builds and pushes the app image multi-arch with the latest git tag'
 		When run run_dev push
@@ -51,7 +51,7 @@ Describe 'push (image repo)'
 		printf 'FROM scratch\n' >"$MOCK_DIR/Dockerfile"
 	}
 	Before 'setup_push_image'
-	After 'teardown_mock_docker'
+	After 'teardown'
 
 	It 'builds and pushes the image multi-arch with the latest git tag'
 		When run run_dev push
@@ -67,7 +67,7 @@ Describe 'push with no git tag'
 		git -C "$MOCK_DIR" tag -d v1.2.3 >/dev/null
 	}
 	Before 'setup_push_no_tag'
-	After 'teardown_mock_docker'
+	After 'teardown'
 
 	It 'errors when no git tag exists'
 		When run run_dev push

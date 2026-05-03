@@ -4,29 +4,29 @@
 
 DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 
+# shellcheck disable=SC1091
+. "$DEV_ROOT/src/spec/support/helpers.sh"
+
 _setup_entrypoint_env() {
-  ENTRYPOINT_TMP="$(mktemp -d)"
-  printf '#!/bin/sh\necho "uv $*"\n' >"$ENTRYPOINT_TMP/uv"
-  printf '#!/bin/sh\necho "shellspec $*"\nmkdir -p coverage && printf '"'"'<coverage line-rate="0.90"></coverage>\n'"'"' >coverage/cobertura.xml\n' >"$ENTRYPOINT_TMP/shellspec"
-  printf '#!/bin/sh\necho "pnpm $*"\n' >"$ENTRYPOINT_TMP/pnpm"
-  printf '#!/bin/sh\necho "90.0"\n' >"$ENTRYPOINT_TMP/bc"
-  printf '#!/bin/sh\necho "node $*"\n' >"$ENTRYPOINT_TMP/node"
-  chmod +x "$ENTRYPOINT_TMP/uv" "$ENTRYPOINT_TMP/shellspec" "$ENTRYPOINT_TMP/pnpm" "$ENTRYPOINT_TMP/bc" "$ENTRYPOINT_TMP/node"
-  export ENTRYPOINT_TMP
+  PROJ_DIR="$(mktemp -d)"
+  printf '#!/bin/sh\necho "uv $*"\n' >"$PROJ_DIR/uv"
+  printf '#!/bin/sh\necho "shellspec $*"\nmkdir -p coverage && printf '"'"'<coverage line-rate="0.90"></coverage>\n'"'"' >coverage/cobertura.xml\n' >"$PROJ_DIR/shellspec"
+  printf '#!/bin/sh\necho "pnpm $*"\n' >"$PROJ_DIR/pnpm"
+  printf '#!/bin/sh\necho "90.0"\n' >"$PROJ_DIR/bc"
+  printf '#!/bin/sh\necho "node $*"\n' >"$PROJ_DIR/node"
+  chmod +x "$PROJ_DIR/uv" "$PROJ_DIR/shellspec" "$PROJ_DIR/pnpm" "$PROJ_DIR/bc" "$PROJ_DIR/node"
+  export PROJ_DIR
 }
 
-_teardown_entrypoint_env() {
-  rm -rf "$ENTRYPOINT_TMP"
-}
 
 run_entrypoint() {
   local script="$1"; shift
-  PATH="$ENTRYPOINT_TMP:$PATH" sh "$DEV_ROOT/$script" "$@"
+  PATH="$PROJ_DIR:$PATH" sh "$DEV_ROOT/$script" "$@"
 }
 
 Describe 'python unit-entrypoint'
   Before '_setup_entrypoint_env'
-  After '_teardown_entrypoint_env'
+  After 'teardown'
 
   It 'runs default suite when no args given'
     When run run_entrypoint images/python/scripts/unit-entrypoint.sh
@@ -43,7 +43,7 @@ End
 
 Describe 'python coverage-entrypoint'
   Before '_setup_entrypoint_env'
-  After '_teardown_entrypoint_env'
+  After 'teardown'
 
   It 'runs default suite when no args given'
     When run run_entrypoint images/python/scripts/coverage-entrypoint.sh
@@ -62,7 +62,7 @@ End
 
 Describe 'bash unit-entrypoint'
   Before '_setup_entrypoint_env'
-  After '_teardown_entrypoint_env'
+  After 'teardown'
 
   It 'runs default suite when no args given'
     When run run_entrypoint images/bash/scripts/unit-entrypoint.sh
@@ -79,7 +79,7 @@ End
 
 Describe 'bash coverage-entrypoint'
   Before '_setup_entrypoint_env'
-  After '_teardown_entrypoint_env'
+  After 'teardown'
 
   It 'runs default suite when no args given'
     When run run_entrypoint images/bash/scripts/coverage-entrypoint.sh
@@ -97,7 +97,7 @@ End
 
 Describe 'typescript unit-entrypoint'
   Before '_setup_entrypoint_env'
-  After '_teardown_entrypoint_env'
+  After 'teardown'
 
   It 'runs default suite when no args given'
     When run run_entrypoint images/typescript/scripts/unit-entrypoint.sh
@@ -115,7 +115,7 @@ End
 
 Describe 'typescript coverage-entrypoint'
   Before '_setup_entrypoint_env'
-  After '_teardown_entrypoint_env'
+  After 'teardown'
 
   It 'runs default suite when no args given'
     When run run_entrypoint images/typescript/scripts/coverage-entrypoint.sh
@@ -134,7 +134,7 @@ End
 
 Describe 'python e2e-entrypoint'
   Before '_setup_entrypoint_env'
-  After '_teardown_entrypoint_env'
+  After 'teardown'
 
   It 'runs default suite when no args given'
     When run run_entrypoint images/python/scripts/e2e-entrypoint.sh

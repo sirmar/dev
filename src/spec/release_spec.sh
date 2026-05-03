@@ -8,8 +8,8 @@ DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 . "$DEV_ROOT/src/spec/support/helpers.sh"
 
 Describe 'release'
-  Before 'setup_mock_git_repo'
-  After 'teardown_mock_git_repo'
+  Before 'fixture_git_repo'
+  After 'teardown'
 
   It 'fails without a bump type'
     When run bash -c "cd '$MOCK_DIR' && bash dev.sh release"

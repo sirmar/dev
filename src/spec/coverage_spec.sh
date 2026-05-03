@@ -7,22 +7,9 @@ DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 # shellcheck disable=SC1091
 . "$DEV_ROOT/src/spec/support/helpers.sh"
 
-Describe 'coverage when coverage stage is missing from Dockerfile'
-  setup_coverage_no_stage() { fixture_service_repo_without_stage coverage; }
-  Before 'setup_coverage_no_stage'
-  After 'teardown_mock_docker'
-
-  It 'prints info and skips without error'
-    When run run_dev coverage
-    The output should include "no 'coverage' stage found in Dockerfile"
-    The output should not include 'running coverage'
-    The status should be success
-  End
-End
-
 Describe 'coverage'
   Before 'fixture_service_repo'
-  After 'teardown_mock_docker'
+  After 'teardown'
 
   It 'builds coverage image and runs'
     When run run_dev coverage
@@ -63,7 +50,7 @@ Describe 'coverage (with docker-compose.e2e.yml)'
     touch "$MOCK_DIR/docker-compose.e2e.yml"
   }
   Before 'setup_coverage_compose'
-  After 'teardown_mock_docker'
+  After 'teardown'
 
   It 'uses compose instead of docker run'
     When run run_dev coverage

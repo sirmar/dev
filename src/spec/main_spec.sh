@@ -9,7 +9,6 @@ DEV_SCRIPT="$DEV_ROOT/src/app/dev.sh"
 
 Describe 'completions'
   setup() { MOCK_DIR="$(mktemp -d)"; }
-  teardown() { rm -rf "$MOCK_DIR"; }
   Before 'setup'
   After 'teardown'
 
@@ -64,17 +63,16 @@ Describe 'completions'
   Describe 'with DEV_SCRIPTS from user config'
     setup() {
       MOCK_DIR="$(mktemp -d)"
-      MOCK_CONFIG_DIR="$(mktemp -d)"
+      PROJ_DIR="$(mktemp -d)"
       write_dev_config "$MOCK_DIR" myapp tool
-      mkdir -p "$MOCK_CONFIG_DIR/dev"
-      printf 'DEV_SCRIPTS=deploy:scripts/deploy.sh\n' >"$MOCK_CONFIG_DIR/dev/config"
+      mkdir -p "$PROJ_DIR/dev"
+      printf 'DEV_SCRIPTS=deploy:scripts/deploy.sh\n' >"$PROJ_DIR/dev/config"
     }
-    teardown() { rm -rf "$MOCK_DIR" "$MOCK_CONFIG_DIR"; }
     Before 'setup'
     After 'teardown'
 
     It 'includes exec when DEV_SCRIPTS set in user config'
-      When run bash -c "cd '$MOCK_DIR' && XDG_CONFIG_HOME='$MOCK_CONFIG_DIR' bash '$DEV_SCRIPT' completions"
+      When run bash -c "cd '$MOCK_DIR' && XDG_CONFIG_HOME='$PROJ_DIR' bash '$DEV_SCRIPT' completions"
       The status should be success
       The output should include 'exec'
     End
@@ -93,7 +91,7 @@ End
 
 Describe 'main dispatch'
   Before 'fixture_service_repo'
-  After 'teardown_mock_docker'
+  After 'teardown'
 
   It "shows help for 'help' command"
     When run run_dev help

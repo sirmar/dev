@@ -8,22 +8,9 @@ DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 . "$DEV_ROOT/src/spec/support/helpers.sh"
 
 Describe 'lock'
-  Describe 'when lock stage is missing from Dockerfile'
-    setup_lock_no_stage() { fixture_service_repo_without_stage lock; }
-    Before 'setup_lock_no_stage'
-    After 'teardown_mock_docker'
-
-    It 'prints info and skips without error'
-      When run run_dev lock
-      The output should include "no 'lock' stage found in Dockerfile"
-      The output should not include 'running lock'
-      The status should be success
-    End
-  End
-
   Describe 'when lock stage exists in Dockerfile'
     Before 'fixture_service_repo'
-    After 'teardown_mock_docker'
+    After 'teardown'
 
     It 'builds and runs the lock stage'
       When run run_dev lock
@@ -39,7 +26,7 @@ Describe 'lock'
       mkdir -p "$MOCK_DIR/out"
     }
     Before 'setup_lock_with_out'
-    After 'teardown_mock_docker'
+    After 'teardown'
 
     It 'copies pnpm-lock.yaml from out/ to root when present'
       echo 'lock-content' >"$MOCK_DIR/out/pnpm-lock.yaml"

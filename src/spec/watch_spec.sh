@@ -8,21 +8,9 @@ DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 . "$DEV_ROOT/src/spec/support/helpers.sh"
 
 Describe 'watch'
-  Describe 'when watch stage is missing from Dockerfile'
-    setup_watch_no_stage() { fixture_service_repo_without_stage watch; }
-    Before 'setup_watch_no_stage'
-    After 'teardown_mock_docker'
-
-    It 'prints info and skips without error'
-      When run run_dev watch
-      The output should include "no 'watch' stage found in Dockerfile"
-      The status should be success
-    End
-  End
-
   Describe 'when watch stage exists in Dockerfile'
     Before 'fixture_service_repo'
-    After 'teardown_mock_docker'
+    After 'teardown'
 
     It 'builds and runs the watch stage'
       When run run_dev watch
