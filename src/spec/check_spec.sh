@@ -8,17 +8,13 @@ DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 . "$DEV_ROOT/src/spec/support/helpers.sh"
 
 setup_check_no_stages() {
-	_setup_mock_project
+	fixture_service_repo
 	printf '' >"$MOCK_DIR/Dockerfile"
-	printf '#!/bin/sh\necho "docker $*"\n' >"$MOCK_DIR/docker"
-	chmod +x "$MOCK_DIR/docker"
-	export PATH="$MOCK_DIR:$PATH"
 }
 
-teardown_check_no_stages() { rm -rf "$MOCK_DIR"; }
 
 setup_check_lint_fails() {
-	_setup_mock_project
+	fixture_service_repo
 	cat >"$MOCK_DIR/docker" <<'EOF'
 #!/bin/sh
 case "$*" in
@@ -27,14 +23,12 @@ run*--name*lint*) echo "lint failed"; exit 1 ;;
 esac
 EOF
 	chmod +x "$MOCK_DIR/docker"
-	export PATH="$MOCK_DIR:$PATH"
 }
 
-teardown_check_lint_fails() { rm -rf "$MOCK_DIR"; }
 
 Describe 'check'
   Describe 'when all stages are present'
-    Before 'setup_mock_docker'
+    Before 'fixture_service_repo'
     After 'teardown_mock_docker'
 
     It 'runs lint-dockerfile, fmt, lint, types, and coverage in order'
@@ -50,7 +44,7 @@ Describe 'check'
 
   Describe 'when no stages are present'
     Before 'setup_check_no_stages'
-    After 'teardown_check_no_stages'
+    After 'teardown_mock_docker'
 
     It 'lints Dockerfile, skips all other checks, and exits successfully'
       When run run_dev check
@@ -64,7 +58,7 @@ Describe 'check'
   End
 
   Describe 'for e2e repos'
-    Before 'setup_mock_e2e_repo'
+    Before 'fixture_e2e_repo'
     After 'teardown_mock_docker'
 
     It 'skips coverage and exits successfully'
@@ -76,7 +70,7 @@ Describe 'check'
 
   Describe 'when lint fails'
     Before 'setup_check_lint_fails'
-    After 'teardown_check_lint_fails'
+    After 'teardown_mock_docker'
 
     It 'stops after lint and does not run types or coverage'
       When run run_dev check

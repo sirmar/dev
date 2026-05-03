@@ -9,10 +9,9 @@ DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 
 Describe 'lock'
   Describe 'when lock stage is missing from Dockerfile'
-    setup_lock_no_stage() { setup_mock_docker_without_stage lock; }
-    teardown_lock_no_stage() { teardown_mock_docker; }
+    setup_lock_no_stage() { fixture_service_repo_without_stage lock; }
     Before 'setup_lock_no_stage'
-    After 'teardown_lock_no_stage'
+    After 'teardown_mock_docker'
 
     It 'prints info and skips without error'
       When run run_dev lock
@@ -23,7 +22,7 @@ Describe 'lock'
   End
 
   Describe 'when lock stage exists in Dockerfile'
-    Before 'setup_mock_docker'
+    Before 'fixture_service_repo'
     After 'teardown_mock_docker'
 
     It 'builds and runs the lock stage'
@@ -36,7 +35,7 @@ Describe 'lock'
 
   Describe 'lockfile copy-back'
     setup_lock_with_out() {
-      setup_mock_docker
+      fixture_service_repo
       mkdir -p "$MOCK_DIR/out"
     }
     Before 'setup_lock_with_out'

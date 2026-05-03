@@ -10,7 +10,7 @@ DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 # Sets up a mock git+docker environment with a tag and registry config.
 # docker mock echoes args for build/tag/push; gh mock provides credentials.
 setup_push() {
-	_setup_mock_project
+	fixture_service_repo
 	write_dev_config "$MOCK_DIR" dev service "DEV_REGISTRY=registry.example.com/org" "DEV_REGISTRY_USER=myuser" "DEV_REGISTRY_TOKEN=mytoken"
 	git init -q "$MOCK_DIR"
 	git -C "$MOCK_DIR" config user.email 'test@test.com'
@@ -18,14 +18,11 @@ setup_push() {
 	git -C "$MOCK_DIR" add .
 	git -C "$MOCK_DIR" commit -q -m 'init'
 	git -C "$MOCK_DIR" tag -a v1.2.3 -m 'Release v1.2.3'
-	printf '#!/bin/sh\necho "docker $*"\n' >"$MOCK_DIR/docker"
-	chmod +x "$MOCK_DIR/docker"
 	# No gh in PATH — falls back to DEV_REGISTRY config
-	export PATH="$MOCK_DIR:$PATH"
 }
 
 Describe 'push without DEV_REGISTRY'
-	Before 'setup_mock_docker'
+	Before 'fixture_service_repo'
 	After 'teardown_mock_docker'
 
 	It 'errors when DEV_REGISTRY is not set'

@@ -8,7 +8,7 @@ DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 . "$DEV_ROOT/src/spec/support/helpers.sh"
 
 setup_mock_docker_shell_running() {
-    _setup_mock_project
+    fixture_service_repo
     cat >"$MOCK_DIR/docker" <<'EOF'
 #!/bin/sh
 if [ "$1" = "ps" ]; then
@@ -18,11 +18,10 @@ else
 fi
 EOF
     chmod +x "$MOCK_DIR/docker"
-    export PATH="$MOCK_DIR:$PATH"
 }
 
 setup_mock_docker_shell_not_running() {
-    _setup_mock_project
+    fixture_service_repo
     cat >"$MOCK_DIR/docker" <<'EOF'
 #!/bin/sh
 if [ "$1" = "ps" ]; then
@@ -32,7 +31,6 @@ else
 fi
 EOF
     chmod +x "$MOCK_DIR/docker"
-    export PATH="$MOCK_DIR:$PATH"
 }
 
 Describe 'shell'

@@ -8,17 +8,15 @@ DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 . "$DEV_ROOT/src/spec/support/helpers.sh"
 
 setup_mock_exec() {
-	_setup_mock_project
+	fixture_service_repo
 	printf 'FROM scratch AS scripts\n' >>"$MOCK_DIR/Dockerfile"
 	write_dev_config "$MOCK_DIR" dev service 'DEV_SCRIPTS="evaluate:scripts/evaluate.py"'
-	_finish_mock_docker_setup
 }
 
 setup_mock_exec_tool() {
-	_setup_mock_project
+	fixture_tool_repo
 	write_dev_config "$MOCK_DIR" dev tool 'DEV_SCRIPTS="evaluate:scripts/evaluate.py"'
 	printf 'FROM scratch AS scripts\n' >>"$MOCK_DIR/Dockerfile"
-	_finish_mock_docker_setup
 }
 
 Describe 'exec'
@@ -54,7 +52,7 @@ Describe 'exec'
 End
 
 Describe 'exec without scripts stage'
-	Before 'setup_mock_docker'
+	Before 'fixture_service_repo'
 	After 'teardown_mock_docker'
 
 	It 'skips gracefully'

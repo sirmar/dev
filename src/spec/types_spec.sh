@@ -9,10 +9,9 @@ DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 
 Describe 'types'
   Describe 'when types stage is missing from Dockerfile'
-    setup_types_no_stage() { setup_mock_docker_without_stage types; }
-    teardown_types_no_stage() { teardown_mock_docker; }
+    setup_types_no_stage() { fixture_service_repo_without_stage types; }
     Before 'setup_types_no_stage'
-    After 'teardown_types_no_stage'
+    After 'teardown_mock_docker'
 
     It 'prints info and skips without error'
       When run run_dev types
@@ -23,7 +22,7 @@ Describe 'types'
   End
 
   Describe 'when types stage exists in Dockerfile'
-    Before 'setup_mock_docker'
+    Before 'fixture_service_repo'
     After 'teardown_mock_docker'
 
     It 'builds and runs the types stage'

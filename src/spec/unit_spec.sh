@@ -8,10 +8,9 @@ DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 . "$DEV_ROOT/src/spec/support/helpers.sh"
 
 Describe 'unit when unit stage is missing from Dockerfile'
-  setup_unit_no_stage() { setup_mock_docker_without_stage unit; }
-  teardown_unit_no_stage() { teardown_mock_docker; }
+  setup_unit_no_stage() { fixture_service_repo_without_stage unit; }
   Before 'setup_unit_no_stage'
-  After 'teardown_unit_no_stage'
+  After 'teardown_mock_docker'
 
   It 'prints info and skips without error'
     When run run_dev unit
@@ -22,7 +21,7 @@ Describe 'unit when unit stage is missing from Dockerfile'
 End
 
 Describe 'unit'
-  Before 'setup_mock_docker'
+  Before 'fixture_service_repo'
   After 'teardown_mock_docker'
 
   It 'runs unit tests'

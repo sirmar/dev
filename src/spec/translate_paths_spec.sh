@@ -14,7 +14,7 @@ translate_paths_from() {
 }
 
 Describe 'translate_paths'
-  Before 'setup_mock_docker'
+  Before 'fixture_service_repo'
   After 'teardown_mock_docker'
 
   It 'converts a src/-relative path to /workspace/src/...'
@@ -38,7 +38,7 @@ End
 
 Describe 'translate_paths with DEV_CONTEXT=..'
   setup_translate_paths_parent_context() {
-    setup_mock_docker
+    fixture_service_repo
     printf 'DEV_CONTEXT=..\n' >>"$MOCK_DIR/.dev"
   }
   Before 'setup_translate_paths_parent_context'

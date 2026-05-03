@@ -9,7 +9,7 @@ DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 
 Describe 'login via CI (GITHUB_TOKEN)'
   setup_login_ci() {
-    setup_mock_docker
+    fixture_service_repo
     rm -f "$MOCK_DIR/gh"
     export CI=true
     export GITHUB_TOKEN=ghs_citoken
@@ -32,7 +32,7 @@ End
 
 Describe 'login via gh'
   setup_login_gh() {
-    setup_mock_docker
+    fixture_service_repo
     cat >"$MOCK_DIR/gh" <<EOF
 #!/bin/sh
 case "\$1 \$2" in
@@ -56,7 +56,7 @@ End
 
 Describe 'login via DEV_REGISTRY config'
   setup_login_config() {
-    setup_mock_docker
+    fixture_service_repo
     write_dev_config "$MOCK_DIR" dev service "DEV_REGISTRY=registry.example.com/org" "DEV_REGISTRY_USER=myuser" "DEV_REGISTRY_TOKEN=mytoken"
     # No gh in PATH so it falls back to config
     rm -f "$MOCK_DIR/gh"
@@ -74,7 +74,7 @@ End
 
 Describe 'login with no credentials'
   setup_login_none() {
-    setup_mock_docker
+    fixture_service_repo
     rm -f "$MOCK_DIR/gh"
   }
   Before 'setup_login_none'

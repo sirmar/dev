@@ -7,14 +7,8 @@ DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 # shellcheck disable=SC1091
 . "$DEV_ROOT/src/spec/support/helpers.sh"
 
-setup_mock_tool() {
-	_setup_mock_project
-	write_dev_config "$MOCK_DIR" dev tool
-	_finish_mock_docker_setup
-}
-
 Describe 'run'
-	Before 'setup_mock_tool'
+	Before 'fixture_tool_repo'
 	After 'teardown_mock_docker'
 
 	It 'builds the prod image'
@@ -97,7 +91,7 @@ Describe 'run'
 End
 
 Describe 'run for service repo'
-	Before 'setup_mock_docker'
+	Before 'fixture_service_repo'
 	After 'teardown_mock_docker'
 
 	It 'skips gracefully'
@@ -108,7 +102,7 @@ Describe 'run for service repo'
 End
 
 Describe 'run for e2e repo'
-	Before 'setup_mock_e2e_repo'
+	Before 'fixture_e2e_repo'
 	After 'teardown_mock_docker'
 
 	It 'runs e2e tests via compose'
@@ -135,7 +129,11 @@ Describe 'run for e2e repo'
 End
 
 Describe 'run for e2e repo without docker-compose.yml'
-	Before 'setup_mock_e2e_repo_without_compose'
+	setup_e2e_repo_without_compose() {
+		fixture_e2e_repo
+		rm "$MOCK_DIR/docker-compose.yml"
+	}
+	Before 'setup_e2e_repo_without_compose'
 	After 'teardown_mock_docker'
 
 	It 'skips without error'

@@ -8,7 +8,7 @@ DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 . "$DEV_ROOT/src/spec/support/helpers.sh"
 
 Describe 'build (service repo)'
-  Before 'setup_mock_docker'
+  Before 'fixture_service_repo'
   After 'teardown_mock_docker'
 
   It 'builds the prod image'
@@ -45,7 +45,7 @@ End
 
 Describe 'build (CI mode)'
   setup_ci() {
-    setup_mock_docker
+    fixture_service_repo
     export CI=true
   }
   teardown_ci() {
@@ -78,7 +78,7 @@ End
 
 Describe 'build (image repo with stages)'
   setup_image_repo() {
-    setup_mock_docker
+    fixture_service_repo
     write_dev_config "$MOCK_DIR" myimage image
     printf 'FROM scratch AS base\nFROM scratch AS amd64\nFROM scratch AS arm64\n' >"$MOCK_DIR/Dockerfile"
   }
@@ -96,7 +96,7 @@ End
 
 Describe 'build (image repo with no stages)'
   setup_image_repo_no_stages() {
-    setup_mock_docker
+    fixture_service_repo
     write_dev_config "$MOCK_DIR" myimage image
     printf 'FROM scratch\n' >"$MOCK_DIR/Dockerfile"
   }

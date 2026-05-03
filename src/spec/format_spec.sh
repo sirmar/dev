@@ -8,10 +8,9 @@ DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 . "$DEV_ROOT/src/spec/support/helpers.sh"
 
 Describe 'format when format stage is missing from Dockerfile'
-  setup_format_no_stage() { setup_mock_docker_without_stage format; }
-  teardown_format_no_stage() { teardown_mock_docker; }
+  setup_format_no_stage() { fixture_service_repo_without_stage format; }
   Before 'setup_format_no_stage'
-  After 'teardown_format_no_stage'
+  After 'teardown_mock_docker'
 
   It 'prints info and skips without error'
     When run run_dev format
@@ -22,7 +21,7 @@ Describe 'format when format stage is missing from Dockerfile'
 End
 
 Describe 'format'
-  Before 'setup_mock_docker'
+  Before 'fixture_service_repo'
   After 'teardown_mock_docker'
 
   It 'formats all files when no target given'

@@ -92,7 +92,7 @@ End
 
 
 Describe 'main dispatch'
-  Before 'setup_mock_docker'
+  Before 'fixture_service_repo'
   After 'teardown_mock_docker'
 
   It "shows help for 'help' command"

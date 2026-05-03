@@ -8,10 +8,9 @@ DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 . "$DEV_ROOT/src/spec/support/helpers.sh"
 
 Describe 'coverage when coverage stage is missing from Dockerfile'
-  setup_coverage_no_stage() { setup_mock_docker_without_stage coverage; }
-  teardown_coverage_no_stage() { teardown_mock_docker; }
+  setup_coverage_no_stage() { fixture_service_repo_without_stage coverage; }
   Before 'setup_coverage_no_stage'
-  After 'teardown_coverage_no_stage'
+  After 'teardown_mock_docker'
 
   It 'prints info and skips without error'
     When run run_dev coverage
@@ -22,7 +21,7 @@ Describe 'coverage when coverage stage is missing from Dockerfile'
 End
 
 Describe 'coverage'
-  Before 'setup_mock_docker'
+  Before 'fixture_service_repo'
   After 'teardown_mock_docker'
 
   It 'builds coverage image and runs'
@@ -60,7 +59,7 @@ End
 
 Describe 'coverage (with docker-compose.e2e.yml)'
   setup_coverage_compose() {
-    setup_mock_docker
+    fixture_service_repo
     touch "$MOCK_DIR/docker-compose.e2e.yml"
   }
   Before 'setup_coverage_compose'

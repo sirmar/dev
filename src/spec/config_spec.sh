@@ -9,7 +9,7 @@ DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 
 Describe 'DEV_NAME validation'
   setup_missing_dev_name() {
-    setup_mock_docker
+    fixture_service_repo
     printf 'DEV_REPO_TYPE=service\n' >"$MOCK_DIR/.dev"
   }
   Before 'setup_missing_dev_name'
@@ -24,7 +24,7 @@ End
 
 Describe 'DEV_REPO_TYPE validation'
   setup_missing_repo_type() {
-    setup_mock_docker
+    fixture_service_repo
     printf 'DEV_NAME=dev\n' >"$MOCK_DIR/.dev"
   }
   Before 'setup_missing_repo_type'
@@ -39,7 +39,7 @@ End
 
 Describe 'DEV_REPO_TYPE=image'
   setup_image_repo() {
-    setup_mock_docker
+    fixture_service_repo
     write_dev_config "$MOCK_DIR" dev image
   }
   Before 'setup_image_repo'
@@ -60,11 +60,7 @@ Describe 'DEV_REPO_TYPE=image'
 End
 
 Describe 'DEV_REPO_TYPE=tool'
-  setup_tool_repo() {
-    setup_mock_docker
-    write_dev_config "$MOCK_DIR" dev tool
-  }
-  Before 'setup_tool_repo'
+  Before 'fixture_tool_repo'
   After 'teardown_mock_docker'
 
   It 'shows tool repo type in help'
@@ -90,11 +86,7 @@ Describe 'DEV_REPO_TYPE=tool'
 End
 
 Describe 'DEV_REPO_TYPE=e2e'
-  setup_e2e_repo() {
-    setup_mock_docker
-    write_dev_config "$MOCK_DIR" dev e2e "DEV_NETWORK=dev_network"
-  }
-  Before 'setup_e2e_repo'
+  Before 'fixture_e2e_repo'
   After 'teardown_mock_docker'
 
   It 'shows e2e repo type in help'
@@ -154,7 +146,7 @@ End
 
 Describe 'assert_repo_type guard'
   setup_image_repo() {
-    setup_mock_docker
+    fixture_service_repo
     write_dev_config "$MOCK_DIR" dev image
   }
   Before 'setup_image_repo'
@@ -234,11 +226,7 @@ Describe 'assert_repo_type guard'
 End
 
 Describe 'assert_repo_type guard on tool repos'
-  setup_tool_repo() {
-    setup_mock_docker
-    write_dev_config "$MOCK_DIR" dev tool
-  }
-  Before 'setup_tool_repo'
+  Before 'fixture_tool_repo'
   After 'teardown_mock_docker'
 
   It 'skips watch command on tool repos'
@@ -279,7 +267,7 @@ Describe 'assert_repo_type guard on tool repos'
 End
 
 Describe 'DEV_CONTEXT default'
-  Before 'setup_mock_docker'
+  Before 'fixture_service_repo'
   After 'teardown_mock_docker'
 
   It 'defaults to . as the build context'
@@ -291,7 +279,7 @@ End
 
 Describe 'DEV_CONTEXT custom'
   setup_custom_context() {
-    setup_mock_docker
+    fixture_service_repo
     write_dev_config "$MOCK_DIR" dev service "DEV_CONTEXT=services/api"
   }
   Before 'setup_custom_context'

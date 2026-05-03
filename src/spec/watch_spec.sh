@@ -9,7 +9,7 @@ DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 
 Describe 'watch'
   Describe 'when watch stage is missing from Dockerfile'
-    setup_watch_no_stage() { setup_mock_docker_without_stage watch; }
+    setup_watch_no_stage() { fixture_service_repo_without_stage watch; }
     Before 'setup_watch_no_stage'
     After 'teardown_mock_docker'
 
@@ -21,7 +21,7 @@ Describe 'watch'
   End
 
   Describe 'when watch stage exists in Dockerfile'
-    Before 'setup_mock_docker'
+    Before 'fixture_service_repo'
     After 'teardown_mock_docker'
 
     It 'builds and runs the watch stage'

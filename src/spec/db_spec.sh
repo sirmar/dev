@@ -9,7 +9,7 @@ DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 
 Describe 'db-shell'
 	Describe 'when DEV_DB_NAME is not set'
-		Before 'setup_mock_docker'
+		Before 'fixture_service_repo'
 		After 'teardown_mock_docker'
 
 		It 'errors with helpful message'
@@ -21,7 +21,7 @@ Describe 'db-shell'
 
 	Describe 'when DEV_DB_NAME is set'
 		setup_db_shell() {
-			setup_mock_docker
+			fixture_service_repo
 			write_dev_config "$MOCK_DIR" myapp service "DEV_DB_NAME=mydb" "DEV_DB_USER=myuser" "DEV_DB_PASSWORD=secret"
 		}
 		Before 'setup_db_shell'
@@ -39,7 +39,7 @@ End
 
 Describe 'db-migrate'
 	Describe 'when DEV_DB_NAME is not set'
-		Before 'setup_mock_docker'
+		Before 'fixture_service_repo'
 		After 'teardown_mock_docker'
 
 		It 'skips gracefully'
@@ -51,7 +51,7 @@ Describe 'db-migrate'
 
 	Describe 'when DEV_DB_NAME is set'
 		setup_db_migrate() {
-			setup_mock_docker
+			fixture_service_repo
 			write_dev_config "$MOCK_DIR" myapp service "DEV_DB_NAME=mydb" "DEV_DB_USER=myuser" "DEV_DB_PASSWORD=secret"
 			mkdir -p "$MOCK_DIR/migrations"
 		}

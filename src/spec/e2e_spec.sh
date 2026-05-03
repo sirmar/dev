@@ -8,7 +8,7 @@ DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 . "$DEV_ROOT/src/spec/support/helpers.sh"
 
 Describe 'e2e when e2e stage is missing from Dockerfile'
-  setup_e2e_no_stage() { setup_mock_docker_without_stage e2e; }
+  setup_e2e_no_stage() { fixture_service_repo_without_stage e2e; }
   Before 'setup_e2e_no_stage'
   After 'teardown_mock_docker'
 
@@ -20,7 +20,10 @@ Describe 'e2e when e2e stage is missing from Dockerfile'
 End
 
 Describe 'e2e when docker-compose.e2e.yml is missing'
-  setup_e2e_no_compose() { setup_mock_docker_with_stage e2e; }
+  setup_e2e_no_compose() {
+    fixture_service_repo
+    printf 'FROM scratch AS e2e\n' >>"$MOCK_DIR/Dockerfile"
+  }
   Before 'setup_e2e_no_compose'
   After 'teardown_mock_docker'
 
@@ -32,7 +35,7 @@ Describe 'e2e when docker-compose.e2e.yml is missing'
 End
 
 Describe 'e2e'
-  Before 'setup_mock_service_with_e2e'
+  Before 'fixture_service_repo_with_e2e'
   After 'teardown_mock_docker'
 
   It 'builds the e2e stage'
@@ -84,8 +87,7 @@ End
 
 Describe 'e2e on failure'
   setup_e2e_failing() {
-    setup_mock_docker_with_stage e2e
-    touch "$MOCK_DIR/docker-compose.e2e.yml"
+    fixture_service_repo_with_e2e
     cat >"$MOCK_DIR/docker" <<'EOF'
 #!/bin/sh
 case "$*" in
@@ -113,7 +115,7 @@ End
 
 Describe 'e2e skips on image repos'
   setup_e2e_image_repo() {
-    setup_mock_service_with_e2e
+    fixture_service_repo_with_e2e
     write_dev_config "$MOCK_DIR" dev image
   }
   Before 'setup_e2e_image_repo'
