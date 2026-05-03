@@ -248,6 +248,7 @@ cmd_format() { _run_for_services format 'formatting' "$@"; }
 cmd_unit() { _run_for_services unit 'unit testing' "$@"; }
 cmd_check() { _run_for_services check 'checking' "$@"; }
 cmd_types() { _run_for_services types 'type checking' "$@"; }
+cmd_security() { _run_for_services security 'security scanning' "$@"; }
 cmd_lock() { _run_for_services lock 'locking' "$@"; }
 cmd_ci() { _run_for_services ci 'running ci' "$@"; }
 cmd_rebuild() { _run_for_services rebuild 'rebuilding' "$@"; }
@@ -312,11 +313,11 @@ EOF
 	echo 'wrote .mdev — edit it to configure your workspace'
 }
 
-MDEV_COMMANDS=(up down status logs build lint format unit types lock check ci rebuild db-migrate shell db-shell changed run init help)
+MDEV_COMMANDS=(up down status logs build lint format unit types security lock check ci rebuild db-migrate shell db-shell changed run init help)
 
 cmd_arg_type() {
 	case "$1" in
-	up | down | build | lint | format | unit | types | lock | check | ci | rebuild | db-migrate) echo 'services' ;;
+	up | down | build | lint | format | unit | types | security | lock | check | ci | rebuild | db-migrate) echo 'services' ;;
 	shell | db-shell) echo 'service' ;;
 	logs) echo 'logs' ;;
 	changed) echo 'changed' ;;
@@ -346,6 +347,7 @@ COMMANDS
     format [services...]    Run format in each service
     unit [services...]      Run unit tests in each service
     types [services...]     Run static type checking in each service
+    security [services...]  Run security scanning in each service
     lock [services...]      Regenerate lock file in each service
     check [services...]     Run full quality check in each service
     ci [services...]        Build and run full quality check
@@ -413,6 +415,7 @@ main() {
 	format) cmd_format "$@" ;;
 	unit) cmd_unit "$@" ;;
 	types) cmd_types "$@" ;;
+	security) cmd_security "$@" ;;
 	lock) cmd_lock "$@" ;;
 	check) cmd_check "$@" ;;
 	ci) cmd_ci "$@" ;;
