@@ -58,7 +58,7 @@ HEADER
 	done
 
 	cat <<'DYNAMIC'
-		lint | format)
+		lint | format | unit | coverage)
 			COMPREPLY=($(compgen -f -- "$cur"))
 			_dev_fix_files
 			;;
@@ -173,7 +173,7 @@ ZSH_RELEASE
 	done
 
 	cat <<'ZSH_DYNAMIC'
-		lint | format)
+		lint | format | unit | coverage)
 			_files
 			;;
 		up)

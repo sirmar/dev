@@ -58,4 +58,14 @@ Describe 'generate-completions.sh'
     When call cat "$MDEV_BASH_OUT"
     The output should include 'lock'
   End
+
+  It 'bash completion has explicit unit | coverage case for file completion'
+    When call grep -q 'unit | coverage' "$BASH_OUT"
+    The status should be success
+  End
+
+  It 'zsh completion has explicit unit | coverage case for file completion'
+    When call grep -q 'unit | coverage' "$ZSH_OUT"
+    The status should be success
+  End
 End
