@@ -11,14 +11,11 @@ Describe 'diagnose'
   Describe 'system checks'
     Describe 'when all system checks pass'
       setup_diagnose_system() {
-        MOCK_DIR="$(mktemp -d)"
-        printf '#!/bin/sh\necho "docker $*"\n' >"$MOCK_DIR/docker"
-        chmod +x "$MOCK_DIR/docker"
-        export MOCK_DIR PATH="$MOCK_DIR:$PATH"
+        MOCK_DIR="$(mktemp -d)" && export MOCK_DIR
+        fixture_finish_docker
       }
-      teardown_diagnose_system() { rm -rf "$MOCK_DIR"; }
       Before 'setup_diagnose_system'
-      After 'teardown_diagnose_system'
+      After 'teardown_mock_docker'
 
       It 'prints [system] header and exits 0'
         When run run_dev diagnose
@@ -29,14 +26,13 @@ Describe 'diagnose'
 
     Describe 'when docker daemon is not running'
       setup_diagnose_daemon_down() {
-        MOCK_DIR="$(mktemp -d)"
+        MOCK_DIR="$(mktemp -d)" && export MOCK_DIR
         printf '#!/bin/sh\ncase "$*" in info*) exit 1;; *) echo "docker $*";; esac\n' >"$MOCK_DIR/docker"
         chmod +x "$MOCK_DIR/docker"
-        export MOCK_DIR PATH="$MOCK_DIR:$PATH"
+        export PATH="$MOCK_DIR:$PATH"
       }
-      teardown_diagnose_daemon_down() { rm -rf "$MOCK_DIR"; }
       Before 'setup_diagnose_daemon_down'
-      After 'teardown_diagnose_daemon_down'
+      After 'teardown_mock_docker'
 
       It 'prints error and exits 1'
         When run run_dev diagnose
@@ -48,14 +44,13 @@ Describe 'diagnose'
 
     Describe 'when docker compose v2 is not available'
       setup_diagnose_no_compose() {
-        MOCK_DIR="$(mktemp -d)"
+        MOCK_DIR="$(mktemp -d)" && export MOCK_DIR
         printf '#!/bin/sh\ncase "$*" in "compose version"*) exit 1;; *) echo "docker $*";; esac\n' >"$MOCK_DIR/docker"
         chmod +x "$MOCK_DIR/docker"
-        export MOCK_DIR PATH="$MOCK_DIR:$PATH"
+        export PATH="$MOCK_DIR:$PATH"
       }
-      teardown_diagnose_no_compose() { rm -rf "$MOCK_DIR"; }
       Before 'setup_diagnose_no_compose'
-      After 'teardown_diagnose_no_compose'
+      After 'teardown_mock_docker'
 
       It 'prints error and exits 1'
         When run run_dev diagnose
@@ -67,12 +62,10 @@ Describe 'diagnose'
 
     Describe 'when docker binary is missing'
       setup_diagnose_no_docker() {
-        MOCK_DIR="$(mktemp -d)"
-        export MOCK_DIR PATH="$MOCK_DIR:$PATH"
+        MOCK_DIR="$(mktemp -d)" && export MOCK_DIR PATH="$MOCK_DIR:$PATH"
       }
-      teardown_diagnose_no_docker() { rm -rf "$MOCK_DIR"; }
       Before 'setup_diagnose_no_docker'
-      After 'teardown_diagnose_no_docker'
+      After 'teardown_mock_docker'
 
       It 'prints error and exits 1'
         When run run_dev diagnose
@@ -85,17 +78,14 @@ Describe 'diagnose'
 
   Describe '--repo-only flag'
     setup_diagnose_repo_only() {
-      MOCK_DIR="$(mktemp -d)"
-      printf '#!/bin/sh\necho "docker $*"\n' >"$MOCK_DIR/docker"
-      chmod +x "$MOCK_DIR/docker"
+      MOCK_DIR="$(mktemp -d)" && export MOCK_DIR
       write_dev_config "$MOCK_DIR" myapp service
       printf '%s\n' "$_MOCK_DOCKERFILE" >"$MOCK_DIR/Dockerfile"
       touch "$MOCK_DIR/docker-compose.yml"
-      export MOCK_DIR PATH="$MOCK_DIR:$PATH"
+      fixture_finish_docker
     }
-    teardown_diagnose_repo_only() { rm -rf "$MOCK_DIR"; }
     Before 'setup_diagnose_repo_only'
-    After 'teardown_diagnose_repo_only'
+    After 'teardown_mock_docker'
 
     It 'skips system checks'
       When run run_dev diagnose --repo-only
@@ -113,17 +103,14 @@ Describe 'diagnose'
   Describe 'repo checks'
     Describe 'when .dev file is present and all repo checks pass'
       setup_diagnose_repo_ok() {
-        MOCK_DIR="$(mktemp -d)"
-        printf '#!/bin/sh\necho "docker $*"\n' >"$MOCK_DIR/docker"
-        chmod +x "$MOCK_DIR/docker"
+        MOCK_DIR="$(mktemp -d)" && export MOCK_DIR
         write_dev_config "$MOCK_DIR" myapp service
         printf '%s\n' "$_MOCK_DOCKERFILE" >"$MOCK_DIR/Dockerfile"
         touch "$MOCK_DIR/docker-compose.yml"
-        export MOCK_DIR PATH="$MOCK_DIR:$PATH"
+        fixture_finish_docker
       }
-      teardown_diagnose_repo_ok() { rm -rf "$MOCK_DIR"; }
       Before 'setup_diagnose_repo_ok'
-      After 'teardown_diagnose_repo_ok'
+      After 'teardown_mock_docker'
 
       It 'prints [repo] header and exits 0'
         When run run_dev diagnose
@@ -134,17 +121,14 @@ Describe 'diagnose'
 
     Describe 'when DEV_NAME is missing'
       setup_diagnose_no_name() {
-        MOCK_DIR="$(mktemp -d)"
-        printf '#!/bin/sh\necho "docker $*"\n' >"$MOCK_DIR/docker"
-        chmod +x "$MOCK_DIR/docker"
+        MOCK_DIR="$(mktemp -d)" && export MOCK_DIR
         printf 'DEV_REPO_TYPE=service\n' >"$MOCK_DIR/.dev"
         printf '%s\n' "$_MOCK_DOCKERFILE" >"$MOCK_DIR/Dockerfile"
         touch "$MOCK_DIR/docker-compose.yml"
-        export MOCK_DIR PATH="$MOCK_DIR:$PATH"
+        fixture_finish_docker
       }
-      teardown_diagnose_no_name() { rm -rf "$MOCK_DIR"; }
       Before 'setup_diagnose_no_name'
-      After 'teardown_diagnose_no_name'
+      After 'teardown_mock_docker'
 
       It 'prints error and exits 1'
         When run run_dev diagnose
@@ -156,17 +140,14 @@ Describe 'diagnose'
 
     Describe 'when DEV_REPO_TYPE is missing'
       setup_diagnose_no_type() {
-        MOCK_DIR="$(mktemp -d)"
-        printf '#!/bin/sh\necho "docker $*"\n' >"$MOCK_DIR/docker"
-        chmod +x "$MOCK_DIR/docker"
+        MOCK_DIR="$(mktemp -d)" && export MOCK_DIR
         printf 'DEV_NAME=myapp\n' >"$MOCK_DIR/.dev"
         printf '%s\n' "$_MOCK_DOCKERFILE" >"$MOCK_DIR/Dockerfile"
         touch "$MOCK_DIR/docker-compose.yml"
-        export MOCK_DIR PATH="$MOCK_DIR:$PATH"
+        fixture_finish_docker
       }
-      teardown_diagnose_no_type() { rm -rf "$MOCK_DIR"; }
       Before 'setup_diagnose_no_type'
-      After 'teardown_diagnose_no_type'
+      After 'teardown_mock_docker'
 
       It 'prints error and exits 1'
         When run run_dev diagnose
@@ -178,17 +159,14 @@ Describe 'diagnose'
 
     Describe 'when DEV_REPO_TYPE is unknown'
       setup_diagnose_bad_type() {
-        MOCK_DIR="$(mktemp -d)"
-        printf '#!/bin/sh\necho "docker $*"\n' >"$MOCK_DIR/docker"
-        chmod +x "$MOCK_DIR/docker"
+        MOCK_DIR="$(mktemp -d)" && export MOCK_DIR
         write_dev_config "$MOCK_DIR" myapp badtype
         printf '%s\n' "$_MOCK_DOCKERFILE" >"$MOCK_DIR/Dockerfile"
         touch "$MOCK_DIR/docker-compose.yml"
-        export MOCK_DIR PATH="$MOCK_DIR:$PATH"
+        fixture_finish_docker
       }
-      teardown_diagnose_bad_type() { rm -rf "$MOCK_DIR"; }
       Before 'setup_diagnose_bad_type'
-      After 'teardown_diagnose_bad_type'
+      After 'teardown_mock_docker'
 
       It 'prints error and exits 1'
         When run run_dev diagnose
@@ -200,16 +178,13 @@ Describe 'diagnose'
 
     Describe 'when Dockerfile is missing'
       setup_diagnose_no_dockerfile() {
-        MOCK_DIR="$(mktemp -d)"
-        printf '#!/bin/sh\necho "docker $*"\n' >"$MOCK_DIR/docker"
-        chmod +x "$MOCK_DIR/docker"
+        MOCK_DIR="$(mktemp -d)" && export MOCK_DIR
         write_dev_config "$MOCK_DIR" myapp service
         touch "$MOCK_DIR/docker-compose.yml"
-        export MOCK_DIR PATH="$MOCK_DIR:$PATH"
+        fixture_finish_docker
       }
-      teardown_diagnose_no_dockerfile() { rm -rf "$MOCK_DIR"; }
       Before 'setup_diagnose_no_dockerfile'
-      After 'teardown_diagnose_no_dockerfile'
+      After 'teardown_mock_docker'
 
       It 'prints error and exits 1'
         When run run_dev diagnose
@@ -221,16 +196,13 @@ Describe 'diagnose'
 
     Describe 'when docker-compose.yml is missing'
       setup_diagnose_no_compose_file() {
-        MOCK_DIR="$(mktemp -d)"
-        printf '#!/bin/sh\necho "docker $*"\n' >"$MOCK_DIR/docker"
-        chmod +x "$MOCK_DIR/docker"
+        MOCK_DIR="$(mktemp -d)" && export MOCK_DIR
         write_dev_config "$MOCK_DIR" myapp service
         printf '%s\n' "$_MOCK_DOCKERFILE" >"$MOCK_DIR/Dockerfile"
-        export MOCK_DIR PATH="$MOCK_DIR:$PATH"
+        fixture_finish_docker
       }
-      teardown_diagnose_no_compose_file() { rm -rf "$MOCK_DIR"; }
       Before 'setup_diagnose_no_compose_file'
-      After 'teardown_diagnose_no_compose_file'
+      After 'teardown_mock_docker'
 
       It 'prints error and exits 1'
         When run run_dev diagnose
@@ -242,20 +214,16 @@ Describe 'diagnose'
 
     Describe 'when base image tag is stale'
       setup_diagnose_stale_tag() {
-        MOCK_DIR="$(mktemp -d)"
-        printf '#!/bin/sh\necho "docker $*"\n' >"$MOCK_DIR/docker"
-        chmod +x "$MOCK_DIR/docker"
+        MOCK_DIR="$(mktemp -d)" && export MOCK_DIR
         write_dev_config "$MOCK_DIR" myapp service
         printf 'FROM ghcr.io/org/dev:v0.0.1 AS lint\n' >"$MOCK_DIR/Dockerfile"
         touch "$MOCK_DIR/docker-compose.yml"
-        # mock git to return a newer tag
         printf '#!/bin/sh\necho "v0.0.2"\n' >"$MOCK_DIR/git"
         chmod +x "$MOCK_DIR/git"
-        export MOCK_DIR PATH="$MOCK_DIR:$PATH"
+        fixture_finish_docker
       }
-      teardown_diagnose_stale_tag() { rm -rf "$MOCK_DIR"; }
       Before 'setup_diagnose_stale_tag'
-      After 'teardown_diagnose_stale_tag'
+      After 'teardown_mock_docker'
 
       It 'prints error and exits 1'
         When run run_dev diagnose
@@ -267,20 +235,16 @@ Describe 'diagnose'
 
     Describe 'when dev has no git tag'
       setup_diagnose_no_tag() {
-        MOCK_DIR="$(mktemp -d)"
-        printf '#!/bin/sh\necho "docker $*"\n' >"$MOCK_DIR/docker"
-        chmod +x "$MOCK_DIR/docker"
+        MOCK_DIR="$(mktemp -d)" && export MOCK_DIR
         write_dev_config "$MOCK_DIR" myapp service
         printf 'FROM ghcr.io/org/dev:v0.0.1 AS lint\n' >"$MOCK_DIR/Dockerfile"
         touch "$MOCK_DIR/docker-compose.yml"
-        # mock git to return nothing (no tag)
         printf '#!/bin/sh\nexit 1\n' >"$MOCK_DIR/git"
         chmod +x "$MOCK_DIR/git"
-        export MOCK_DIR PATH="$MOCK_DIR:$PATH"
+        fixture_finish_docker
       }
-      teardown_diagnose_no_tag() { rm -rf "$MOCK_DIR"; }
       Before 'setup_diagnose_no_tag'
-      After 'teardown_diagnose_no_tag'
+      After 'teardown_mock_docker'
 
       It 'skips tag check and exits 0'
         When run run_dev diagnose
@@ -291,16 +255,13 @@ Describe 'diagnose'
 
     Describe 'when repo type is tool (no docker-compose.yml needed)'
       setup_diagnose_tool_no_compose() {
-        MOCK_DIR="$(mktemp -d)"
-        printf '#!/bin/sh\necho "docker $*"\n' >"$MOCK_DIR/docker"
-        chmod +x "$MOCK_DIR/docker"
+        MOCK_DIR="$(mktemp -d)" && export MOCK_DIR
         write_dev_config "$MOCK_DIR" mytool tool
         printf '%s\n' "$_MOCK_DOCKERFILE" >"$MOCK_DIR/Dockerfile"
-        export MOCK_DIR PATH="$MOCK_DIR:$PATH"
+        fixture_finish_docker
       }
-      teardown_diagnose_tool_no_compose() { rm -rf "$MOCK_DIR"; }
       Before 'setup_diagnose_tool_no_compose'
-      After 'teardown_diagnose_tool_no_compose'
+      After 'teardown_mock_docker'
 
       It 'does not require docker-compose.yml and exits 0'
         When run run_dev diagnose
@@ -312,14 +273,11 @@ Describe 'diagnose'
 
     Describe 'when no .dev file is present'
       setup_diagnose_no_dev() {
-        MOCK_DIR="$(mktemp -d)"
-        printf '#!/bin/sh\necho "docker $*"\n' >"$MOCK_DIR/docker"
-        chmod +x "$MOCK_DIR/docker"
-        export MOCK_DIR PATH="$MOCK_DIR:$PATH"
+        MOCK_DIR="$(mktemp -d)" && export MOCK_DIR
+        fixture_finish_docker
       }
-      teardown_diagnose_no_dev() { rm -rf "$MOCK_DIR"; }
       Before 'setup_diagnose_no_dev'
-      After 'teardown_diagnose_no_dev'
+      After 'teardown_mock_docker'
 
       It 'skips repo checks and exits 0'
         When run run_dev diagnose

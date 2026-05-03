@@ -11,7 +11,7 @@ FROM scratch AS lock
 FROM scratch AS watch
 FROM scratch AS prod'
 
-_fixture_finish_docker() {
+fixture_finish_docker() {
     printf '#!/bin/sh\necho "docker $*"\n' >"$MOCK_DIR/docker"
     chmod +x "$MOCK_DIR/docker"
     export PATH="$MOCK_DIR:$PATH"
@@ -21,7 +21,7 @@ fixture_service_repo() {
     MOCK_DIR="$(mktemp -d)"
     printf '%s\n' "$_MOCK_DOCKERFILE" >"$MOCK_DIR/Dockerfile"
     write_dev_config "$MOCK_DIR" dev service
-    _fixture_finish_docker
+    fixture_finish_docker
     export MOCK_DIR
 }
 
@@ -35,7 +35,7 @@ fixture_tool_repo() {
     MOCK_DIR="$(mktemp -d)"
     printf '%s\n' "$_MOCK_DOCKERFILE" >"$MOCK_DIR/Dockerfile"
     write_dev_config "$MOCK_DIR" dev tool
-    _fixture_finish_docker
+    fixture_finish_docker
     export MOCK_DIR
 }
 
@@ -44,7 +44,7 @@ fixture_e2e_repo() {
     printf '%s\n' "$_MOCK_DOCKERFILE" >"$MOCK_DIR/Dockerfile"
     write_dev_config "$MOCK_DIR" dev e2e "DEV_NETWORK=dev_network"
     touch "$MOCK_DIR/docker-compose.yml"
-    _fixture_finish_docker
+    fixture_finish_docker
     export MOCK_DIR
 }
 

@@ -558,9 +558,8 @@ Describe 'changed'
     export PATH="$MOCK_DIR:$PATH"
     export MOCK_DIR
   }
-  teardown_changed() { rm -rf "$MOCK_DIR"; }
   Before 'setup_changed'
-  After 'teardown_changed'
+  After 'teardown_mock_mdev'
 
   It 'lists services with changed files'
     When run bash -c "cd '$MOCK_DIR' && bash '$MDEV_SCRIPT' changed HEAD~1"
