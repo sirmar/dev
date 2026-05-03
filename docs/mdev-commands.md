@@ -24,6 +24,7 @@
 | `changed [ref]`            | List services changed since ref (default: `origin/main`) |
 | `run <service> <cmd>`      | Run a dev command in a specific service                  |
 | `init`                     | Scaffold a `.mdev` file in the current directory         |
+| `diagnose`                 | Check workspace and service configuration                |
 
 Commands that are not applicable to a service's repo type are skipped automatically.
 

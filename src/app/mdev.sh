@@ -313,7 +313,55 @@ EOF
 	echo 'wrote .mdev — edit it to configure your workspace'
 }
 
-MDEV_COMMANDS=(up down status logs build lint format unit types security lock check ci rebuild db-migrate shell db-shell changed run init help)
+cmd_diagnose() {
+	local failed=0
+
+	# Workspace checks
+	local services=()
+	if [[ -n "${MDEV_SERVICES:-}" ]]; then
+		local s
+		while IFS=',' read -ra parts; do
+			for s in "${parts[@]}"; do
+				s="${s#"${s%%[![:space:]]*}"}"
+				s="${s%"${s##*[![:space:]]}"}"
+				[[ -z "$s" ]] && continue
+				if [[ -f "$MDEV_ROOT/$s/.dev" ]]; then
+					services+=("$s")
+				else
+					echo -e "[${MDEV_NAME}] \033[0;31mservice '$s' not found — no .dev at $MDEV_ROOT/$s\033[0m" >&2
+					failed=1
+				fi
+			done
+		done <<<"$MDEV_SERVICES"
+	else
+		mapfile -t services < <(find "$MDEV_ROOT" -mindepth 2 -name '.dev' -type f |
+			sed "s|^$MDEV_ROOT/||;s|/.dev$||" | sort)
+	fi
+
+	if [[ ${#services[@]} -eq 0 ]]; then
+		echo -e "[${MDEV_NAME}] \033[0;31mno services found — add sub-directories with .dev files\033[0m" >&2
+		return 1
+	fi
+
+	[[ $failed -ne 0 ]] && return 1
+
+	# Run system checks once from workspace root
+	dev diagnose || failed=1
+
+	# Delegate repo checks to each service
+	local svc
+	for svc in "${services[@]}"; do
+		info "diagnosing $svc"
+		(
+			cd "$MDEV_ROOT/$svc"
+			dev diagnose --repo-only 2>&1 | sed "s/^/[${svc}] /"
+		) || failed=1
+	done
+
+	return $failed
+}
+
+MDEV_COMMANDS=(up down status logs build lint format unit types security lock check ci rebuild db-migrate shell db-shell changed run init diagnose help)
 
 cmd_arg_type() {
 	case "$1" in
@@ -358,6 +406,7 @@ COMMANDS
     changed [ref]           List services changed since ref (default: origin/main)
     run <service> <cmd>     Run a dev command in a specific service
     init                    Scaffold a .mdev file in the current directory
+    diagnose                Check workspace and service configuration
     help                    Show this help
 
 EOF
@@ -425,6 +474,7 @@ main() {
 	db-shell) cmd_db_shell "$@" ;;
 	changed) cmd_changed "$@" ;;
 	run) cmd_run "$@" ;;
+	diagnose) cmd_diagnose ;;
 	*)
 		echo "error: unknown command '$command'" >&2
 		cmd_help

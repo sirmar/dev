@@ -600,3 +600,92 @@ EOF
     The output should include 'stopped'
   End
 End
+
+
+Describe 'diagnose'
+  setup_diagnose() {
+    setup_mock_mdev
+    write_service "$MOCK_DIR" api myapp-api service
+    write_service "$MOCK_DIR" worker myapp-worker service
+    cat >"$MOCK_DIR/dev" <<'EOF'
+#!/usr/bin/env bash
+if [[ "$1" == "diagnose" ]]; then
+  echo "dev diagnose $2"
+  exit 0
+fi
+type="$(grep -m1 '^DEV_REPO_TYPE=' .dev 2>/dev/null | cut -d= -f2 | tr -d '"')"
+if [[ "$1" == "completions" ]]; then
+  case "$type" in
+    service) echo 'up down logs build lint format unit lock check ci db-migrate shell db-shell watch rebuild' ;;
+    tool)    echo 'build lint format unit check coverage types security' ;;
+    image)   echo 'build lint' ;;
+    *)       echo 'build lint format unit check' ;;
+  esac
+elif [[ "$1" == "supports" ]]; then
+  cmd="$2"
+  case "$type" in
+    service) [[ " up down logs build lint format unit lock check ci db-migrate shell db-shell watch rebuild " == *" $cmd "* ]] && exit 0 || exit 1 ;;
+    tool)    [[ " build lint format unit check coverage types security " == *" $cmd "* ]] && exit 0 || exit 1 ;;
+    image)   [[ " build lint " == *" $cmd "* ]] && exit 0 || exit 1 ;;
+    *)       [[ " build lint format unit check " == *" $cmd "* ]] && exit 0 || exit 1 ;;
+  esac
+else
+  echo "dev $*"
+fi
+EOF
+    chmod +x "$MOCK_DIR/dev"
+  }
+  Before 'setup_diagnose'
+  After 'teardown_mock_mdev'
+
+  It 'runs system checks once then repo-only checks per service'
+    When run run_mdev diagnose
+    The status should be success
+    The output should include 'dev diagnose '
+    The output should include '[api] dev diagnose --repo-only'
+    The output should include '[worker] dev diagnose --repo-only'
+  End
+
+  It 'exits 0 when all services pass'
+    When run run_mdev diagnose
+    The status should be success
+    The output should include 'dev diagnose'
+  End
+
+  It 'exits 1 when a service dev diagnose fails'
+    cat >"$MOCK_DIR/dev" <<'EOF'
+#!/usr/bin/env bash
+if [[ "$1" == "diagnose" ]]; then
+  echo "dev diagnose failed" >&2
+  exit 1
+fi
+echo "dev $*"
+EOF
+    chmod +x "$MOCK_DIR/dev"
+    When run run_mdev diagnose
+    The status should be failure
+    The output should include 'diagnosing'
+    The error should include 'dev diagnose failed'
+  End
+
+  It 'errors when no services are discoverable'
+    rm -f "$MOCK_DIR/api/.dev" "$MOCK_DIR/worker/.dev"
+    rmdir "$MOCK_DIR/api" "$MOCK_DIR/worker" 2>/dev/null || true
+    When run run_mdev diagnose
+    The status should be failure
+    The stderr should include 'no services found'
+  End
+
+  It 'errors for each MDEV_SERVICES entry missing a .dev file'
+    write_mdev_config "$MOCK_DIR" myapp "MDEV_SERVICES=api,ghost"
+    When run run_mdev diagnose
+    The status should be failure
+    The stderr should include "ghost"
+  End
+
+  It 'is listed in mdev help'
+    When run run_mdev help
+    The status should be success
+    The output should include 'diagnose'
+  End
+End
