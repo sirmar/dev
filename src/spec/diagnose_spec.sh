@@ -83,6 +83,33 @@ Describe 'diagnose'
     End
   End
 
+  Describe '--repo-only flag'
+    setup_diagnose_repo_only() {
+      MOCK_DIR="$(mktemp -d)"
+      printf '#!/bin/sh\necho "docker $*"\n' >"$MOCK_DIR/docker"
+      chmod +x "$MOCK_DIR/docker"
+      write_dev_config "$MOCK_DIR" myapp service
+      printf '%s\n' "$_MOCK_DOCKERFILE" >"$MOCK_DIR/Dockerfile"
+      touch "$MOCK_DIR/docker-compose.yml"
+      export MOCK_DIR PATH="$MOCK_DIR:$PATH"
+    }
+    teardown_diagnose_repo_only() { rm -rf "$MOCK_DIR"; }
+    Before 'setup_diagnose_repo_only'
+    After 'teardown_diagnose_repo_only'
+
+    It 'skips system checks'
+      When run run_dev diagnose --repo-only
+      The output should not include '[system]'
+      The status should be success
+    End
+
+    It 'still runs repo checks'
+      When run run_dev diagnose --repo-only
+      The output should include '[repo]'
+      The status should be success
+    End
+  End
+
   Describe 'repo checks'
     Describe 'when .dev file is present and all repo checks pass'
       setup_diagnose_repo_ok() {
@@ -258,6 +285,27 @@ Describe 'diagnose'
       It 'skips tag check and exits 0'
         When run run_dev diagnose
         The output should include 'skipping base image tag check'
+        The status should be success
+      End
+    End
+
+    Describe 'when repo type is tool (no docker-compose.yml needed)'
+      setup_diagnose_tool_no_compose() {
+        MOCK_DIR="$(mktemp -d)"
+        printf '#!/bin/sh\necho "docker $*"\n' >"$MOCK_DIR/docker"
+        chmod +x "$MOCK_DIR/docker"
+        write_dev_config "$MOCK_DIR" mytool tool
+        printf '%s\n' "$_MOCK_DOCKERFILE" >"$MOCK_DIR/Dockerfile"
+        export MOCK_DIR PATH="$MOCK_DIR:$PATH"
+      }
+      teardown_diagnose_tool_no_compose() { rm -rf "$MOCK_DIR"; }
+      Before 'setup_diagnose_tool_no_compose'
+      After 'teardown_diagnose_tool_no_compose'
+
+      It 'does not require docker-compose.yml and exits 0'
+        When run run_dev diagnose
+        The output should include '[repo]'
+        The error should not include 'docker-compose.yml not found'
         The status should be success
       End
     End

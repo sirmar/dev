@@ -29,4 +29,4 @@
 | `login`            | Log in to container registry              |
 | `push`             | Push image(s) to registry                 |
 | `release <type>`   | Create release tag (major\|minor\|patch)  |
-| `diagnose`         | Check system and repo configuration       |
+| `diagnose [--repo-only]` | Check system and repo configuration (`--repo-only` skips system checks) |

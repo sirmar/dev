@@ -556,32 +556,35 @@ cmd_release() {
 }
 
 cmd_diagnose() {
-	local failed=0
+	local failed=0 repo_only=0
+	[[ "${1:-}" == '--repo-only' ]] && repo_only=1
 
-	section "[system]"
-	if command -v docker &>/dev/null; then
-		info "docker found"
-	else
-		error_msg "docker not found in PATH"
-		failed=1
-	fi
-	if docker info &>/dev/null; then
-		info "docker daemon running"
-	else
-		error_msg "docker daemon not running"
-		failed=1
-	fi
-	if [[ "${BASH_VERSINFO[0]}" -ge 4 ]]; then
-		info "bash version ok (${BASH_VERSION})"
-	else
-		error_msg "bash >= 4 required (got ${BASH_VERSION})"
-		failed=1
-	fi
-	if docker compose version &>/dev/null; then
-		info "docker compose v2 available"
-	else
-		error_msg "docker compose v2 not available"
-		failed=1
+	if [[ $repo_only -eq 0 ]]; then
+		section "[system]"
+		if command -v docker &>/dev/null; then
+			info "docker found"
+		else
+			error_msg "docker not found in PATH"
+			failed=1
+		fi
+		if docker info &>/dev/null; then
+			info "docker daemon running"
+		else
+			error_msg "docker daemon not running"
+			failed=1
+		fi
+		if [[ "${BASH_VERSINFO[0]}" -ge 4 ]]; then
+			info "bash version ok (${BASH_VERSION})"
+		else
+			error_msg "bash >= 4 required (got ${BASH_VERSION})"
+			failed=1
+		fi
+		if docker compose version &>/dev/null; then
+			info "docker compose v2 available"
+		else
+			error_msg "docker compose v2 not available"
+			failed=1
+		fi
 	fi
 
 	find_dev_file
@@ -614,11 +617,13 @@ cmd_diagnose() {
 			error_msg "Dockerfile not found"
 			failed=1
 		fi
-		if [[ -f "$ROOT_DIR/docker-compose.yml" ]]; then
-			info "docker-compose.yml exists"
-		else
-			error_msg "docker-compose.yml not found"
-			failed=1
+		if [[ "${DEV_REPO_TYPE:-}" == "service" ]]; then
+			if [[ -f "$ROOT_DIR/docker-compose.yml" ]]; then
+				info "docker-compose.yml exists"
+			else
+				error_msg "docker-compose.yml not found"
+				failed=1
+			fi
 		fi
 		local dev_tag
 		dev_tag="$(git -C "$SCRIPT_DIR" describe --tags --abbrev=0 2>/dev/null || true)"
@@ -659,7 +664,7 @@ COMMANDS
     login               Log in to container registry
     push                Push built image(s) to registry
     release <type>      Create release tag (major|minor|patch)
-    diagnose            Check system and repo configuration
+    diagnose [--repo-only] Check system and repo configuration
     help                Show this help
 EOF
 
@@ -754,6 +759,7 @@ cmd_args() {
 	build) echo '--no-cache' ;;
 	release) echo 'major minor patch' ;;
 	init) echo 'tool service image library' ;;
+	diagnose) echo '--repo-only' ;;
 	esac
 }
 
@@ -886,7 +892,8 @@ main() {
 		exit 0
 	}
 	[[ "${1:-}" == "diagnose" ]] && {
-		cmd_diagnose
+		shift
+		cmd_diagnose "$@"
 		exit $?
 	}
 
