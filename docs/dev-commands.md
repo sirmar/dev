@@ -2,11 +2,13 @@
 
 | Command            | Description                               |
 |--------------------|-------------------------------------------|
+| `init <type> <lang> <name>` | Scaffold a new project              |
 | `build`            | Build Docker image(s)                     |
 | `lint [file]`      | Lint source files or Dockerfiles          |
+| `lint-dockerfile`  | Lint the Dockerfile                       |
 | `format [file]`    | Format source files                       |
-| `unit`             | Run unit tests                            |
-| `coverage`         | Run tests with coverage report            |
+| `unit [file]`      | Run unit tests                            |
+| `coverage [file]`  | Run tests with coverage report            |
 | `types`            | Run static type checking                  |
 | `security`         | Run security scanning                     |
 | `lock`             | Regenerate lock file                      |
