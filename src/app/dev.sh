@@ -18,6 +18,10 @@ error() {
 	exit 1
 }
 
+section() {
+	echo -e "\033[0;32m$*\033[0m"
+}
+
 die() {
 	echo -e "\033[0;31m$*\033[0m" >&2
 	exit 1
@@ -551,6 +555,94 @@ cmd_release() {
 	info "created tag $new_tag — push with: git push origin $new_tag"
 }
 
+cmd_diagnose() {
+	local failed=0
+
+	section "[system]"
+	if command -v docker &>/dev/null; then
+		info "docker found"
+	else
+		error_msg "docker not found in PATH"
+		failed=1
+	fi
+	if docker info &>/dev/null; then
+		info "docker daemon running"
+	else
+		error_msg "docker daemon not running"
+		failed=1
+	fi
+	if [[ "${BASH_VERSINFO[0]}" -ge 4 ]]; then
+		info "bash version ok (${BASH_VERSION})"
+	else
+		error_msg "bash >= 4 required (got ${BASH_VERSION})"
+		failed=1
+	fi
+	if docker compose version &>/dev/null; then
+		info "docker compose v2 available"
+	else
+		error_msg "docker compose v2 not available"
+		failed=1
+	fi
+
+	find_dev_file
+	if [[ -n "$ROOT_DIR" ]]; then
+		section "[repo]"
+		# shellcheck source=/dev/null
+		source "$ROOT_DIR/.dev"
+		if [[ -n "${DEV_NAME:-}" ]]; then
+			info "DEV_NAME set (${DEV_NAME})"
+		else
+			error_msg "DEV_NAME is not set in .dev"
+			failed=1
+		fi
+		if [[ -n "${DEV_REPO_TYPE:-}" ]]; then
+			info "DEV_REPO_TYPE set (${DEV_REPO_TYPE})"
+		else
+			error_msg "DEV_REPO_TYPE is not set in .dev"
+			failed=1
+		fi
+		case "${DEV_REPO_TYPE:-}" in
+		tool | service | library | e2e | image) info "DEV_REPO_TYPE is valid" ;;
+		*)
+			error_msg "DEV_REPO_TYPE '${DEV_REPO_TYPE:-}' is not a known type"
+			failed=1
+			;;
+		esac
+		if [[ -f "$ROOT_DIR/Dockerfile" ]]; then
+			info "Dockerfile exists"
+		else
+			error_msg "Dockerfile not found"
+			failed=1
+		fi
+		if [[ -f "$ROOT_DIR/docker-compose.yml" ]]; then
+			info "docker-compose.yml exists"
+		else
+			error_msg "docker-compose.yml not found"
+			failed=1
+		fi
+		local dev_tag
+		dev_tag="$(git -C "$SCRIPT_DIR" describe --tags --abbrev=0 2>/dev/null || true)"
+		if [[ -n "$dev_tag" ]]; then
+			local dockerfile_base
+			dockerfile_base="$(grep -m1 '^FROM' "$ROOT_DIR/Dockerfile" | awk '{print $2}' | cut -d: -f2)"
+			if [[ "$dockerfile_base" == "$dev_tag" ]]; then
+				info "base image tag matches dev tag (${dev_tag})"
+			else
+				error_msg "base image tag '${dockerfile_base}' does not match dev tag '${dev_tag}'"
+				failed=1
+			fi
+		else
+			info "no dev git tag found — skipping base image tag check"
+		fi
+	fi
+
+	return "$failed"
+}
+
+error_msg() {
+	echo -e "[${DEV_NAME:-dev}] \033[0;31m$*\033[0m" >&2
+}
+
 cmd_help() {
 	cat <<EOF
 dev $VERSION — developer lifecycle utility
@@ -567,6 +659,7 @@ COMMANDS
     login               Log in to container registry
     push                Push built image(s) to registry
     release <type>      Create release tag (major|minor|patch)
+    diagnose            Check system and repo configuration
     help                Show this help
 EOF
 
@@ -666,7 +759,7 @@ cmd_args() {
 
 cmd_repo_types() {
 	case "$1" in
-	init | build | lint | lint-dockerfile | login | push | release | help) echo '*' ;;
+	init | build | lint | lint-dockerfile | login | push | release | diagnose | help) echo '*' ;;
 	format | check | ci | types | security | lock) echo 'service tool library e2e' ;;
 	unit | coverage) echo 'service tool library' ;;
 	run) echo 'tool e2e' ;;
@@ -686,7 +779,7 @@ assert_repo_type() {
 	fi
 }
 
-_DEV_COMMANDS=(init build lint lint-dockerfile login push release help
+_DEV_COMMANDS=(init build lint lint-dockerfile login push release diagnose help
 	format unit e2e check ci coverage types security lock
 	watch shell run exec rebuild up down clean logs db-shell db-migrate)
 
@@ -791,6 +884,10 @@ main() {
 		shift
 		cmd_init "$@"
 		exit 0
+	}
+	[[ "${1:-}" == "diagnose" ]] && {
+		cmd_diagnose
+		exit $?
 	}
 
 	ROOT_DIR="$(find_root)"
