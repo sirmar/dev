@@ -275,8 +275,18 @@ cmd_shell() { _run_interactive shell "$@"; }
 cmd_db_shell() { _run_interactive db-shell "$@"; }
 
 cmd_changed() {
-	local ref="${1:-origin/main}"
+	local ref="${1:-}"
 	command -v git &>/dev/null || error 'git is not installed'
+	if [[ -z "$ref" ]]; then
+		local head origin_main
+		head="$(git -C "$MDEV_ROOT" rev-parse HEAD 2>/dev/null)"
+		origin_main="$(git -C "$MDEV_ROOT" rev-parse origin/main 2>/dev/null || true)"
+		if [[ -n "$origin_main" && "$head" == "$origin_main" ]]; then
+			ref='HEAD~1'
+		else
+			ref='origin/main'
+		fi
+	fi
 	git -C "$MDEV_ROOT" rev-parse "$ref" &>/dev/null || error "git ref '$ref' not found"
 	local changed_files
 	mapfile -t changed_files < <(git -C "$MDEV_ROOT" diff --name-only "$ref"...HEAD 2>/dev/null || true)
@@ -401,7 +411,7 @@ COMMANDS
     push [services...]      Push built image(s) to registry
     shell <service>         Open a shell in a running service container
     db-shell <service>      Open a shell in a running database container
-    changed [ref]           List services changed since ref (default: origin/main)
+    changed [ref]           List services changed since ref (default: origin/main, or HEAD~1 on main)
     run <service> <cmd>     Run a dev command in a specific service
     init                    Scaffold a .mdev file in the current directory
     diagnose                Check workspace and service configuration

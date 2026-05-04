@@ -447,25 +447,27 @@ Describe 'run'
 End
 
 
+_setup_mdev_changed_base() {
+  MOCK_DIR="$(mktemp -d)"
+  write_mdev_config "$MOCK_DIR" myapp
+  write_service "$MOCK_DIR" api myapp-api service
+  write_service "$MOCK_DIR" worker myapp-worker service
+  git init -q -b main "$MOCK_DIR"
+  git -C "$MOCK_DIR" config user.email 'test@test.com'
+  git -C "$MOCK_DIR" config user.name 'Test'
+  git -C "$MOCK_DIR" add .
+  git -C "$MOCK_DIR" commit -q -m 'init'
+  touch "$MOCK_DIR/api/newfile"
+  git -C "$MOCK_DIR" add .
+  git -C "$MOCK_DIR" commit -q -m 'change api'
+  _write_mock_docker "$MOCK_DIR"
+  _write_mock_dev "$MOCK_DIR"
+  export PATH="$MOCK_DIR:$PATH"
+  export MOCK_DIR
+}
+
 Describe 'changed'
-  setup_changed() {
-    MOCK_DIR="$(mktemp -d)"
-    write_mdev_config "$MOCK_DIR" myapp
-    write_service "$MOCK_DIR" api myapp-api service
-    write_service "$MOCK_DIR" worker myapp-worker service
-    git init -q "$MOCK_DIR"
-    git -C "$MOCK_DIR" config user.email 'test@test.com'
-    git -C "$MOCK_DIR" config user.name 'Test'
-    git -C "$MOCK_DIR" add .
-    git -C "$MOCK_DIR" commit -q -m 'init'
-    touch "$MOCK_DIR/api/newfile"
-    git -C "$MOCK_DIR" add .
-    git -C "$MOCK_DIR" commit -q -m 'change api'
-    _write_mock_docker "$MOCK_DIR"
-    _write_mock_dev "$MOCK_DIR"
-    export PATH="$MOCK_DIR:$PATH"
-    export MOCK_DIR
-  }
+  setup_changed() { _setup_mdev_changed_base; }
   Before 'setup_changed'
   After 'teardown'
 
@@ -483,6 +485,55 @@ Describe 'changed'
   End
 End
 
+
+Describe 'changed with remote'
+  setup_changed_remote() {
+    REMOTE_DIR="$(mktemp -d)"
+    git init --bare -q -b main "$REMOTE_DIR"
+    _setup_mdev_changed_base
+    git -C "$MOCK_DIR" remote add origin "$REMOTE_DIR"
+    git -C "$MOCK_DIR" push -q origin main
+    export REMOTE_DIR
+  }
+  teardown_remote() {
+    rm -rf "$MOCK_DIR" "$REMOTE_DIR"
+  }
+  Before 'setup_changed_remote'
+  After 'teardown_remote'
+
+  It 'diffs against HEAD~1 when on main (HEAD == origin/main)'
+    When run bash -c "cd '$MOCK_DIR' && bash '$MDEV_SCRIPT' changed"
+    The status should be success
+    The output should include 'api'
+    The output should not include 'worker'
+  End
+
+  It 'diffs against origin/main on a feature branch (HEAD != origin/main)'
+    touch "$MOCK_DIR/worker/newfile"
+    git -C "$MOCK_DIR" add .
+    git -C "$MOCK_DIR" commit -q -m 'change worker'
+    When run bash -c "cd '$MOCK_DIR' && bash '$MDEV_SCRIPT' changed"
+    The status should be success
+    The output should include 'worker'
+    The output should not include 'api'
+  End
+
+  It 'uses explicit ref even when HEAD == origin/main'
+    When run bash -c "cd '$MOCK_DIR' && bash '$MDEV_SCRIPT' changed HEAD"
+    The status should be success
+    The output should be blank
+  End
+
+  It 'uses explicit ref even on a feature branch'
+    touch "$MOCK_DIR/worker/newfile"
+    git -C "$MOCK_DIR" add .
+    git -C "$MOCK_DIR" commit -q -m 'change worker'
+    When run bash -c "cd '$MOCK_DIR' && bash '$MDEV_SCRIPT' changed HEAD~1"
+    The status should be success
+    The output should include 'worker'
+    The output should not include 'api'
+  End
+End
 
 Describe 'status'
   setup_status() {

@@ -21,7 +21,7 @@
 | `db-migrate [services...]` | Run database migrations in each service                  |
 | `shell <service>`          | Open a shell in a running service container              |
 | `db-shell <service>`       | Open a shell in a running database container             |
-| `changed [ref]`            | List services changed since ref (default: `origin/main`) |
+| `changed [ref]`            | List services changed since ref (default: `origin/main`, or `HEAD~1` when on main) |
 | `run <service> <cmd>`      | Run a dev command in a specific service                  |
 | `init`                     | Scaffold a `.mdev` file in the current directory         |
 | `diagnose`                 | Check workspace and service configuration                |
