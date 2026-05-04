@@ -38,10 +38,11 @@ if [[ "$1" == "completions" ]]; then
 elif [[ "$1" == "supports" ]]; then
   cmd="$2"
   case "$type" in
-    service) [[ " up down logs build lint format unit lock check ci db-migrate shell db-shell watch rebuild push " == *" $cmd "* ]] && exit 0 || exit 1 ;;
-    tool)    [[ " build lint format unit check coverage types security " == *" $cmd "* ]] && exit 0 || exit 1 ;;
-    image)   [[ " build lint push " == *" $cmd "* ]] && exit 0 || exit 1 ;;
-    *)       [[ " build lint format unit check " == *" $cmd "* ]] && exit 0 || exit 1 ;;
+    service)  [[ " up down logs build lint format unit lock check ci db-migrate shell db-shell watch rebuild push " == *" $cmd "* ]] && exit 0 || exit 1 ;;
+    tool)     [[ " build lint format unit check coverage types security " == *" $cmd "* ]] && exit 0 || exit 1 ;;
+    image)    [[ " build lint push " == *" $cmd "* ]] && exit 0 || exit 1 ;;
+    library)  [[ " lint format unit check " == *" $cmd "* ]] && exit 0 || exit 1 ;;
+    *)        [[ " build lint format unit check " == *" $cmd "* ]] && exit 0 || exit 1 ;;
   esac
 else
   echo "dev $*"
@@ -89,7 +90,7 @@ Describe 'cmd_arg_type'
     security    services
     lock        services
     check       services
-    ci          services
+    ci          ref
     rebuild     services
     db-migrate  services
     push        services
@@ -301,7 +302,6 @@ Describe 'delegation commands'
     up
     down
     rebuild
-    ci
     lock
   End
 
@@ -582,10 +582,11 @@ if [[ "$1" == "completions" ]]; then
 elif [[ "$1" == "supports" ]]; then
   cmd="$2"
   case "$type" in
-    service) [[ " up down logs build lint format unit lock check ci db-migrate shell db-shell watch rebuild push " == *" $cmd "* ]] && exit 0 || exit 1 ;;
-    tool)    [[ " build lint format unit check coverage types security " == *" $cmd "* ]] && exit 0 || exit 1 ;;
-    image)   [[ " build lint push " == *" $cmd "* ]] && exit 0 || exit 1 ;;
-    *)       [[ " build lint format unit check " == *" $cmd "* ]] && exit 0 || exit 1 ;;
+    service)  [[ " up down logs build lint format unit lock check ci db-migrate shell db-shell watch rebuild push " == *" $cmd "* ]] && exit 0 || exit 1 ;;
+    tool)     [[ " build lint format unit check coverage types security " == *" $cmd "* ]] && exit 0 || exit 1 ;;
+    image)    [[ " build lint push " == *" $cmd "* ]] && exit 0 || exit 1 ;;
+    library)  [[ " lint format unit check " == *" $cmd "* ]] && exit 0 || exit 1 ;;
+    *)        [[ " build lint format unit check " == *" $cmd "* ]] && exit 0 || exit 1 ;;
   esac
 else
   echo "dev $*"
@@ -645,5 +646,92 @@ EOF
     When run run_mdev help
     The status should be success
     The output should include 'diagnose'
+  End
+End
+
+_setup_mdev_ci_base() {
+  MOCK_DIR="$(mktemp -d)"
+  write_mdev_config "$MOCK_DIR" myapp
+  write_service "$MOCK_DIR" api myapp-api tool
+  cat >"$MOCK_DIR/api/Dockerfile" <<'DOCKERFILE'
+FROM base AS base
+FROM base AS lint
+FROM base AS unit
+FROM base AS coverage
+DOCKERFILE
+  git init -q -b main "$MOCK_DIR"
+  git -C "$MOCK_DIR" config user.email 'test@test.com'
+  git -C "$MOCK_DIR" config user.name 'Test'
+  git -C "$MOCK_DIR" add .
+  git -C "$MOCK_DIR" commit -q -m 'init'
+  touch "$MOCK_DIR/api/newfile"
+  git -C "$MOCK_DIR" add .
+  git -C "$MOCK_DIR" commit -q -m 'change api'
+  _write_mock_docker "$MOCK_DIR"
+  _write_mock_dev "$MOCK_DIR"
+  GITHUB_OUTPUT="$(mktemp)"
+  export PATH="$MOCK_DIR:$PATH" MOCK_DIR GITHUB_OUTPUT
+}
+
+teardown_ci() {
+  rm -rf "$MOCK_DIR"
+  rm -f "$GITHUB_OUTPUT"
+  unset GITHUB_OUTPUT
+}
+
+Describe 'ci'
+  Before '_setup_mdev_ci_base'
+  After 'teardown_ci'
+
+  It 'emits build output for a tool package with a changed file'
+    When run bash -c "cd '$MOCK_DIR' && GITHUB_OUTPUT='$GITHUB_OUTPUT' bash '$MDEV_SCRIPT' ci HEAD~1"
+    The status should be success
+    The file "$GITHUB_OUTPUT" should be exist
+    Assert [ "$(grep '^build=' "$GITHUB_OUTPUT" | cut -d= -f2-)" = '["api"]' ]
+  End
+
+  It 'emits checks output with lint and unit stages (excluding base, build, coverage)'
+    When run bash -c "cd '$MOCK_DIR' && GITHUB_OUTPUT='$GITHUB_OUTPUT' bash '$MDEV_SCRIPT' ci HEAD~1"
+    The status should be success
+    Assert [ "$(grep '^checks=' "$GITHUB_OUTPUT" | cut -d= -f2-)" = '{"include":[{"package":"api","target":"lint"},{"package":"api","target":"unit"}]}' ]
+  End
+
+  It 'emits coverage output for a package with a coverage stage'
+    When run bash -c "cd '$MOCK_DIR' && GITHUB_OUTPUT='$GITHUB_OUTPUT' bash '$MDEV_SCRIPT' ci HEAD~1"
+    The status should be success
+    Assert [ "$(grep '^coverage=' "$GITHUB_OUTPUT" | cut -d= -f2-)" = '["api"]' ]
+  End
+
+  It 'emits outputs for multiple changed packages'
+    write_service "$MOCK_DIR" worker myapp-worker tool
+    cat >"$MOCK_DIR/worker/Dockerfile" <<'DOCKERFILE'
+FROM base AS base
+FROM base AS lint
+DOCKERFILE
+    touch "$MOCK_DIR/worker/newfile" "$MOCK_DIR/api/newfile2"
+    git -C "$MOCK_DIR" add .
+    git -C "$MOCK_DIR" commit -q -m 'change api and worker'
+    When run bash -c "cd '$MOCK_DIR' && GITHUB_OUTPUT='$GITHUB_OUTPUT' bash '$MDEV_SCRIPT' ci HEAD~1"
+    The status should be success
+    Assert [ "$(grep '^build=' "$GITHUB_OUTPUT" | cut -d= -f2-)" = '["api","worker"]' ]
+  End
+
+  It 'excludes library package from build output'
+    write_service "$MOCK_DIR" lib myapp-lib library
+    mkdir -p "$MOCK_DIR/lib"
+    touch "$MOCK_DIR/lib/newfile2" "$MOCK_DIR/api/newfile2"
+    git -C "$MOCK_DIR" add .
+    git -C "$MOCK_DIR" commit -q -m 'change api and lib'
+    When run bash -c "cd '$MOCK_DIR' && GITHUB_OUTPUT='$GITHUB_OUTPUT' bash '$MDEV_SCRIPT' ci HEAD~1"
+    The status should be success
+    Assert [ "$(grep '^build=' "$GITHUB_OUTPUT" | cut -d= -f2-)" = '["api"]' ]
+  End
+
+  It 'emits empty outputs when no packages changed'
+    When run bash -c "cd '$MOCK_DIR' && GITHUB_OUTPUT='$GITHUB_OUTPUT' bash '$MDEV_SCRIPT' ci HEAD"
+    The status should be success
+    Assert [ "$(grep '^build=' "$GITHUB_OUTPUT" | cut -d= -f2-)" = '[]' ]
+    Assert [ "$(grep '^checks=' "$GITHUB_OUTPUT" | cut -d= -f2-)" = '{"include":[]}' ]
+    Assert [ "$(grep '^coverage=' "$GITHUB_OUTPUT" | cut -d= -f2-)" = '[]' ]
   End
 End

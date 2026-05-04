@@ -257,7 +257,44 @@ cmd_check() { _run_for_services check 'checking' "$@"; }
 cmd_types() { _run_for_services types 'type checking' "$@"; }
 cmd_security() { _run_for_services security 'security scanning' "$@"; }
 cmd_lock() { _run_for_services lock 'locking' "$@"; }
-cmd_ci() { _run_for_services ci 'running ci' "$@"; }
+cmd_ci() {
+	local ref="${1:-}"
+	local changed
+	mapfile -t changed < <(cmd_changed ${ref:+"$ref"})
+
+	local build_pkgs=() checks_include=() coverage_pkgs=()
+
+	for pkg in "${changed[@]}"; do
+		if service_supports_cmd "$pkg" build; then
+			build_pkgs+=("$pkg")
+		fi
+
+		local dockerfile="$MDEV_ROOT/$pkg/Dockerfile"
+		if [[ -f "$dockerfile" ]]; then
+			local stage
+			while IFS= read -r stage; do
+				case "$stage" in
+				coverage) coverage_pkgs+=("$pkg") ;;
+				build) : ;;
+				*) checks_include+=("{\"package\":\"$pkg\",\"target\":\"$stage\"}") ;;
+				esac
+			done < <(sed -n 's/^FROM .* AS \([a-zA-Z0-9_]*\)$/\1/p' "$dockerfile" | grep -v '^base$')
+		fi
+	done
+
+	local build_json checks_json coverage_json
+	build_json="$(jq -cn '$ARGS.positional' --args "${build_pkgs[@]+"${build_pkgs[@]}"}")"
+	coverage_json="$(jq -cn '$ARGS.positional' --args "${coverage_pkgs[@]+"${coverage_pkgs[@]}"}")"
+	checks_json="$(printf '%s\n' "${checks_include[@]+"${checks_include[@]}"}" | jq -sc '{include: .}')"
+
+	if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
+		{
+			printf 'build=%s\n' "$build_json"
+			printf 'checks=%s\n' "$checks_json"
+			printf 'coverage=%s\n' "$coverage_json"
+		} >>"$GITHUB_OUTPUT"
+	fi
+}
 cmd_rebuild() { _run_for_services rebuild 'rebuilding' "$@"; }
 cmd_db_migrate() { _run_for_services db-migrate 'migrating' "$@"; }
 cmd_push() { _run_for_services push 'pushing' "$@"; }
@@ -372,7 +409,8 @@ MDEV_COMMANDS=(up down status logs build lint format unit types security lock ch
 
 cmd_arg_type() {
 	case "$1" in
-	up | down | build | lint | format | unit | types | security | lock | check | ci | rebuild | db-migrate | push) echo 'services' ;;
+	up | down | build | lint | format | unit | types | security | lock | check | rebuild | db-migrate | push) echo 'services' ;;
+	ci) echo 'ref' ;;
 	shell | db-shell) echo 'service' ;;
 	logs) echo 'logs' ;;
 	changed) echo 'changed' ;;
@@ -405,7 +443,7 @@ COMMANDS
     security [services...]  Run security scanning in each service
     lock [services...]      Regenerate lock file in each service
     check [services...]     Run full quality check in each service
-    ci [services...]        Build and run full quality check
+    ci [ref]                Emit GHA matrix outputs for changed packages
     rebuild [services...]   Build images and start services
     db-migrate [services...] Run database migrations in each service
     push [services...]      Push built image(s) to registry
