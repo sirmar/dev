@@ -141,76 +141,25 @@ Describe 'assert_repo_type guard'
   Before 'fixture_image_repo'
   After 'teardown'
 
-  It 'skips unit command on image repos'
-    When run run_dev unit
-    The status should be success
-    The output should include 'skipping unit'
+  Parameters
+    unit
+    shell
+    format
+    check
+    coverage
+    types
+    security
+    run
+    up
+    down
+    db-shell
+    db-migrate
   End
 
-  It 'skips shell command on image repos'
-    When run run_dev shell
+  It "skips $1 command on image repos"
+    When run run_dev "$1"
     The status should be success
-    The output should include 'skipping shell'
-  End
-
-  It 'skips format command on image repos'
-    When run run_dev format
-    The status should be success
-    The output should include 'skipping format'
-  End
-
-  It 'skips check command on image repos'
-    When run run_dev check
-    The status should be success
-    The output should include 'skipping check'
-  End
-
-  It 'skips coverage command on image repos'
-    When run run_dev coverage
-    The status should be success
-    The output should include 'skipping coverage'
-  End
-
-  It 'skips types command on image repos'
-    When run run_dev types
-    The status should be success
-    The output should include 'skipping types'
-  End
-
-  It 'skips security command on image repos'
-    When run run_dev security
-    The status should be success
-    The output should include 'skipping security'
-  End
-
-  It 'skips run command on image repos'
-    When run run_dev run
-    The status should be success
-    The output should include 'skipping run'
-  End
-
-  It 'skips up command on image repos'
-    When run run_dev up
-    The status should be success
-    The output should include 'skipping up'
-  End
-
-  It 'skips down command on image repos'
-    When run run_dev down
-    The status should be success
-    The output should include 'skipping down'
-  End
-
-  It 'skips db-shell command on image repos'
-    When run run_dev db-shell
-    The status should be success
-    The output should include 'skipping db-shell'
-  End
-
-  It 'skips db-migrate command on image repos'
-    When run run_dev db-migrate
-    The status should be success
-    The output should include 'skipping db-migrate'
+    The output should include "skipping $1"
   End
 End
 
@@ -218,40 +167,19 @@ Describe 'assert_repo_type guard on tool repos'
   Before 'fixture_tool_repo'
   After 'teardown'
 
-  It 'skips watch command on tool repos'
-    When run run_dev watch
-    The status should be success
-    The output should include 'skipping watch'
+  Parameters
+    watch
+    shell
+    up
+    down
+    db-shell
+    db-migrate
   End
 
-  It 'skips shell command on tool repos'
-    When run run_dev shell
+  It "skips $1 command on tool repos"
+    When run run_dev "$1"
     The status should be success
-    The output should include 'skipping shell'
-  End
-
-  It 'skips up command on tool repos'
-    When run run_dev up
-    The status should be success
-    The output should include 'skipping up'
-  End
-
-  It 'skips down command on tool repos'
-    When run run_dev down
-    The status should be success
-    The output should include 'skipping down'
-  End
-
-  It 'skips db-shell command on tool repos'
-    When run run_dev db-shell
-    The status should be success
-    The output should include 'skipping db-shell'
-  End
-
-  It 'skips db-migrate command on tool repos'
-    When run run_dev db-migrate
-    The status should be success
-    The output should include 'skipping db-migrate'
+    The output should include "skipping $1"
   End
 End
 

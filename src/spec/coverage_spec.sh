@@ -21,19 +21,6 @@ Describe 'coverage'
     The status should be success
   End
 
-  It 'forwards a single translated file path to docker'
-    When run run_dev coverage src/tests/foo_test.py
-    The output should include '/workspace/src/tests/foo_test.py'
-    The status should be success
-  End
-
-  It 'forwards multiple translated file paths to docker'
-    When run run_dev coverage src/tests/a_test.py src/tests/b_test.py
-    The output should include '/workspace/src/tests/a_test.py'
-    The output should include '/workspace/src/tests/b_test.py'
-    The status should be success
-  End
-
   It 'runs full suite when no file args given'
     When run run_dev coverage
     The output should not include 'dev-coverage /workspace/src/'

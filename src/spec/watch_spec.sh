@@ -22,11 +22,25 @@ Describe 'watch'
       The status should be success
     End
 
-    It 'exposes DEV_PORT when set'
-      write_dev_config "$MOCK_DIR" dev service "DEV_PORT=8080"
+    It 'always mounts out/ as /workspace/out'
       When run run_dev watch
-      The output should include '-p 8080:8080'
+      The output should include '/workspace/out'
       The status should be success
+    End
+
+    Describe 'container flag when env var is set'
+      Parameters
+        'DEV_PORT=8080'                      '-p 8080:8080'
+        'DEV_MOUNTS=./data:/workspace/data'  '/workspace/data'
+        'DEV_NETWORK=dev_network'            '--network dev_network'
+      End
+
+      It "includes $2 when $1 is set"
+        write_dev_config "$MOCK_DIR" dev service "$1"
+        When run run_dev watch
+        The output should include "$2"
+        The status should be success
+      End
     End
 
     It 'does not expose a port when DEV_PORT is unset'
@@ -35,35 +49,15 @@ Describe 'watch'
       The status should be success
     End
 
-    It 'always mounts out/ as /workspace/out'
+    It 'omits network flag when DEV_NETWORK is unset'
       When run run_dev watch
-      The output should include '/workspace/out'
-      The status should be success
-    End
-
-    It 'mounts extra volumes when DEV_MOUNTS is set'
-      write_dev_config "$MOCK_DIR" dev service "DEV_MOUNTS=./data:/workspace/data"
-      When run run_dev watch
-      The output should include '/workspace/data'
+      The output should not include '--network'
       The status should be success
     End
 
     It 'does not pass -it when stdin is not a TTY'
       When run bash -c "cd '$MOCK_DIR' && bash '$DEV_SCRIPT' watch </dev/null"
       The output should not include ' -it'
-      The status should be success
-    End
-
-    It 'includes network flag when DEV_NETWORK is set'
-      write_dev_config "$MOCK_DIR" dev service "DEV_NETWORK=dev_network"
-      When run run_dev watch
-      The output should include '--network dev_network'
-      The status should be success
-    End
-
-    It 'omits network flag when DEV_NETWORK is unset'
-      When run run_dev watch
-      The output should not include '--network'
       The status should be success
     End
   End

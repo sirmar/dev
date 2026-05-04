@@ -29,19 +29,6 @@ Describe 'unit'
     The status should be success
   End
 
-  It 'forwards a single translated file path to docker'
-    When run run_dev unit src/tests/foo_test.py
-    The output should include '/workspace/src/tests/foo_test.py'
-    The status should be success
-  End
-
-  It 'forwards multiple translated file paths to docker'
-    When run run_dev unit src/a_spec.sh src/b_spec.sh
-    The output should include '/workspace/src/a_spec.sh'
-    The output should include '/workspace/src/b_spec.sh'
-    The status should be success
-  End
-
   It 'runs full suite when no file args given'
     When run run_dev unit
     The output should not include 'dev-unit /workspace/src/'

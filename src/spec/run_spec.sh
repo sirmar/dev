@@ -34,19 +34,6 @@ Describe 'run'
 		The status should be success
 	End
 
-	It 'exposes DEV_PORT when set'
-		write_dev_config "$MOCK_DIR" dev tool "DEV_PORT=3000"
-		When run run_dev run
-		The output should include '-p 3000:3000'
-		The status should be success
-	End
-
-	It 'does not expose a port when DEV_PORT is unset'
-		When run run_dev run
-		The output should not include '-p '
-		The status should be success
-	End
-
 	It 'always mounts out/ as /workspace/out'
 		When run run_dev run
 		The output should include '/workspace/out'
@@ -60,17 +47,24 @@ Describe 'run'
 		The status should be success
 	End
 
-	It 'mounts extra volumes when DEV_MOUNTS is set'
-		write_dev_config "$MOCK_DIR" dev tool "DEV_MOUNTS=./data:/workspace/data"
-		When run run_dev run
-		The output should include '/workspace/data'
-		The status should be success
+	Describe 'container flag when env var is set'
+		Parameters
+			'DEV_PORT=3000'                      '-p 3000:3000'
+			'DEV_MOUNTS=./data:/workspace/data'  '/workspace/data'
+			'DEV_NETWORK=dev_network'            '--network dev_network'
+		End
+
+		It "includes $2 when $1 is set"
+			write_dev_config "$MOCK_DIR" dev tool "$1"
+			When run run_dev run
+			The output should include "$2"
+			The status should be success
+		End
 	End
 
-	It 'includes network flag when DEV_NETWORK is set'
-		write_dev_config "$MOCK_DIR" dev tool "DEV_NETWORK=dev_network"
+	It 'does not expose a port when DEV_PORT is unset'
 		When run run_dev run
-		The output should include '--network dev_network'
+		The output should not include '-p '
 		The status should be success
 	End
 

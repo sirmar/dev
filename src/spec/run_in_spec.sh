@@ -20,11 +20,19 @@ Describe 'run_in'
     The status should be success
   End
 
-  It 'includes network flag when DEV_NETWORK is set'
-    write_dev_config "$MOCK_DIR" dev service "DEV_NETWORK=dev_network"
-    When run run_dev unit
-    The output should include '--network dev_network'
-    The status should be success
+  Describe 'container flag when env var is set'
+    Parameters
+      'DEV_NETWORK=dev_network' '--network dev_network'
+      'DEV_PORT=8080'           '-p 8080:8080'
+      'DEV_MOUNTS=./data:/workspace/data' '/workspace/data'
+    End
+
+    It "includes $2 when $1 is set"
+      write_dev_config "$MOCK_DIR" dev service "$1"
+      When run run_dev unit
+      The output should include "$2"
+      The status should be success
+    End
   End
 
   It 'omits network flag when DEV_NETWORK is unset'
@@ -33,23 +41,9 @@ Describe 'run_in'
     The status should be success
   End
 
-  It 'includes port flag when DEV_PORT is set'
-    write_dev_config "$MOCK_DIR" dev service "DEV_PORT=8080"
-    When run run_dev unit
-    The output should include '-p 8080:8080'
-    The status should be success
-  End
-
   It 'omits port flag when DEV_PORT is unset'
     When run run_dev unit
     The output should not include '-p '
-    The status should be success
-  End
-
-  It 'mounts extra volumes when DEV_MOUNTS is set'
-    write_dev_config "$MOCK_DIR" dev service "DEV_MOUNTS=./data:/workspace/data"
-    When run run_dev unit
-    The output should include '/workspace/data'
     The status should be success
   End
 

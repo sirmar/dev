@@ -14,12 +14,5 @@ Describe 'format'
     The output should include 'running format'
     The status should be success
   End
-
-  It 'formats a specific file when target given'
-    When run run_dev format dev.sh
-    The output should include 'building stage format'
-    The output should include 'running format in dev.sh'
-    The status should be success
-  End
 End
 

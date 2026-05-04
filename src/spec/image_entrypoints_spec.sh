@@ -22,7 +22,28 @@ run_entrypoint() {
   PATH="$PROJ_DIR:$PATH" sh "$DEV_ROOT/$script" "$@"
 }
 
-Describe 'python unit-entrypoint'
+Describe 'entrypoint passes file args through'
+  Before '_setup_entrypoint_env'
+  After 'teardown'
+
+  Parameters
+    images/python/scripts/unit-entrypoint.sh      src/tests/unit/foo_test.py
+    images/python/scripts/coverage-entrypoint.sh  src/tests/foo_test.py
+    images/python/scripts/e2e-entrypoint.sh       src/tests/e2e/foo_test.py
+    images/bash/scripts/unit-entrypoint.sh        src/spec/foo_spec.sh
+    images/bash/scripts/coverage-entrypoint.sh    src/spec/foo_spec.sh
+    images/typescript/scripts/unit-entrypoint.sh  src/foo.test.ts
+    images/typescript/scripts/coverage-entrypoint.sh src/foo.test.ts
+  End
+
+  It "passes file args through $1"
+    When run run_entrypoint "$1" "$2"
+    The output should include "$2"
+    The status should be success
+  End
+End
+
+Describe 'python unit-entrypoint default suite'
   Before '_setup_entrypoint_env'
   After 'teardown'
 
@@ -31,15 +52,9 @@ Describe 'python unit-entrypoint'
     The output should include 'src/tests/unit'
     The status should be success
   End
-
-  It 'passes file args to pytest'
-    When run run_entrypoint images/python/scripts/unit-entrypoint.sh src/tests/unit/foo_test.py
-    The output should include 'pytest src/tests/unit/foo_test.py'
-    The status should be success
-  End
 End
 
-Describe 'python coverage-entrypoint'
+Describe 'python coverage-entrypoint default suite'
   Before '_setup_entrypoint_env'
   After 'teardown'
 
@@ -47,90 +62,11 @@ Describe 'python coverage-entrypoint'
     When run run_entrypoint images/python/scripts/coverage-entrypoint.sh
     The output should include 'src/tests'
     The output should include '--cov'
-  End
-
-  It 'passes file args to pytest with coverage flags'
-    When run run_entrypoint images/python/scripts/coverage-entrypoint.sh src/tests/foo_test.py
-    The output should include 'pytest'
-    The output should include '--cov'
-    The output should include 'src/tests/foo_test.py'
     The status should be success
   End
 End
 
-Describe 'bash unit-entrypoint'
-  Before '_setup_entrypoint_env'
-  After 'teardown'
-
-  It 'runs default suite when no args given'
-    When run run_entrypoint images/bash/scripts/unit-entrypoint.sh
-    The output should include 'src/spec'
-    The status should be success
-  End
-
-  It 'passes file args to shellspec'
-    When run run_entrypoint images/bash/scripts/unit-entrypoint.sh src/spec/foo_spec.sh
-    The output should equal 'shellspec src/spec/foo_spec.sh'
-    The status should be success
-  End
-End
-
-Describe 'bash coverage-entrypoint'
-  Before '_setup_entrypoint_env'
-  After 'teardown'
-
-  It 'runs default suite when no args given'
-    When run run_entrypoint images/bash/scripts/coverage-entrypoint.sh
-    The output should include '--kcov'
-    The output should include 'src/spec'
-  End
-
-  It 'passes file args to shellspec with kcov'
-    When run run_entrypoint images/bash/scripts/coverage-entrypoint.sh src/spec/foo_spec.sh
-    The output should include '--kcov'
-    The output should include 'src/spec/foo_spec.sh'
-    The status should be success
-  End
-End
-
-Describe 'typescript unit-entrypoint'
-  Before '_setup_entrypoint_env'
-  After 'teardown'
-
-  It 'runs default suite when no args given'
-    When run run_entrypoint images/typescript/scripts/unit-entrypoint.sh
-    The output should include 'vitest run'
-    The status should be success
-  End
-
-  It 'passes file args to vitest'
-    When run run_entrypoint images/typescript/scripts/unit-entrypoint.sh src/foo.test.ts
-    The output should include 'vitest run'
-    The output should include 'src/foo.test.ts'
-    The status should be success
-  End
-End
-
-Describe 'typescript coverage-entrypoint'
-  Before '_setup_entrypoint_env'
-  After 'teardown'
-
-  It 'runs default suite when no args given'
-    When run run_entrypoint images/typescript/scripts/coverage-entrypoint.sh
-    The output should include 'vitest run'
-    The output should include '--coverage'
-  End
-
-  It 'passes file args to vitest with coverage flags'
-    When run run_entrypoint images/typescript/scripts/coverage-entrypoint.sh src/foo.test.ts
-    The output should include 'vitest run'
-    The output should include '--coverage'
-    The output should include 'src/foo.test.ts'
-    The status should be success
-  End
-End
-
-Describe 'python e2e-entrypoint'
+Describe 'python e2e-entrypoint default suite'
   Before '_setup_entrypoint_env'
   After 'teardown'
 
@@ -140,10 +76,50 @@ Describe 'python e2e-entrypoint'
     The output should include 'src/tests/e2e'
     The status should be success
   End
+End
 
-  It 'passes file args to pytest'
-    When run run_entrypoint images/python/scripts/e2e-entrypoint.sh src/tests/e2e/foo_test.py
-    The output should include 'pytest src/tests/e2e/foo_test.py'
+Describe 'bash unit-entrypoint default suite'
+  Before '_setup_entrypoint_env'
+  After 'teardown'
+
+  It 'runs default suite when no args given'
+    When run run_entrypoint images/bash/scripts/unit-entrypoint.sh
+    The output should include 'src/spec'
+    The status should be success
+  End
+End
+
+Describe 'bash coverage-entrypoint default suite'
+  Before '_setup_entrypoint_env'
+  After 'teardown'
+
+  It 'runs default suite when no args given'
+    When run run_entrypoint images/bash/scripts/coverage-entrypoint.sh
+    The output should include '--kcov'
+    The output should include 'src/spec'
+    The status should be success
+  End
+End
+
+Describe 'typescript unit-entrypoint default suite'
+  Before '_setup_entrypoint_env'
+  After 'teardown'
+
+  It 'runs default suite when no args given'
+    When run run_entrypoint images/typescript/scripts/unit-entrypoint.sh
+    The output should include 'vitest run'
+    The status should be success
+  End
+End
+
+Describe 'typescript coverage-entrypoint default suite'
+  Before '_setup_entrypoint_env'
+  After 'teardown'
+
+  It 'runs default suite when no args given'
+    When run run_entrypoint images/typescript/scripts/coverage-entrypoint.sh
+    The output should include 'vitest run'
+    The output should include '--coverage'
     The status should be success
   End
 End
