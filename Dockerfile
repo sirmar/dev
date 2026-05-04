@@ -12,7 +12,7 @@ COPY .shellspec ./
 ENTRYPOINT ["/usr/local/bin/unit-entrypoint.sh"]
 
 FROM kcov/kcov:latest-alpine AS coverage
-RUN apk add --no-cache bash=5.2.26-r0 git=2.45.4-r0 curl=8.14.1-r2
+RUN apk add --no-cache bash=5.2.26-r0 git=2.45.4-r0 curl=8.14.1-r2 jq=1.7.1-r0
 WORKDIR /workspace
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN curl -fsSL https://git.io/shellspec | sh -s -- --yes --prefix /usr/local
