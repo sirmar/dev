@@ -323,11 +323,11 @@ cmd_lint_dockerfile() {
 
 cmd_lint() {
 	is_repo_type image && return 0
-	run_stage lint "lint" "$@"
+	run_stage_with_paths run_stage lint "lint" -- "$@"
 }
 
 cmd_format() {
-	run_stage format "format" "$@"
+	run_stage_with_paths run_stage format "format" -- "$@"
 }
 
 translate_paths() {
@@ -667,8 +667,8 @@ EOF
 	if is_repo_type tool service library; then
 		cat <<EOF
 
-    lint [file]         Lint source files
-    format [file]       Format source files
+    lint [file...]      Lint source files
+    format [file...]    Format source files
     unit                Run unit tests
     check               Run format, lint, types, and coverage
     ci                  Build and run full quality check
@@ -688,8 +688,8 @@ EOF
 	if is_repo_type e2e; then
 		cat <<EOF
 
-    lint [file]         Lint source files
-    format [file]       Format source files
+    lint [file...]      Lint source files
+    format [file...]    Format source files
     check               Run format, lint, and types
     types               Run static type checking
     security            Run security scanning
