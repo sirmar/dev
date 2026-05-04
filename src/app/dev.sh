@@ -349,26 +349,29 @@ translate_paths() {
 	echo "${result[@]}"
 }
 
-cmd_unit() {
+run_stage_with_paths() {
+	local stage_args=()
+	while [[ $1 != '--' ]]; do
+		stage_args+=("$1")
+		shift
+	done
+	shift
 	if [[ $# -gt 0 ]]; then
 		local translated
 		translated=$(translate_paths "$@") || return 1
 		# shellcheck disable=SC2086
-		run_stage unit "unit tests" $translated
+		"${stage_args[@]}" $translated
 	else
-		run_stage unit "unit tests"
+		"${stage_args[@]}"
 	fi
 }
 
+cmd_unit() {
+	run_stage_with_paths run_stage unit "unit tests" -- "$@"
+}
+
 cmd_coverage() {
-	if [[ $# -gt 0 ]]; then
-		local translated
-		translated=$(translate_paths "$@") || return 1
-		# shellcheck disable=SC2086
-		run_stage_compose coverage "coverage" compose_e2e "$ROOT_DIR/docker-compose.e2e.yml" optional $translated
-	else
-		run_stage_compose coverage "coverage" compose_e2e "$ROOT_DIR/docker-compose.e2e.yml" optional
-	fi
+	run_stage_with_paths run_stage_compose coverage "coverage" compose_e2e "$ROOT_DIR/docker-compose.e2e.yml" optional -- "$@"
 }
 
 cmd_types() {
@@ -423,14 +426,7 @@ cmd_db_migrate() {
 }
 
 cmd_e2e() {
-	if [[ $# -gt 0 ]]; then
-		local translated
-		translated=$(translate_paths "$@") || return 1
-		# shellcheck disable=SC2086
-		run_stage_compose e2e "e2e tests" compose_e2e "$ROOT_DIR/docker-compose.e2e.yml" required $translated
-	else
-		run_stage_compose e2e "e2e tests" compose_e2e "$ROOT_DIR/docker-compose.e2e.yml" required
-	fi
+	run_stage_with_paths run_stage_compose e2e "e2e tests" compose_e2e "$ROOT_DIR/docker-compose.e2e.yml" required -- "$@"
 }
 
 cmd_shell() {
