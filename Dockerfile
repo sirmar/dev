@@ -17,12 +17,13 @@ WORKDIR /workspace
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN curl -fsSL https://git.io/shellspec | sh -s -- --yes --prefix /usr/local
 COPY --from=base /usr/local/bin/coverage-entrypoint.sh /usr/local/bin/coverage-entrypoint.sh
+COPY --from=base /usr/local/bin/entrypoint-helper.sh /usr/local/bin/entrypoint-helper.sh
 COPY .shellspec ./
 ENTRYPOINT ["/usr/local/bin/coverage-entrypoint.sh"]
 
 FROM alpine:3.19 AS prod
 LABEL org.opencontainers.image.source=https://github.com/sirmar/dev
-RUN apk add --no-cache bash=5.2.21-r0 git=2.43.7-r0 curl=8.14.1-r2
+RUN apk add --no-cache bash=5.2.21-r0 git=2.43.7-r0 curl=8.14.1-r2 jq=1.7.1-r0
 WORKDIR /workspace
 COPY src/app/dev.sh /usr/local/bin/dev
 RUN chmod +x /usr/local/bin/dev
