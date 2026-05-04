@@ -60,7 +60,7 @@ check_docker() {
 # Service discovery
 # ---------------------------------------------------------------------------
 
-discover_services() {
+_list_service_names() {
 	if [[ -n "${MDEV_SERVICES:-}" ]]; then
 		local s
 		while IFS=',' read -ra parts; do
@@ -68,7 +68,6 @@ discover_services() {
 				s="${s#"${s%%[![:space:]]*}"}"
 				s="${s%"${s##*[![:space:]]}"}"
 				[[ -z "$s" ]] && continue
-				[[ -f "$MDEV_ROOT/$s/.dev" ]] || error "service '$s' not found — no .dev at $MDEV_ROOT/$s"
 				echo "$s"
 			done
 		done <<<"$MDEV_SERVICES"
@@ -77,6 +76,14 @@ discover_services() {
 			sed "s|^$MDEV_ROOT/||;s|/.dev$||" |
 			sort
 	fi
+}
+
+discover_services() {
+	local s
+	while IFS= read -r s; do
+		[[ -f "$MDEV_ROOT/$s/.dev" ]] || error "service '$s' not found — no .dev at $MDEV_ROOT/$s"
+		echo "$s"
+	done < <(_list_service_names)
 }
 
 filter_services() {
@@ -253,6 +260,7 @@ cmd_lock() { _run_for_services lock 'locking' "$@"; }
 cmd_ci() { _run_for_services ci 'running ci' "$@"; }
 cmd_rebuild() { _run_for_services rebuild 'rebuilding' "$@"; }
 cmd_db_migrate() { _run_for_services db-migrate 'migrating' "$@"; }
+cmd_push() { _run_for_services push 'pushing' "$@"; }
 
 _run_interactive() {
 	local dev_cmd="$1" service="${2:-}"
@@ -317,26 +325,15 @@ cmd_diagnose() {
 	local failed=0
 
 	# Workspace checks
-	local services=()
-	if [[ -n "${MDEV_SERVICES:-}" ]]; then
-		local s
-		while IFS=',' read -ra parts; do
-			for s in "${parts[@]}"; do
-				s="${s#"${s%%[![:space:]]*}"}"
-				s="${s%"${s##*[![:space:]]}"}"
-				[[ -z "$s" ]] && continue
-				if [[ -f "$MDEV_ROOT/$s/.dev" ]]; then
-					services+=("$s")
-				else
-					echo -e "[${MDEV_NAME}] \033[0;31mservice '$s' not found — no .dev at $MDEV_ROOT/$s\033[0m" >&2
-					failed=1
-				fi
-			done
-		done <<<"$MDEV_SERVICES"
-	else
-		mapfile -t services < <(find "$MDEV_ROOT" -mindepth 2 -name '.dev' -type f |
-			sed "s|^$MDEV_ROOT/||;s|/.dev$||" | sort)
-	fi
+	local services=() s
+	while IFS= read -r s; do
+		if [[ -f "$MDEV_ROOT/$s/.dev" ]]; then
+			services+=("$s")
+		else
+			echo -e "[${MDEV_NAME}] \033[0;31mservice '$s' not found — no .dev at $MDEV_ROOT/$s\033[0m" >&2
+			failed=1
+		fi
+	done < <(_list_service_names)
 
 	if [[ ${#services[@]} -eq 0 ]]; then
 		echo -e "[${MDEV_NAME}] \033[0;31mno services found — add sub-directories with .dev files\033[0m" >&2
@@ -361,11 +358,11 @@ cmd_diagnose() {
 	return $failed
 }
 
-MDEV_COMMANDS=(up down status logs build lint format unit types security lock check ci rebuild db-migrate shell db-shell changed run init diagnose help)
+MDEV_COMMANDS=(up down status logs build lint format unit types security lock check ci rebuild db-migrate push shell db-shell changed run init diagnose help)
 
 cmd_arg_type() {
 	case "$1" in
-	up | down | build | lint | format | unit | types | security | lock | check | ci | rebuild | db-migrate) echo 'services' ;;
+	up | down | build | lint | format | unit | types | security | lock | check | ci | rebuild | db-migrate | push) echo 'services' ;;
 	shell | db-shell) echo 'service' ;;
 	logs) echo 'logs' ;;
 	changed) echo 'changed' ;;
@@ -401,6 +398,7 @@ COMMANDS
     ci [services...]        Build and run full quality check
     rebuild [services...]   Build images and start services
     db-migrate [services...] Run database migrations in each service
+    push [services...]      Push built image(s) to registry
     shell <service>         Open a shell in a running service container
     db-shell <service>      Open a shell in a running database container
     changed [ref]           List services changed since ref (default: origin/main)
@@ -470,6 +468,7 @@ main() {
 	ci) cmd_ci "$@" ;;
 	rebuild) cmd_rebuild "$@" ;;
 	db-migrate) cmd_db_migrate "$@" ;;
+	push) cmd_push "$@" ;;
 	shell) cmd_shell "$@" ;;
 	db-shell) cmd_db_shell "$@" ;;
 	changed) cmd_changed "$@" ;;

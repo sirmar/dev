@@ -30,17 +30,17 @@ _write_mock_dev() {
 type="$(grep -m1 '^DEV_REPO_TYPE=' .dev 2>/dev/null | cut -d= -f2 | tr -d '"')"
 if [[ "$1" == "completions" ]]; then
   case "$type" in
-    service) echo 'up down logs build lint format unit lock check ci db-migrate shell db-shell watch rebuild' ;;
+    service) echo 'up down logs build lint format unit lock check ci db-migrate shell db-shell watch rebuild push' ;;
     tool)    echo 'build lint format unit check coverage types security' ;;
-    image)   echo 'build lint' ;;
+    image)   echo 'build lint push' ;;
     *)       echo 'build lint format unit check' ;;
   esac
 elif [[ "$1" == "supports" ]]; then
   cmd="$2"
   case "$type" in
-    service) [[ " up down logs build lint format unit lock check ci db-migrate shell db-shell watch rebuild " == *" $cmd "* ]] && exit 0 || exit 1 ;;
+    service) [[ " up down logs build lint format unit lock check ci db-migrate shell db-shell watch rebuild push " == *" $cmd "* ]] && exit 0 || exit 1 ;;
     tool)    [[ " build lint format unit check coverage types security " == *" $cmd "* ]] && exit 0 || exit 1 ;;
-    image)   [[ " build lint " == *" $cmd "* ]] && exit 0 || exit 1 ;;
+    image)   [[ " build lint push " == *" $cmd "* ]] && exit 0 || exit 1 ;;
     *)       [[ " build lint format unit check " == *" $cmd "* ]] && exit 0 || exit 1 ;;
   esac
 else
@@ -78,24 +78,28 @@ setup_mock_mdev() {
 
 
 Describe 'cmd_arg_type'
-  It 'returns services for up'
-    When run bash "$MDEV_SCRIPT" cmd_arg_type up
-    The output should equal 'services'
+  Parameters
+    up          services
+    down        services
+    build       services
+    lint        services
+    format      services
+    unit        services
+    types       services
+    security    services
+    lock        services
+    check       services
+    ci          services
+    rebuild     services
+    db-migrate  services
+    push        services
+    run         run
+    init        none
   End
 
-  It 'returns services for build'
-    When run bash "$MDEV_SCRIPT" cmd_arg_type build
-    The output should equal 'services'
-  End
-
-  It 'returns run for run'
-    When run bash "$MDEV_SCRIPT" cmd_arg_type run
-    The output should equal 'run'
-  End
-
-  It 'returns none for init'
-    When run bash "$MDEV_SCRIPT" cmd_arg_type init
-    The output should equal 'none'
+  It "returns $2 for $1"
+    When run bash "$MDEV_SCRIPT" cmd_arg_type "$1"
+    The output should equal "$2"
   End
 End
 
@@ -285,187 +289,102 @@ Describe 'filter_services'
 End
 
 
-Describe 'up'
-  setup_up() {
+Describe 'delegation commands'
+  setup_delegation() {
     setup_mock_mdev
     write_service "$MOCK_DIR" api myapp-api service
   }
-  Before 'setup_up'
+  Before 'setup_delegation'
   After 'teardown'
 
-  It 'logs that it is starting each service'
-    When run run_mdev up
-    The status should be success
-    The output should include '[myapp]'
-    The output should include 'starting api'
+  Parameters
+    up
+    down
+    rebuild
+    ci
+    lock
   End
 
-  It 'delegates to dev up and labels output'
-    When run run_mdev up
+  It "delegates $1 to dev and labels output"
+    When run run_mdev "$1"
     The status should be success
-    The output should include '[api] dev up'
+    The output should include "[api] dev $1"
   End
 End
 
 
-
-Describe 'rebuild'
-  setup_rebuild() {
+Describe 'up/down lifecycle messages'
+  setup_lifecycle() {
     setup_mock_mdev
     write_service "$MOCK_DIR" api myapp-api service
   }
-  Before 'setup_rebuild'
+  Before 'setup_lifecycle'
   After 'teardown'
 
-  It 'delegates to dev rebuild and labels output'
-    When run run_mdev rebuild
+  Parameters
+    up   starting
+    down stopping
+  End
+
+  It "logs '$2 api' when running $1"
+    When run run_mdev "$1"
     The status should be success
-    The output should include '[api] dev rebuild'
+    The output should include "$2 api"
   End
 End
 
 
-Describe 'ci'
-  setup_ci() {
-    setup_mock_mdev
-    write_service "$MOCK_DIR" api myapp-api service
-  }
-  Before 'setup_ci'
-  After 'teardown'
-
-  It 'delegates to dev ci and labels output'
-    When run run_mdev ci
-    The status should be success
-    The output should include '[api] dev ci'
-  End
-End
-
-
-Describe 'lock'
-  setup_lock() {
-    setup_mock_mdev
-    write_service "$MOCK_DIR" api myapp-api service
-  }
-  Before 'setup_lock'
-  After 'teardown'
-
-  It 'delegates to dev lock and labels output'
-    When run run_mdev lock
-    The status should be success
-    The output should include '[api] dev lock'
-  End
-End
-
-
-Describe 'down'
-  setup_down() {
-    setup_mock_mdev
-    write_service "$MOCK_DIR" api myapp-api service
-  }
-  Before 'setup_down'
-  After 'teardown'
-
-  It 'logs that it is stopping each service'
-    When run run_mdev down
-    The status should be success
-    The output should include '[myapp]'
-    The output should include 'stopping api'
-  End
-
-  It 'delegates to dev down and labels output'
-    When run run_mdev down
-    The status should be success
-    The output should include '[api] dev down'
-  End
-End
-
-
-Describe 'build'
-  setup_build() {
+Describe 'multi-service commands'
+  setup_multi() {
     setup_mock_mdev
     write_service "$MOCK_DIR" api myapp-api service
     write_service "$MOCK_DIR" worker myapp-worker service
   }
-  Before 'setup_build'
+  Before 'setup_multi'
   After 'teardown'
 
-  It 'builds all services'
-    When run run_mdev build
+  Parameters
+    build
+    db-migrate
+    push
+  End
+
+  It "runs $1 across all services"
+    When run run_mdev "$1"
     The status should be success
     The output should include '[api]'
     The output should include '[worker]'
   End
 
-  It 'labels build output with the service name'
-    When run run_mdev build api
+  It "labels $1 output with the service name"
+    When run run_mdev "$1" api
     The status should be success
-    The output should include '[api] dev build'
+    The output should include "[api] dev $1"
   End
 End
 
 
-Describe 'db-migrate'
-  setup_db_migrate() {
-    setup_mock_mdev
-    write_service "$MOCK_DIR" api myapp-api service
-    write_service "$MOCK_DIR" worker myapp-worker service
-  }
-  Before 'setup_db_migrate'
-  After 'teardown'
-
-  It 'migrates all services'
-    When run run_mdev db-migrate
-    The status should be success
-    The output should include '[api]'
-    The output should include '[worker]'
-  End
-
-  It 'labels migrate output with the service name'
-    When run run_mdev db-migrate api
-    The status should be success
-    The output should include '[api] dev db-migrate'
-  End
-End
-
-
-Describe 'shell'
-  setup_shell() {
+Describe 'interactive commands'
+  setup_interactive() {
     setup_mock_mdev
     write_service "$MOCK_DIR" api myapp-api service
   }
-  Before 'setup_shell'
+  Before 'setup_interactive'
   After 'teardown'
 
-  It 'delegates to dev shell in the specified service'
-    When run run_mdev shell api
+  Parameters
+    shell
+    db-shell
+  End
+
+  It "delegates $1 to dev in the specified service"
+    When run run_mdev "$1" api
     The status should be success
-    The output should include 'dev shell'
+    The output should include "dev $1"
   End
 
-  It 'errors when no service is specified'
-    When run run_mdev shell
-    The status should be failure
-    The stderr should include 'usage:'
-  End
-End
-
-
-Describe 'db-shell'
-  setup_db_shell() {
-    setup_mock_mdev
-    write_service "$MOCK_DIR" api myapp-api service
-  }
-  Before 'setup_db_shell'
-  After 'teardown'
-
-  It 'delegates to dev db-shell in the specified service'
-    When run run_mdev db-shell api
-    The status should be success
-    The output should include 'dev db-shell'
-  End
-
-  It 'errors when no service is specified'
-    When run run_mdev db-shell
+  It "errors when no service is specified for $1"
+    When run run_mdev "$1"
     The status should be failure
     The stderr should include 'usage:'
   End
@@ -480,17 +399,15 @@ Describe 'skip unsupported commands'
   Before 'setup_image'
   After 'teardown'
 
-  It 'skips format for image repos'
-    When run run_mdev format
-    The status should be success
-    The output should include 'skipping format'
-    The output should include 'image'
+  Parameters
+    format
+    unit
   End
 
-  It 'skips unit for image repos'
-    When run run_mdev unit
+  It "skips $1 for image repos"
+    When run run_mdev "$1"
     The status should be success
-    The output should include 'skipping unit'
+    The output should include "skipping $1"
     The output should include 'image'
   End
 End
@@ -606,17 +523,17 @@ fi
 type="$(grep -m1 '^DEV_REPO_TYPE=' .dev 2>/dev/null | cut -d= -f2 | tr -d '"')"
 if [[ "$1" == "completions" ]]; then
   case "$type" in
-    service) echo 'up down logs build lint format unit lock check ci db-migrate shell db-shell watch rebuild' ;;
+    service) echo 'up down logs build lint format unit lock check ci db-migrate shell db-shell watch rebuild push' ;;
     tool)    echo 'build lint format unit check coverage types security' ;;
-    image)   echo 'build lint' ;;
+    image)   echo 'build lint push' ;;
     *)       echo 'build lint format unit check' ;;
   esac
 elif [[ "$1" == "supports" ]]; then
   cmd="$2"
   case "$type" in
-    service) [[ " up down logs build lint format unit lock check ci db-migrate shell db-shell watch rebuild " == *" $cmd "* ]] && exit 0 || exit 1 ;;
+    service) [[ " up down logs build lint format unit lock check ci db-migrate shell db-shell watch rebuild push " == *" $cmd "* ]] && exit 0 || exit 1 ;;
     tool)    [[ " build lint format unit check coverage types security " == *" $cmd "* ]] && exit 0 || exit 1 ;;
-    image)   [[ " build lint " == *" $cmd "* ]] && exit 0 || exit 1 ;;
+    image)   [[ " build lint push " == *" $cmd "* ]] && exit 0 || exit 1 ;;
     *)       [[ " build lint format unit check " == *" $cmd "* ]] && exit 0 || exit 1 ;;
   esac
 else
