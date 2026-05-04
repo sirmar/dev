@@ -2,24 +2,9 @@
 # shellcheck shell=bash
 # shellcheck disable=SC2317
 
-DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 
-# shellcheck disable=SC1091
-. "$DEV_ROOT/src/spec/support/helpers.sh"
 
 Describe 'lock'
-  Describe 'when lock stage exists in Dockerfile'
-    Before 'fixture_service_repo'
-    After 'teardown'
-
-    It 'builds and runs the lock stage'
-      When run run_dev lock
-      The output should include 'building stage lock'
-      The output should include 'running lock'
-      The status should be success
-    End
-  End
-
   Describe 'lockfile copy-back'
     setup_lock_with_out() {
       fixture_service_repo

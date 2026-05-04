@@ -2,14 +2,11 @@
 # shellcheck shell=bash
 # shellcheck disable=SC2317
 
-DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 
-# shellcheck disable=SC1091
-. "$DEV_ROOT/src/spec/support/helpers.sh"
 
 Describe 'e2e when e2e stage is missing from Dockerfile'
   setup_e2e_no_stage() { fixture_service_repo_without_stage e2e; }
-  Before 'fixture_service_repo_without_e2e'
+  Before 'setup_e2e_no_stage'
   After 'teardown'
 
   It 'prints info and skips without error'

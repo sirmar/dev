@@ -2,11 +2,7 @@
 # shellcheck shell=bash
 # shellcheck disable=SC2317
 
-DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
-DEV_SCRIPT="$DEV_ROOT/src/app/dev.sh"
 
-# shellcheck disable=SC1091
-. "$DEV_ROOT/src/spec/support/helpers.sh"
 
 Describe 'ensure_network'
   setup_env() {

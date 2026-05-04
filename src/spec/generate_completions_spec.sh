@@ -2,11 +2,8 @@
 # shellcheck shell=bash
 # shellcheck disable=SC2317
 
-DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 GENERATOR="$DEV_ROOT/src/generate-completions.sh"
 
-# shellcheck disable=SC1091
-. "$DEV_ROOT/src/spec/support/helpers.sh"
 
 run_generator() {
   PROJ_DIR="$(mktemp -d)"

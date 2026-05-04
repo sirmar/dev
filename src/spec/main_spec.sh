@@ -1,11 +1,7 @@
 #!/usr/bin/env bash
 # shellcheck shell=bash
-# shellcheck disable=SC2317,SC1091
+# shellcheck disable=SC2317
 
-DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
-DEV_SCRIPT="$DEV_ROOT/src/app/dev.sh"
-
-. "$DEV_ROOT/src/spec/support/helpers.sh"
 
 Describe 'completions'
   setup() { MOCK_DIR="$(mktemp -d)"; }

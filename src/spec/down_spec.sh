@@ -2,10 +2,7 @@
 # shellcheck shell=bash
 # shellcheck disable=SC2317
 
-DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 
-# shellcheck disable=SC1091
-. "$DEV_ROOT/src/spec/support/helpers.sh"
 
 Describe 'down'
   Before 'fixture_service_proj'

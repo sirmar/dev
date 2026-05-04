@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # shellcheck shell=bash
 
+export DEV_ROOT="${SHELLSPEC_PROJECT_ROOT}"
 DEV_SCRIPT="${SHELLSPEC_PROJECT_ROOT}/src/app/dev.sh"
 
 # shellcheck disable=SC1091
@@ -23,3 +24,4 @@ teardown() {
     rm -rf "$MOCK_DIR" ${PROJ_DIR:+"$PROJ_DIR"}
     unset PROJ_DIR
 }
+

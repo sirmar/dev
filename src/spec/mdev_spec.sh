@@ -1,11 +1,8 @@
 #!/usr/bin/env bash
 # shellcheck shell=bash
-# shellcheck disable=SC2317,SC1091
+# shellcheck disable=SC2317
 
-DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 MDEV_SCRIPT="$DEV_ROOT/src/app/mdev.sh"
-
-. "$DEV_ROOT/src/spec/support/helpers.sh"
 
 run_mdev() {
   (cd "$MOCK_DIR" && NO_COLOR=1 bash "$MDEV_SCRIPT" "$@")

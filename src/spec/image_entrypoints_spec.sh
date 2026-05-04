@@ -2,10 +2,7 @@
 # shellcheck shell=bash
 # shellcheck disable=SC2317
 
-DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 
-# shellcheck disable=SC1091
-. "$DEV_ROOT/src/spec/support/helpers.sh"
 
 _setup_entrypoint_env() {
   PROJ_DIR="$(mktemp -d)"
@@ -15,6 +12,7 @@ _setup_entrypoint_env() {
   printf '#!/bin/sh\necho "90.0"\n' >"$PROJ_DIR/bc"
   printf '#!/bin/sh\necho "node $*"\n' >"$PROJ_DIR/node"
   chmod +x "$PROJ_DIR/uv" "$PROJ_DIR/shellspec" "$PROJ_DIR/pnpm" "$PROJ_DIR/bc" "$PROJ_DIR/node"
+  cp "$DEV_ROOT/images/shared/scripts/entrypoint-helper.sh" "$PROJ_DIR/entrypoint-helper.sh"
   export PROJ_DIR
 }
 

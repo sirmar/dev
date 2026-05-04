@@ -104,7 +104,3 @@ fixture_service_repo_without_stage() {
     mv "$MOCK_DIR/Dockerfile.tmp" "$MOCK_DIR/Dockerfile"
 }
 
-for _stage in lint format unit coverage types security lock watch e2e; do
-    eval "fixture_service_repo_without_${_stage}() { fixture_service_repo_without_stage ${_stage}; }"
-done
-unset _stage

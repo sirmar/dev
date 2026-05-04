@@ -2,13 +2,11 @@
 # shellcheck shell=bash
 # shellcheck disable=SC2317
 
-DEV_ROOT="$SHELLSPEC_PROJECT_ROOT"
 
-# shellcheck disable=SC1091
-. "$DEV_ROOT/src/spec/support/helpers.sh"
 
 Describe 'unit when unit stage is missing from Dockerfile'
-  Before 'fixture_service_repo_without_unit'
+  setup_unit_no_stage() { fixture_service_repo_without_stage unit; }
+  Before 'setup_unit_no_stage'
   After 'teardown'
 
   It 'prints info and skips without error'
