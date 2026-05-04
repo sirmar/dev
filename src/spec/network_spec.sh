@@ -4,16 +4,16 @@
 
 
 
-Describe 'ensure_network'
-  setup_env() {
-    MOCK_DIR="$(mktemp -d)"
-    export PATH="$MOCK_DIR:$PATH"
-    PROJ_DIR="$(mktemp -d)"
-    cp "$DEV_SCRIPT" "$PROJ_DIR/dev.sh"
-    write_dev_config "$PROJ_DIR" dev service
-  }
+_base_setup_env() {
+  MOCK_DIR="$(mktemp -d)"
+  export PATH="$MOCK_DIR:$PATH"
+  PROJ_DIR="$(mktemp -d)"
+  cp "$DEV_SCRIPT" "$PROJ_DIR/dev.sh"
+  write_dev_config "$PROJ_DIR" dev service
+}
 
-  Before 'setup_env'
+Describe 'ensure_network'
+  Before '_base_setup_env'
   After 'teardown'
 
   It 'skips network creation when DEV_NETWORK is not set'
@@ -56,11 +56,7 @@ End
 
 Describe 'ensure_e2e_network'
   setup_env() {
-    MOCK_DIR="$(mktemp -d)"
-    export PATH="$MOCK_DIR:$PATH"
-    PROJ_DIR="$(mktemp -d)"
-    cp "$DEV_SCRIPT" "$PROJ_DIR/dev.sh"
-    write_dev_config "$PROJ_DIR" dev service
+    _base_setup_env
     printf 'FROM scratch AS e2e\n' >"$PROJ_DIR/Dockerfile"
     touch "$PROJ_DIR/docker-compose.e2e.yml"
   }

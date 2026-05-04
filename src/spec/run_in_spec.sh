@@ -41,7 +41,7 @@ Describe 'run_in'
     The status should be success
   End
 
-  It 'omits port flag when DEV_PORT is unset'
+  It 'does not expose a port when DEV_PORT is unset'
     When run run_dev unit
     The output should not include '-p '
     The status should be success
