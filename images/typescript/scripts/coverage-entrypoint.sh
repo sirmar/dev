@@ -1,7 +1,6 @@
 #!/bin/sh
-if [ $# -gt 0 ]; then
-	pnpm vitest run --coverage "$@"
-else
-	pnpm vitest run --coverage --reporter=dot
-fi &&
+_run_cmd() { pnpm vitest run --coverage "$@"; }
+# shellcheck source=/dev/null
+. entrypoint-helper.sh
+run_entrypoint '--reporter=dot' "$@" &&
 	node /usr/local/bin/coverage-summary.js >/workspace/out/coverage.md

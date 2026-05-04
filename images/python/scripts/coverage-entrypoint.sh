@@ -1,8 +1,6 @@
 #!/bin/sh
-if [ $# -gt 0 ]; then
-	uv run pytest -q --cov --cov-report=term "$@" &&
-		uv run coverage report --format=markdown >/workspace/out/coverage.md
-else
-	uv run pytest -q --cov --cov-report=term src/tests/ &&
-		uv run coverage report --format=markdown >/workspace/out/coverage.md
-fi
+_run_cmd() { uv run pytest -q --cov --cov-report=term "$@"; }
+# shellcheck source=/dev/null
+. entrypoint-helper.sh
+run_entrypoint 'src/tests/' "$@" &&
+	uv run coverage report --format=markdown >/workspace/out/coverage.md

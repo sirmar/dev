@@ -1,6 +1,5 @@
 #!/bin/sh
-if [ $# -gt 0 ]; then
-	exec shellspec "$@"
-else
-	exec shellspec src/spec
-fi
+_run_cmd() { exec shellspec "$@"; }
+# shellcheck source=/dev/null
+. entrypoint-helper.sh
+run_entrypoint 'src/spec' "$@"

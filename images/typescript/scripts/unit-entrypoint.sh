@@ -1,6 +1,5 @@
 #!/bin/sh
-if [ $# -gt 0 ]; then
-	exec pnpm vitest run "$@"
-else
-	exec pnpm vitest run --reporter=dot
-fi
+_run_cmd() { exec pnpm vitest run "$@"; }
+# shellcheck source=/dev/null
+. entrypoint-helper.sh
+run_entrypoint '--reporter=dot' "$@"

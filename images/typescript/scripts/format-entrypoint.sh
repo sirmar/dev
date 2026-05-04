@@ -1,5 +1,5 @@
 #!/bin/sh
-if [ $# -gt 0 ]; then
-	exec pnpm exec biome format --write "$@"
-fi
-exec pnpm exec biome format --write .
+_run_cmd() { exec pnpm exec biome format --write "$@"; }
+# shellcheck source=/dev/null
+. entrypoint-helper.sh
+run_entrypoint '.' "$@"

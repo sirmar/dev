@@ -2,5 +2,6 @@ FROM node:22-slim
 LABEL org.opencontainers.image.source=https://github.com/sirmar/dev
 RUN npm install -g pnpm@10.33.2
 WORKDIR /workspace
-COPY scripts/ /usr/local/bin/
+COPY typescript/scripts/ /usr/local/bin/
+COPY shared/scripts/ /usr/local/bin/
 RUN chmod +x /usr/local/bin/*-entrypoint.sh

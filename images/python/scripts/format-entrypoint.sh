@@ -1,5 +1,5 @@
 #!/bin/sh
-if [ $# -gt 0 ]; then
-	exec uv run ruff format "$@"
-fi
-exec uv run ruff format /workspace
+_run_cmd() { exec uv run ruff format "$@"; }
+# shellcheck source=/dev/null
+. entrypoint-helper.sh
+run_entrypoint '/workspace' "$@"

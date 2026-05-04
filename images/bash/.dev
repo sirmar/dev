@@ -1,2 +1,3 @@
 DEV_NAME=dev-bash
 DEV_REPO_TYPE=image
+DEV_CONTEXT=..

@@ -1,8 +1,5 @@
 #!/bin/sh
-if [ $# -gt 0 ]; then
-	files=$(for f in "$@"; do case "$f" in *.py) echo "$f" ;; esac done)
-	[ -z "$files" ] && exit 0
-	# shellcheck disable=SC2086
-	exec uv run ruff check $files
-fi
-exec uv run ruff check /workspace
+_run_cmd() { exec uv run ruff check "$@"; }
+# shellcheck source=/dev/null
+. entrypoint-helper.sh
+run_entrypoint_filtered '/workspace' '*.py' "$@"
