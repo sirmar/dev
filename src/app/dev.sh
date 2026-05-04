@@ -581,6 +581,12 @@ cmd_diagnose() {
 			error_msg "docker compose v2 not available"
 			failed=1
 		fi
+		if jq --version &>/dev/null; then
+			info "jq found"
+		else
+			error_msg "jq not found in PATH"
+			failed=1
+		fi
 	fi
 
 	find_dev_file

@@ -37,6 +37,24 @@ Describe 'diagnose'
         The status should be failure
       End
     End
+
+    Describe 'when jq is not available'
+      setup_diagnose_no_jq() {
+        MOCK_DIR="$(mktemp -d)" && export MOCK_DIR
+        fixture_finish_docker
+        printf '#!/bin/sh\nexit 1\n' >"$MOCK_DIR/jq"
+        chmod +x "$MOCK_DIR/jq"
+      }
+      Before 'setup_diagnose_no_jq'
+      After 'teardown'
+
+      It 'reports jq not found'
+        When run run_dev diagnose
+        The output should include '[system]'
+        The error should include 'jq not found in PATH'
+        The status should be failure
+      End
+    End
   End
 
   Describe '--repo-only flag'
