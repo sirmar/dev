@@ -4,18 +4,6 @@
 
 
 
-Describe 'e2e when e2e stage is missing from Dockerfile'
-  setup_e2e_no_stage() { fixture_service_repo_without_stage e2e; }
-  Before 'setup_e2e_no_stage'
-  After 'teardown'
-
-  It 'prints info and skips without error'
-    When run run_dev e2e
-    The output should include "no 'e2e' stage found in Dockerfile"
-    The status should be success
-  End
-End
-
 Describe 'e2e when docker-compose.e2e.yml is missing'
   setup_e2e_no_compose() {
     fixture_service_repo

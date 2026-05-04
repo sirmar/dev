@@ -9,13 +9,6 @@ Describe 'watch'
     Before 'fixture_service_repo'
     After 'teardown'
 
-    It 'builds and runs the watch stage'
-      When run run_dev watch
-      The output should include 'building stage watch'
-      The output should include 'running watch'
-      The status should be success
-    End
-
     It 'mounts the workspace volume'
       When run run_dev watch
       The output should include '/workspace'

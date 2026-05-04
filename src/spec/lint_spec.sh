@@ -42,15 +42,3 @@ Describe 'lint-dockerfile when Dockerfile is missing'
   End
 End
 
-Describe 'lint'
-  Before 'fixture_service_repo'
-  After 'teardown'
-
-  It 'lints all files when no target given'
-    When run run_dev lint
-    The output should include 'building stage lint'
-    The output should include 'running lint'
-    The status should be success
-  End
-End
-

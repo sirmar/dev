@@ -4,27 +4,12 @@
 
 
 
-Describe 'unit when unit stage is missing from Dockerfile'
-  setup_unit_no_stage() { fixture_service_repo_without_stage unit; }
-  Before 'setup_unit_no_stage'
-  After 'teardown'
-
-  It 'prints info and skips without error'
-    When run run_dev unit
-    The output should include "no 'unit' stage found in Dockerfile"
-    The output should not include 'running unit'
-    The status should be success
-  End
-End
-
 Describe 'unit'
   Before 'fixture_service_repo'
   After 'teardown'
 
-  It 'runs unit tests'
+  It 'uses docker run'
     When run run_dev unit
-    The output should include 'building stage unit'
-    The output should include 'running unit'
     The output should include 'docker run'
     The status should be success
   End

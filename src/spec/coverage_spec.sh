@@ -8,13 +8,6 @@ Describe 'coverage'
   Before 'fixture_service_repo'
   After 'teardown'
 
-  It 'builds coverage image and runs'
-    When run run_dev coverage
-    The output should include 'building stage coverage'
-    The output should include 'running coverage'
-    The status should be success
-  End
-
   It 'mounts out/ for coverage output'
     When run run_dev coverage
     The output should include '/workspace/out'

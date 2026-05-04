@@ -10,12 +10,34 @@ Describe 'simple stages'
     types
     security
     lock
+    unit
+    format
+    lint
+    coverage
+    watch
   End
 
   It "builds and runs the $1 stage"
     When run run_dev "$1"
     The output should include "building stage $1"
     The output should include "running $1"
+    The status should be success
+  End
+End
+
+Describe 'missing stage'
+  Parameters
+    unit
+    e2e
+  End
+
+  After 'teardown'
+
+  It "prints info and skips $1 without error"
+    fixture_service_repo_without_stage "$1"
+    When run run_dev "$1"
+    The output should include "no '$1' stage found in Dockerfile"
+    The output should not include "running $1"
     The status should be success
   End
 End
