@@ -61,29 +61,16 @@ jobs:
       - name: ${{ matrix.target }}
         working-directory: ${{ matrix.package }}
         run: dev ${{ matrix.target }}
-
-  coverage:
-    name: Coverage / ${{ matrix.package }}
-    needs: [discover, check]
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        package: ${{ fromJson(needs.discover.outputs.coverage) }}
-    steps:
-      - uses: actions/checkout@v6.0.2
-      - uses: sirmar/dev@main
-      - name: Coverage
-        working-directory: ${{ matrix.package }}
-        run: dev coverage
       - name: Upload coverage artifact
+        if: matrix.target == 'coverage'
         uses: actions/upload-artifact@v7.0.1
         with:
-          name: ${{ matrix.package }}-coverage
+          name: ${{ matrix.package == '.' && github.event.repository.name || matrix.package }}-coverage
           path: ${{ matrix.package }}/out/coverage.md
 
   coverage-report:
     name: Coverage report
-    needs: coverage
+    needs: check
     runs-on: ubuntu-latest
     steps:
       - name: Download coverage artifacts

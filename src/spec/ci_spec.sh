@@ -32,10 +32,10 @@ Describe 'ci'
       Assert [ "$(grep '^build=' "$GITHUB_OUTPUT" | cut -d= -f2-)" = '["."]' ]
     End
 
-    It 'emits checks output excluding base, build, coverage, and prod'
+    It 'emits checks output excluding base, build, and prod but including coverage'
       When run run_dev ci
       The status should be success
-      Assert [ "$(grep '^checks=' "$GITHUB_OUTPUT" | cut -d= -f2-)" = '{"include":[{"package":".","target":"lint"},{"package":".","target":"format"},{"package":".","target":"unit"},{"package":".","target":"types"},{"package":".","target":"security"},{"package":".","target":"lock"},{"package":".","target":"watch"}]}' ]
+      Assert [ "$(grep '^checks=' "$GITHUB_OUTPUT" | cut -d= -f2-)" = '{"include":[{"package":".","target":"lint"},{"package":".","target":"format"},{"package":".","target":"coverage"},{"package":".","target":"types"},{"package":".","target":"security"},{"package":".","target":"lock"},{"package":".","target":"watch"}]}' ]
     End
 
     It 'emits coverage output'
@@ -57,6 +57,22 @@ Describe 'ci'
       The output should include 'build='
       The output should include 'checks='
       The output should include 'coverage='
+    End
+  End
+
+  Describe 'tool repo without coverage stage'
+    setup_ci_tool_no_coverage() {
+      setup_ci_tool
+      grep -v ' AS coverage$' "$MOCK_DIR/Dockerfile" >"$MOCK_DIR/Dockerfile.tmp"
+      mv "$MOCK_DIR/Dockerfile.tmp" "$MOCK_DIR/Dockerfile"
+    }
+    Before 'setup_ci_tool_no_coverage'
+    After 'teardown_ci'
+
+    It 'includes unit in checks when no coverage stage exists'
+      When run run_dev ci
+      The status should be success
+      Assert grep -q '"target":"unit"' <(grep '^checks=' "$GITHUB_OUTPUT" | cut -d= -f2-)
     End
   End
 
