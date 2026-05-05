@@ -30,9 +30,6 @@ jobs:
         id: ci
         run: |
           ${{ inputs.mode }} ci
-          echo "DEBUG build=$(grep '^build=' "$GITHUB_OUTPUT" | cut -d= -f2-)"
-          echo "DEBUG checks=$(grep '^checks=' "$GITHUB_OUTPUT" | cut -d= -f2-)"
-          echo "DEBUG coverage=$(grep '^coverage=' "$GITHUB_OUTPUT" | cut -d= -f2-)"
 
   build:
     name: Build / ${{ matrix.package }}
@@ -55,7 +52,7 @@ jobs:
 
   check:
     name: Check / ${{ matrix.package }} / ${{ matrix.target }}
-    needs: build
+    needs: [discover, build]
     runs-on: ubuntu-latest
     permissions:
       packages: read
@@ -72,7 +69,7 @@ jobs:
 
   coverage:
     name: Coverage / ${{ matrix.package }}
-    needs: check
+    needs: [discover, check]
     runs-on: ubuntu-latest
     permissions:
       packages: read
