@@ -40,9 +40,27 @@ Describe 'build (service repo)'
   End
 End
 
+Describe 'build (CI mode with login)'
+  Before 'fixture_service_repo_with_ci_login'
+  After 'teardown_ci'
+
+  It 'logs in to ghcr.io before building'
+    When run run_dev build
+    The output should include 'logging in to ghcr.io'
+    The output should include 'docker buildx build'
+    The status should be success
+  End
+End
+
 Describe 'build (CI mode)'
   Before 'fixture_service_repo_with_ci'
   After 'teardown_ci'
+
+  It 'does not log in when GITHUB_TOKEN is not set'
+    When run run_dev build
+    The output should not include 'logging in to ghcr.io'
+    The status should be success
+  End
 
   It 'uses docker buildx build with --load'
     When run run_dev build

@@ -125,6 +125,10 @@ has_dockerfile_stage() {
 }
 
 build_image() {
+	in_ci && [[ -n "${GITHUB_TOKEN:-}" ]] && [[ -z "${_DEV_LOGGED_IN:-}" ]] && {
+		cmd_login
+		_DEV_LOGGED_IN=1
+	}
 	local stage="$1" quiet="${2:-false}" no_cache="${3:-false}"
 	local flags=()
 	$quiet && ! in_ci && flags+=(-q)

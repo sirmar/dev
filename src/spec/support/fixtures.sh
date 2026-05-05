@@ -100,8 +100,14 @@ fixture_service_repo_with_ci() {
     export CI=true
 }
 
+fixture_service_repo_with_ci_login() {
+    fixture_service_repo_with_ci
+    export GITHUB_TOKEN=ghs_citoken
+    export GITHUB_ACTOR=ciuser
+}
+
 teardown_ci() {
-    unset CI
+    unset CI GITHUB_TOKEN GITHUB_ACTOR
     teardown
 }
 
