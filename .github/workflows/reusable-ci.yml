@@ -13,6 +13,9 @@ env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   GITHUB_ACTOR: ${{ github.actor }}
 
+permissions:
+  packages: read
+
 jobs:
   discover:
     name: Discover
@@ -36,8 +39,6 @@ jobs:
     needs: discover
     if: ${{ fromJson(needs.discover.outputs.build)[0] != null }}
     runs-on: ubuntu-latest
-    permissions:
-      packages: read
     strategy:
       matrix:
         package: ${{ fromJson(needs.discover.outputs.build) }}
@@ -52,8 +53,6 @@ jobs:
     name: Check / ${{ matrix.package }} / ${{ matrix.target }}
     needs: [discover, build]
     runs-on: ubuntu-latest
-    permissions:
-      packages: read
     strategy:
       matrix: ${{ fromJson(needs.discover.outputs.checks) }}
     steps:
@@ -67,8 +66,6 @@ jobs:
     name: Coverage / ${{ matrix.package }}
     needs: [discover, check]
     runs-on: ubuntu-latest
-    permissions:
-      packages: read
     strategy:
       matrix:
         package: ${{ fromJson(needs.discover.outputs.coverage) }}
