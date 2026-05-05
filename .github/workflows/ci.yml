@@ -6,46 +6,9 @@ on:
   pull_request:
     branches: [main]
 
-env:
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  GITHUB_ACTOR: ${{ github.actor }}
-  DOCKER_DEFAULT_PLATFORM: linux/amd64
-
 jobs:
-  tool:
-    name: Tool / ${{ matrix.job }}
-    runs-on: ubuntu-latest
-    permissions:
-      packages: read
-      pull-requests: write
-    strategy:
-      matrix:
-        job: [lint-dockerfile, lint, coverage]
-    steps:
-      - uses: actions/checkout@v6.0.2
-      - uses: ./
-      - name: Login
-        run: dev login
-      - name: Run
-        run: dev ${{ matrix.job }}
-      - name: Coverage summary
-        if: matrix.job == 'coverage'
-        run: echo '## Coverage' >> $GITHUB_STEP_SUMMARY && cat out/coverage.md >> $GITHUB_STEP_SUMMARY
-
-  image:
-    name: ${{ matrix.image }} / ${{ matrix.job }}
-    runs-on: ubuntu-latest
-    permissions:
-      packages: read
-    strategy:
-      matrix:
-        image: [bash, nginx, python, typescript]
-        job: [lint-dockerfile, build]
-    steps:
-      - uses: actions/checkout@v6.0.2
-      - uses: ./
-      - name: Login
-        run: dev login
-      - name: Run
-        working-directory: images/${{ matrix.image }}
-        run: dev ${{ matrix.job }}
+  ci:
+    uses: ./.github/workflows/reusable-ci.yml
+    with:
+      mode: dev
+    secrets: inherit
