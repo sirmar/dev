@@ -35,7 +35,7 @@ jobs:
           ${{ inputs.mode }} ci
 
   build:
-    name: Build / ${{ matrix.package }}
+    name: Build${{ matrix.package == '.' && '' || format(' / {0}', matrix.package) }}
     needs: discover
     if: ${{ fromJson(needs.discover.outputs.build)[0] != null }}
     runs-on: ubuntu-latest
@@ -50,7 +50,7 @@ jobs:
         run: dev build
 
   check:
-    name: Check / ${{ matrix.package }} / ${{ matrix.target }}
+    name: Check / ${{ matrix.package == '.' && matrix.target || format('{0} / {1}', matrix.package, matrix.target) }}
     needs: [discover, build]
     runs-on: ubuntu-latest
     strategy:
