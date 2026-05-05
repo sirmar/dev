@@ -500,6 +500,17 @@ Describe 'changed'
     The status should be success
     The output should be blank
   End
+
+  It 'returns all services when a workflow file changed'
+    mkdir -p "$MOCK_DIR/.github/workflows"
+    touch "$MOCK_DIR/.github/workflows/ci.yml"
+    git -C "$MOCK_DIR" add .
+    git -C "$MOCK_DIR" commit -q -m 'add ci workflow'
+    When run bash -c "cd '$MOCK_DIR' && bash '$MDEV_SCRIPT' changed HEAD~1"
+    The status should be success
+    The output should include 'api'
+    The output should include 'worker'
+  End
 End
 
 

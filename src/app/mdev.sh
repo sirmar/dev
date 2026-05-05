@@ -332,6 +332,12 @@ cmd_changed() {
 	fi
 	local services
 	mapfile -t services < <(discover_services)
+	for file in "${changed_files[@]}"; do
+		if [[ "$file" == .github/workflows/* ]]; then
+			printf '%s\n' "${services[@]}"
+			return 0
+		fi
+	done
 	local seen=() svc file already s
 	for file in "${changed_files[@]}"; do
 		for svc in "${services[@]}"; do
