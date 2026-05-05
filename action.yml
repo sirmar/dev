@@ -12,3 +12,10 @@ runs:
         cp "${{ github.action_path }}/src/app/docker-compose.network.yml" /usr/local/bin/docker-compose.network.yml
         cp "${{ github.action_path }}/src/app/docker-compose.e2e-network.yml" /usr/local/bin/docker-compose.e2e-network.yml
         chmod +x /usr/local/bin/dev /usr/local/bin/mdev
+    - uses: crazy-max/ghaction-github-runtime@v4.0.0
+    - uses: docker/setup-buildx-action@v4.0.0
+      with:
+        driver-opts: |
+          env.ACTIONS_CACHE_URL=${{ env.ACTIONS_CACHE_URL }}
+          env.ACTIONS_RESULTS_URL=${{ env.ACTIONS_RESULTS_URL }}
+          env.ACTIONS_RUNTIME_TOKEN=${{ env.ACTIONS_RUNTIME_TOKEN }}
