@@ -478,8 +478,39 @@ cmd_exec() {
 }
 
 cmd_ci() {
-	cmd_build
-	cmd_check "$@"
+	local pkg="${1:-.}"
+	local stages build_pkgs=() checks_include=() coverage_pkgs=()
+
+	mapfile -t stages < <(dockerfile_stages)
+
+	if ! is_repo_type library; then
+		build_pkgs+=("$pkg")
+	fi
+
+	for stage in "${stages[@]}"; do
+		case "$stage" in
+		coverage) coverage_pkgs+=("$pkg") ;;
+		build | prod) : ;;
+		*) checks_include+=("{\"package\":\"$pkg\",\"target\":\"$stage\"}") ;;
+		esac
+	done
+
+	local build_json checks_json coverage_json
+	build_json="$(jq -cn '$ARGS.positional' --args "${build_pkgs[@]+"${build_pkgs[@]}"}")"
+	coverage_json="$(jq -cn '$ARGS.positional' --args "${coverage_pkgs[@]+"${coverage_pkgs[@]}"}")"
+	checks_json="$(printf '%s\n' "${checks_include[@]+"${checks_include[@]}"}" | jq -sc '{include: .}')"
+
+	if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
+		{
+			printf 'build=%s\n' "$build_json"
+			printf 'checks=%s\n' "$checks_json"
+			printf 'coverage=%s\n' "$coverage_json"
+		} >>"$GITHUB_OUTPUT"
+	else
+		printf 'build=%s\n' "$build_json"
+		printf 'checks=%s\n' "$checks_json"
+		printf 'coverage=%s\n' "$coverage_json"
+	fi
 }
 
 cmd_rebuild() {

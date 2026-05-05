@@ -31,7 +31,7 @@ type="$(grep -m1 '^DEV_REPO_TYPE=' .dev 2>/dev/null | cut -d= -f2 | tr -d '"')"
 if [[ "$1" == "completions" ]]; then
   case "$type" in
     service) echo 'up down logs build lint format unit lock check ci db-migrate shell db-shell watch rebuild push' ;;
-    tool)    echo 'build lint format unit check coverage types security' ;;
+    tool)    echo 'build lint format unit check coverage types security ci' ;;
     image)   echo 'build lint push' ;;
     *)       echo 'build lint format unit check' ;;
   esac
@@ -39,11 +39,28 @@ elif [[ "$1" == "supports" ]]; then
   cmd="$2"
   case "$type" in
     service)  [[ " up down logs build lint format unit lock check ci db-migrate shell db-shell watch rebuild push " == *" $cmd "* ]] && exit 0 || exit 1 ;;
-    tool)     [[ " build lint format unit check coverage types security " == *" $cmd "* ]] && exit 0 || exit 1 ;;
+    tool)     [[ " build lint format unit check coverage types security ci " == *" $cmd "* ]] && exit 0 || exit 1 ;;
     image)    [[ " build lint push " == *" $cmd "* ]] && exit 0 || exit 1 ;;
     library)  [[ " lint format unit check " == *" $cmd "* ]] && exit 0 || exit 1 ;;
     *)        [[ " build lint format unit check " == *" $cmd "* ]] && exit 0 || exit 1 ;;
   esac
+elif [[ "$1" == "ci" ]]; then
+  pkg="${2:-.}"
+  build_pkgs=() checks_include=() coverage_pkgs=()
+  [[ "$type" != "library" ]] && build_pkgs+=("$pkg")
+  if [[ -f Dockerfile ]]; then
+    while IFS= read -r stage; do
+      case "$stage" in
+        coverage) coverage_pkgs+=("$pkg") ;;
+        build|prod) : ;;
+        *) checks_include+=("{\"package\":\"$pkg\",\"target\":\"$stage\"}") ;;
+      esac
+    done < <(sed -n 's/^FROM .* AS \([a-zA-Z0-9_]*\)$/\1/p' Dockerfile | grep -v '^base$')
+  fi
+  build_json="$(printf '%s\n' "${build_pkgs[@]+"${build_pkgs[@]}"}" | jq -Rnc '[inputs]')"
+  coverage_json="$(printf '%s\n' "${coverage_pkgs[@]+"${coverage_pkgs[@]}"}" | jq -Rnc '[inputs]')"
+  checks_json="$(printf '%s\n' "${checks_include[@]+"${checks_include[@]}"}" | jq -sc '{include: .}')"
+  printf 'build=%s\nchecks=%s\ncoverage=%s\n' "$build_json" "$checks_json" "$coverage_json"
 else
   echo "dev $*"
 fi

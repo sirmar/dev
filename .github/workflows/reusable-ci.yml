@@ -1,0 +1,103 @@
+name: Reusable CI
+
+on:
+  workflow_call:
+    inputs:
+      mode:
+        description: '"dev" for single-service repos (service/tool), "mdev" for monorepos. Library repos are not supported.'
+        type: string
+        default: dev
+
+env:
+  DOCKER_DEFAULT_PLATFORM: linux/amd64
+
+jobs:
+  discover:
+    name: Discover
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.ci.outputs.build }}
+      checks: ${{ steps.ci.outputs.checks }}
+      coverage: ${{ steps.ci.outputs.coverage }}
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+      - uses: sirmar/dev@main
+      - name: Discover CI targets
+        id: ci
+        run: ${{ inputs.mode }} ci
+
+  build:
+    name: Build / ${{ matrix.package }}
+    needs: discover
+    if: ${{ fromJson(needs.discover.outputs.build)[0] != null }}
+    runs-on: ubuntu-latest
+    permissions:
+      packages: read
+    strategy:
+      matrix:
+        package: ${{ fromJson(needs.discover.outputs.build) }}
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - uses: sirmar/dev@main
+      - name: Login
+        run: dev login
+      - name: Build
+        working-directory: ${{ matrix.package }}
+        run: dev build
+
+  check:
+    name: Check / ${{ matrix.package }} / ${{ matrix.target }}
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      packages: read
+    strategy:
+      matrix: ${{ fromJson(needs.discover.outputs.checks) }}
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - uses: sirmar/dev@main
+      - name: Login
+        run: dev login
+      - name: ${{ matrix.target }}
+        working-directory: ${{ matrix.package }}
+        run: dev ${{ matrix.target }}
+
+  coverage:
+    name: Coverage / ${{ matrix.package }}
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      packages: read
+    strategy:
+      matrix:
+        package: ${{ fromJson(needs.discover.outputs.coverage) }}
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - uses: sirmar/dev@main
+      - name: Login
+        run: dev login
+      - name: Coverage
+        working-directory: ${{ matrix.package }}
+        run: dev coverage
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.package }}-coverage
+          path: ${{ matrix.package }}/out/coverage.md
+
+  coverage-report:
+    name: Coverage report
+    needs: coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download coverage artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '*-coverage'
+          path: coverage-artifacts
+      - name: Write step summary
+        run: |
+          echo '## Coverage' >> "$GITHUB_STEP_SUMMARY"
+          find coverage-artifacts -name 'coverage.md' | sort | xargs -I{} sh -c 'cat {} >> "$GITHUB_STEP_SUMMARY"'

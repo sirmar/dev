@@ -265,21 +265,21 @@ cmd_ci() {
 	local build_pkgs=() checks_include=() coverage_pkgs=()
 
 	for pkg in "${changed[@]}"; do
-		if service_supports_cmd "$pkg" build; then
-			build_pkgs+=("$pkg")
-		fi
+		local output
+		output="$(cd "$MDEV_ROOT/$pkg" && GITHUB_OUTPUT='' dev ci "$pkg")"
 
-		local dockerfile="$MDEV_ROOT/$pkg/Dockerfile"
-		if [[ -f "$dockerfile" ]]; then
-			local stage
-			while IFS= read -r stage; do
-				case "$stage" in
-				coverage) coverage_pkgs+=("$pkg") ;;
-				build) : ;;
-				*) checks_include+=("{\"package\":\"$pkg\",\"target\":\"$stage\"}") ;;
-				esac
-			done < <(sed -n 's/^FROM .* AS \([a-zA-Z0-9_]*\)$/\1/p' "$dockerfile" | grep -v '^base$')
-		fi
+		local item
+		while IFS= read -r item; do
+			[[ -n "$item" ]] && build_pkgs+=("$item")
+		done < <(printf '%s\n' "$output" | grep '^build=' | cut -d= -f2- | jq -r '.[]' 2>/dev/null || true)
+
+		while IFS= read -r item; do
+			[[ -n "$item" ]] && checks_include+=("$item")
+		done < <(printf '%s\n' "$output" | grep '^checks=' | cut -d= -f2- | jq -c '.include[]' 2>/dev/null || true)
+
+		while IFS= read -r item; do
+			[[ -n "$item" ]] && coverage_pkgs+=("$item")
+		done < <(printf '%s\n' "$output" | grep '^coverage=' | cut -d= -f2- | jq -r '.[]' 2>/dev/null || true)
 	done
 
 	local build_json checks_json coverage_json

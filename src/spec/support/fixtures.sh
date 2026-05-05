@@ -39,6 +39,14 @@ fixture_tool_repo() {
     export MOCK_DIR
 }
 
+fixture_library_repo() {
+    MOCK_DIR="$(mktemp -d)"
+    printf '%s\n' "$_MOCK_DOCKERFILE" >"$MOCK_DIR/Dockerfile"
+    write_dev_config "$MOCK_DIR" dev library
+    fixture_finish_docker
+    export MOCK_DIR
+}
+
 fixture_e2e_repo() {
     MOCK_DIR="$(mktemp -d)"
     printf '%s\n' "$_MOCK_DOCKERFILE" >"$MOCK_DIR/Dockerfile"
