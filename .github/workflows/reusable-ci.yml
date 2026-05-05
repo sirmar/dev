@@ -28,7 +28,11 @@ jobs:
       - uses: sirmar/dev@main
       - name: Discover CI targets
         id: ci
-        run: ${{ inputs.mode }} ci
+        run: |
+          ${{ inputs.mode }} ci
+          echo "build=$(grep '^build=' "$GITHUB_OUTPUT" | cut -d= -f2-)" >> "$GITHUB_STEP_SUMMARY"
+          echo "checks=$(grep '^checks=' "$GITHUB_OUTPUT" | cut -d= -f2-)" >> "$GITHUB_STEP_SUMMARY"
+          echo "coverage=$(grep '^coverage=' "$GITHUB_OUTPUT" | cut -d= -f2-)" >> "$GITHUB_STEP_SUMMARY"
 
   build:
     name: Build / ${{ matrix.package }}
