@@ -35,7 +35,7 @@ jobs:
           ${{ inputs.mode }} ci
 
   build:
-    name: Build${{ matrix.package == '.' && '' || format(' / {0}', matrix.package) }}
+    name: ${{ matrix.package == '.' && 'Build' || format('Build / {0}', matrix.package) }}
     needs: discover
     if: ${{ fromJson(needs.discover.outputs.build)[0] != null }}
     runs-on: ubuntu-latest
