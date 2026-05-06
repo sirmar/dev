@@ -32,10 +32,10 @@ Describe 'ci'
       Assert [ "$(grep '^build=' "$GITHUB_OUTPUT" | cut -d= -f2-)" = '["."]' ]
     End
 
-    It 'emits checks output excluding base, build, and prod but including coverage'
+    It 'emits checks output with lint-dockerfile unconditionally and only known check stages'
       When run run_dev ci
       The status should be success
-      Assert [ "$(grep '^checks=' "$GITHUB_OUTPUT" | cut -d= -f2-)" = '{"include":[{"package":".","target":"lint"},{"package":".","target":"format"},{"package":".","target":"coverage"},{"package":".","target":"types"},{"package":".","target":"security"},{"package":".","target":"lock"},{"package":".","target":"watch"}]}' ]
+      Assert [ "$(grep '^checks=' "$GITHUB_OUTPUT" | cut -d= -f2-)" = '{"include":[{"package":".","target":"lint-dockerfile"},{"package":".","target":"lint"},{"package":".","target":"format"},{"package":".","target":"coverage"},{"package":".","target":"types"},{"package":".","target":"security"}]}' ]
     End
 
     It 'emits coverage output'

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # shellcheck shell=bash
 
-_MOCK_DOCKERFILE='FROM scratch AS lint
+_MOCK_DOCKERFILE='FROM scratch AS deps
+FROM scratch AS lint
 FROM scratch AS format
 FROM scratch AS unit
 FROM scratch AS coverage

@@ -496,8 +496,10 @@ cmd_ci() {
 		build_pkgs+=("$pkg")
 	fi
 
+	checks_include+=("{\"package\":\"$pkg\",\"target\":\"lint-dockerfile\"}")
+
 	local has_coverage=false
-	for stage in "${stages[@]}"; do [[ "$stage" == "coverage" ]] && has_coverage=true; done
+	has_dockerfile_stage coverage && has_coverage=true
 
 	for stage in "${stages[@]}"; do
 		case "$stage" in
@@ -505,9 +507,9 @@ cmd_ci() {
 			checks_include+=("{\"package\":\"$pkg\",\"target\":\"$stage\"}")
 			coverage_pkgs+=("$pkg")
 			;;
-		build | prod) : ;;
 		unit) $has_coverage || checks_include+=("{\"package\":\"$pkg\",\"target\":\"$stage\"}") ;;
-		*) checks_include+=("{\"package\":\"$pkg\",\"target\":\"$stage\"}") ;;
+		lint | format | types | security) checks_include+=("{\"package\":\"$pkg\",\"target\":\"$stage\"}") ;;
+		*) : ;;
 		esac
 	done
 
