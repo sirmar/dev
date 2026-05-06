@@ -293,6 +293,10 @@ cmd_ci() {
 			printf 'checks=%s\n' "$checks_json"
 			printf 'coverage=%s\n' "$coverage_json"
 		} >>"$GITHUB_OUTPUT"
+	else
+		printf 'build=%s\n' "$build_json"
+		printf 'checks=%s\n' "$checks_json"
+		printf 'coverage=%s\n' "$coverage_json"
 	fi
 }
 cmd_rebuild() { _run_for_services rebuild 'rebuilding' "$@"; }
@@ -324,9 +328,13 @@ cmd_changed() {
 			ref='origin/main'
 		fi
 	fi
-	git -C "$MDEV_ROOT" rev-parse "$ref" &>/dev/null || error "git ref '$ref' not found"
 	local changed_files
-	mapfile -t changed_files < <(git -C "$MDEV_ROOT" diff --name-only "$ref"...HEAD 2>/dev/null || true)
+	if [[ -z "${CI:-}" ]]; then
+		mapfile -t changed_files < <(git -C "$MDEV_ROOT" diff --name-only HEAD 2>/dev/null || true)
+	else
+		git -C "$MDEV_ROOT" rev-parse "$ref" &>/dev/null || error "git ref '$ref' not found"
+		mapfile -t changed_files < <(git -C "$MDEV_ROOT" diff --name-only "$ref"...HEAD 2>/dev/null || true)
+	fi
 	if [[ ${#changed_files[@]} -eq 0 ]]; then
 		return 0
 	fi
