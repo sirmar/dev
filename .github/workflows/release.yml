@@ -24,18 +24,17 @@ jobs:
       - name: Push
         run: dev push
 
-  push-image:
-    name: Push ${{ matrix.image }} Image
+  push-images:
+    name: Push Images
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-    strategy:
-      matrix:
-        image: [bash, nginx, python, typescript]
     steps:
       - uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
       - uses: ./
       - name: Push
-        working-directory: images/${{ matrix.image }}
-        run: dev push
+        working-directory: images
+        run: mdev push
