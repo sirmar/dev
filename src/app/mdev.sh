@@ -338,15 +338,14 @@ cmd_changed() {
 			return 0
 		fi
 	done
-	local seen=() svc file already s
+	local -A seen=()
+	local svc file
 	for file in "${changed_files[@]}"; do
 		for svc in "${services[@]}"; do
 			if [[ "$file" == "$svc/"* || "$file" == "$svc" ]]; then
-				already=false
-				for s in "${seen[@]+"${seen[@]}"}"; do [[ "$s" == "$svc" ]] && already=true; done
-				if ! $already; then
+				if [[ -z "${seen[$svc]:-}" ]]; then
 					echo "$svc"
-					seen+=("$svc")
+					seen[$svc]=1
 				fi
 			fi
 		done

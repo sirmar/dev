@@ -27,6 +27,10 @@ die() {
 	exit 1
 }
 
+error_msg() {
+	echo -e "[${DEV_NAME:-dev}] \033[0;31m$*\033[0m" >&2
+}
+
 # ---------------------------------------------------------------------------
 # Core utilities
 # ---------------------------------------------------------------------------
@@ -154,7 +158,6 @@ build_image() {
 }
 
 extra_mount_flags() {
-	mkdir -p "$ROOT_DIR/out"
 	local flags=(-v "$ROOT_DIR/out:/workspace/out")
 	for mount in $DEV_MOUNTS; do
 		local host_path="${mount%%:*}"
@@ -242,7 +245,7 @@ run_stage_compose() {
 # ---------------------------------------------------------------------------
 
 dockerfile_stages() {
-	sed -n 's/^FROM .* AS \([a-zA-Z0-9_]*\)$/\1/p' "$ROOT_DIR/Dockerfile" | grep -v '^base$'
+	sed -n '/^FROM .* AS base$/d; s/^FROM .* AS \([a-zA-Z0-9_]*\)$/\1/p' "$ROOT_DIR/Dockerfile"
 }
 
 cmd_build() {
@@ -305,8 +308,9 @@ cmd_push() {
 	remote="${DEV_REGISTRY}/${DEV_NAME}:${tag}"
 	latest="${DEV_REGISTRY}/${DEV_NAME}:latest"
 	info "pushing $remote"
-	docker buildx inspect dev-builder &>/dev/null || docker buildx create --name dev-builder --driver docker-container --use
-	docker buildx use dev-builder
+	if ! docker buildx inspect dev-builder &>/dev/null; then
+		docker buildx create --name dev-builder --driver docker-container --use
+	fi
 	if in_ci; then
 		flags+=(--cache-from "type=gha,scope=${DEV_NAME}-prod")
 		flags+=(--cache-to "type=gha,mode=max,scope=${DEV_NAME}-prod")
@@ -697,10 +701,6 @@ cmd_diagnose() {
 	fi
 
 	return "$failed"
-}
-
-error_msg() {
-	echo -e "[${DEV_NAME:-dev}] \033[0;31m$*\033[0m" >&2
 }
 
 cmd_help() {
