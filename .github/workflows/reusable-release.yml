@@ -1,0 +1,30 @@
+name: Reusable Release
+
+on:
+  workflow_call:
+    inputs:
+      mode:
+        description: '"dev" for single-service repos, "mdev" for monorepos.'
+        type: string
+        default: dev
+
+env:
+  DOCKER_DEFAULT_PLATFORM: linux/amd64
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GITHUB_ACTOR: ${{ github.actor }}
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  push:
+    name: Push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+      - uses: sirmar/dev@main
+      - name: Push
+        run: ${{ inputs.mode }} push

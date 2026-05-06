@@ -300,16 +300,21 @@ cmd_login() {
 cmd_push() {
 	if [[ -z "$DEV_REGISTRY" ]]; then error "DEV_REGISTRY is not set — add it to .dev or ~/.config/dev/config"; fi
 	cmd_login
-	local tag remote
+	local tag remote latest flags=()
 	tag="$(git -C "$ROOT_DIR" describe --tags --abbrev=0 2>/dev/null || error "no git tag found — run dev release first")"
 	remote="${DEV_REGISTRY}/${DEV_NAME}:${tag}"
+	latest="${DEV_REGISTRY}/${DEV_NAME}:latest"
 	info "pushing $remote"
 	docker buildx inspect dev-builder &>/dev/null || docker buildx create --name dev-builder --driver docker-container --use
 	docker buildx use dev-builder
+	if in_ci; then
+		flags+=(--cache-from "type=gha,scope=${DEV_NAME}-prod")
+		flags+=(--cache-to "type=gha,mode=max,scope=${DEV_NAME}-prod")
+	fi
 	if is_repo_type image; then
-		docker buildx build --platform linux/amd64,linux/arm64 --push -t "$remote" -f "$ROOT_DIR/Dockerfile" "$ROOT_DIR/$DEV_CONTEXT"
+		docker buildx build --platform linux/amd64,linux/arm64 --push -t "$remote" -t "$latest" "${flags[@]}" -f "$ROOT_DIR/Dockerfile" "$ROOT_DIR/$DEV_CONTEXT"
 	else
-		docker buildx build --platform linux/amd64,linux/arm64 --push --target prod -t "$remote" -f "$ROOT_DIR/Dockerfile" "$ROOT_DIR/$DEV_CONTEXT"
+		docker buildx build --platform linux/amd64,linux/arm64 --push --target prod -t "$remote" -t "$latest" "${flags[@]}" -f "$ROOT_DIR/Dockerfile" "$ROOT_DIR/$DEV_CONTEXT"
 	fi
 }
 
