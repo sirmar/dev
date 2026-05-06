@@ -301,7 +301,7 @@ cmd_push() {
 	if [[ -z "$DEV_REGISTRY" ]]; then error "DEV_REGISTRY is not set — add it to .dev or ~/.config/dev/config"; fi
 	cmd_login
 	local tag remote latest flags=()
-	tag="$(git -C "$ROOT_DIR" describe --tags --abbrev=0 2>/dev/null || error "no git tag found — run dev release first")"
+	tag="$(cmd_tag)"
 	remote="${DEV_REGISTRY}/${DEV_NAME}:${tag}"
 	latest="${DEV_REGISTRY}/${DEV_NAME}:latest"
 	info "pushing $remote"
@@ -564,6 +564,10 @@ cmd_logs() {
 	compose logs "$@"
 }
 
+cmd_tag() {
+	git -C "$ROOT_DIR" describe --tags --abbrev=0 2>/dev/null || error "no git tag found — run dev release first"
+}
+
 cmd_release() {
 	local bump_type="${2:-}"
 	case "$bump_type" in
@@ -572,7 +576,7 @@ cmd_release() {
 	esac
 
 	local current
-	current="$(git -C "$ROOT_DIR" describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")"
+	current="$(cmd_tag 2>/dev/null)" || current="v0.0.0"
 
 	# Strip leading v
 	local version="${current#v}"
@@ -814,7 +818,7 @@ cmd_args() {
 
 cmd_repo_types() {
 	case "$1" in
-	init | build | lint | lint-dockerfile | login | push | release | diagnose | help) echo '*' ;;
+	init | build | lint | lint-dockerfile | login | push | release | tag | diagnose | help) echo '*' ;;
 	format | check | ci | types | security | lock) echo 'service tool library e2e' ;;
 	unit | coverage) echo 'service tool library' ;;
 	run) echo 'tool e2e' ;;
@@ -834,7 +838,7 @@ assert_repo_type() {
 	fi
 }
 
-_DEV_COMMANDS=(init build lint lint-dockerfile login push release diagnose help
+_DEV_COMMANDS=(init build lint lint-dockerfile login push release tag diagnose help
 	format unit e2e check ci coverage types security lock
 	watch shell run exec rebuild up down clean logs db-shell db-migrate)
 
@@ -957,6 +961,10 @@ main() {
 		;;
 	release)
 		cmd_release "$@"
+		return
+		;;
+	tag)
+		cmd_tag
 		return
 		;;
 	esac

@@ -12,48 +12,48 @@ Describe 'completions'
     write_dev_config "$MOCK_DIR" myapp image
     When run bash -c "cd '$MOCK_DIR' && bash '$DEV_SCRIPT' completions"
     The status should be success
-    The output should equal 'init build lint lint-dockerfile login push release diagnose help'
+    The output should equal 'init build lint lint-dockerfile login push release tag diagnose help'
   End
 
   It 'returns exact set for service repos'
     write_dev_config "$MOCK_DIR" myapp service
     When run bash -c "cd '$MOCK_DIR' && bash '$DEV_SCRIPT' completions"
     The status should be success
-    The output should equal 'init build lint lint-dockerfile login push release diagnose help format unit e2e check ci coverage types security lock watch shell rebuild up down clean logs db-shell db-migrate'
+    The output should equal 'init build lint lint-dockerfile login push release tag diagnose help format unit e2e check ci coverage types security lock watch shell rebuild up down clean logs db-shell db-migrate'
   End
 
   It 'returns exact set for tool repos'
     write_dev_config "$MOCK_DIR" myapp tool
     When run bash -c "cd '$MOCK_DIR' && bash '$DEV_SCRIPT' completions"
     The status should be success
-    The output should equal 'init build lint lint-dockerfile login push release diagnose help format unit e2e check ci coverage types security lock run'
+    The output should equal 'init build lint lint-dockerfile login push release tag diagnose help format unit e2e check ci coverage types security lock run'
   End
 
   It 'returns exact set for library repos'
     write_dev_config "$MOCK_DIR" myapp library
     When run bash -c "cd '$MOCK_DIR' && bash '$DEV_SCRIPT' completions"
     The status should be success
-    The output should equal 'init build lint lint-dockerfile login push release diagnose help format unit check ci coverage types security lock'
+    The output should equal 'init build lint lint-dockerfile login push release tag diagnose help format unit check ci coverage types security lock'
   End
 
   It 'returns exact set for e2e repos'
     write_dev_config "$MOCK_DIR" myapp e2e
     When run bash -c "cd '$MOCK_DIR' && bash '$DEV_SCRIPT' completions"
     The status should be success
-    The output should equal 'init build lint lint-dockerfile login push release diagnose help format check ci types security lock run'
+    The output should equal 'init build lint lint-dockerfile login push release tag diagnose help format check ci types security lock run'
   End
 
   It 'returns correct set from a subdirectory'
     write_dev_config "$MOCK_DIR" myapp tool
     When run bash -c "mkdir -p '$MOCK_DIR/nested/deep' && cd '$MOCK_DIR/nested/deep' && bash '$DEV_SCRIPT' completions"
     The status should be success
-    The output should equal 'init build lint lint-dockerfile login push release diagnose help format unit e2e check ci coverage types security lock run'
+    The output should equal 'init build lint lint-dockerfile login push release tag diagnose help format unit e2e check ci coverage types security lock run'
   End
 
   It 'returns base set when no .dev found'
     When run bash -c "cd /tmp && bash '$DEV_SCRIPT' completions"
     The status should be success
-    The output should equal 'init build lint lint-dockerfile login push release diagnose help'
+    The output should equal 'init build lint lint-dockerfile login push release tag diagnose help'
   End
 
   Describe 'with DEV_SCRIPTS from user config'
