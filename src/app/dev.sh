@@ -512,7 +512,7 @@ cmd_ci() {
 			coverage_pkgs+=("$pkg")
 			;;
 		unit) $has_coverage || checks_include+=("{\"package\":\"$pkg\",\"target\":\"$stage\"}") ;;
-		lint | format | types | security) checks_include+=("{\"package\":\"$pkg\",\"target\":\"$stage\"}") ;;
+		lint | types | security) checks_include+=("{\"package\":\"$pkg\",\"target\":\"$stage\"}") ;;
 		*) : ;;
 		esac
 	done

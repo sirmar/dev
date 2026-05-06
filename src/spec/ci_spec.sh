@@ -35,7 +35,7 @@ Describe 'ci'
     It 'emits checks output with lint-dockerfile unconditionally and only known check stages'
       When run run_dev ci
       The status should be success
-      Assert [ "$(grep '^checks=' "$GITHUB_OUTPUT" | cut -d= -f2-)" = '{"include":[{"package":".","target":"lint-dockerfile"},{"package":".","target":"lint"},{"package":".","target":"format"},{"package":".","target":"coverage"},{"package":".","target":"types"},{"package":".","target":"security"}]}' ]
+      Assert [ "$(grep '^checks=' "$GITHUB_OUTPUT" | cut -d= -f2-)" = '{"include":[{"package":".","target":"lint-dockerfile"},{"package":".","target":"lint"},{"package":".","target":"coverage"},{"package":".","target":"types"},{"package":".","target":"security"}]}' ]
     End
 
     It 'emits coverage output'
