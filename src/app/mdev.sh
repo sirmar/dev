@@ -329,7 +329,7 @@ cmd_changed() {
 		fi
 	fi
 	local changed_files
-	if [[ -z "${CI:-}" ]]; then
+	if [[ -z "${1:-}" && -z "${CI:-}" ]]; then
 		mapfile -t changed_files < <(git -C "$MDEV_ROOT" diff --name-only HEAD 2>/dev/null || true)
 	else
 		git -C "$MDEV_ROOT" rev-parse "$ref" &>/dev/null || error "git ref '$ref' not found"

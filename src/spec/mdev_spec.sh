@@ -530,7 +530,7 @@ Describe 'changed with remote'
   After 'teardown_remote'
 
   It 'diffs against HEAD~1 when on main (HEAD == origin/main)'
-    When run bash -c "cd '$MOCK_DIR' && bash '$MDEV_SCRIPT' changed"
+    When run bash -c "cd '$MOCK_DIR' && CI=true bash '$MDEV_SCRIPT' changed"
     The status should be success
     The output should include 'api'
     The output should not include 'worker'
@@ -540,7 +540,7 @@ Describe 'changed with remote'
     touch "$MOCK_DIR/worker/newfile"
     git -C "$MOCK_DIR" add .
     git -C "$MOCK_DIR" commit -q -m 'change worker'
-    When run bash -c "cd '$MOCK_DIR' && bash '$MDEV_SCRIPT' changed"
+    When run bash -c "cd '$MOCK_DIR' && CI=true bash '$MDEV_SCRIPT' changed"
     The status should be success
     The output should include 'worker'
     The output should not include 'api'
