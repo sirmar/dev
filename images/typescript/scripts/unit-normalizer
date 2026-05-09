@@ -1,0 +1,18 @@
+#!/usr/bin/env node
+'use strict'
+
+const fs = require('fs')
+
+const raw = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'))
+const failures = []
+
+for (const file of raw.testResults || []) {
+  const path = file.testFilePath.replace(/^\/workspace\//, '')
+  for (const t of file.testResults || []) {
+    if (t.status === 'failed') {
+      failures.push({ node_id: [path, ...t.ancestorTitles, t.title].join(' > ') })
+    }
+  }
+}
+
+fs.writeFileSync(process.argv[3], JSON.stringify({ passed: failures.length === 0, failures }))

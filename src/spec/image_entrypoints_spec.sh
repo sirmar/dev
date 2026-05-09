@@ -111,6 +111,19 @@ Describe 'typescript unit-entrypoint default suite'
     The output should include 'vitest run'
     The status should be success
   End
+
+  It 'passes --reporter=json and --outputFile flags'
+    When run run_entrypoint images/typescript/scripts/unit-entrypoint.sh
+    The output should include '--reporter=json'
+    The output should include '--outputFile'
+    The status should be success
+  End
+
+  It 'calls unit-normalizer after vitest'
+    When run run_entrypoint images/typescript/scripts/unit-entrypoint.sh
+    The output should include 'pnpm vitest run'
+    The status should be success
+  End
 End
 
 Describe 'typescript coverage-entrypoint default suite'
