@@ -763,3 +763,197 @@ DOCKERFILE
     Assert [ "$(grep '^coverage=' "$GITHUB_OUTPUT" | cut -d= -f2-)" = '[]' ]
   End
 End
+
+
+_write_mock_dev_unit() {
+  local dir="$1"
+  cat >"$dir/dev" <<'EOF'
+#!/usr/bin/env bash
+type="$(grep -m1 '^DEV_REPO_TYPE=' .dev 2>/dev/null | cut -d= -f2 | tr -d '"')"
+if [[ "$1" == "completions" ]]; then
+  case "$type" in
+    service) echo 'up down logs build lint format unit lock check ci db-migrate shell db-shell watch rebuild push' ;;
+    tool)    echo 'build lint format unit check coverage types security ci' ;;
+    image)   echo 'build lint push' ;;
+    *)       echo 'build lint format unit check' ;;
+  esac
+elif [[ "$1" == "supports" ]]; then
+  cmd="$2"
+  case "$type" in
+    service)  [[ " up down logs build lint format unit lock check ci db-migrate shell db-shell watch rebuild push " == *" $cmd "* ]] && exit 0 || exit 1 ;;
+    tool)     [[ " build lint format unit check coverage types security ci " == *" $cmd "* ]] && exit 0 || exit 1 ;;
+    image)    [[ " build lint push " == *" $cmd "* ]] && exit 0 || exit 1 ;;
+    library)  [[ " lint format unit check " == *" $cmd "* ]] && exit 0 || exit 1 ;;
+    *)        [[ " build lint format unit check " == *" $cmd "* ]] && exit 0 || exit 1 ;;
+  esac
+elif [[ "$1" == "unit" ]]; then
+  result_json="${MOCK_UNIT_RESULT:-{\"passed\":true,\"failures\":[]}}"
+  mkdir -p out
+  printf '%s\n' "$result_json" >out/unit-result.json
+  echo "dev unit $*"
+else
+  echo "dev $*"
+fi
+EOF
+  chmod +x "$dir/dev"
+}
+
+Describe 'cmd_unit aggregation'
+  setup_unit_agg() {
+    setup_mock_mdev
+    write_service "$MOCK_DIR" api myapp-api service
+    write_service "$MOCK_DIR" worker myapp-worker service
+    _write_mock_dev_unit "$MOCK_DIR"
+  }
+  Before 'setup_unit_agg'
+  After 'teardown'
+
+  It 'writes workspace out/unit-result.json after mdev unit'
+    When run run_mdev unit
+    The status should be success
+    The output should include 'unit testing'
+    The file "$MOCK_DIR/out/unit-result.json" should be exist
+  End
+
+  It 'includes a services array in the workspace result'
+    run_mdev unit >/dev/null 2>&1
+    When run bash -c "jq -r '.services | length' '$MOCK_DIR/out/unit-result.json'"
+    The output should equal '2'
+  End
+
+  It 'includes name, passed, and failures for each service'
+    run_mdev unit >/dev/null 2>&1
+    When run bash -c "jq -r '.services[0] | keys | sort | join(\",\")' '$MOCK_DIR/out/unit-result.json'"
+    The output should equal 'failures,name,passed'
+  End
+
+  It 'sets top-level passed to true when all services pass'
+    run_mdev unit >/dev/null 2>&1
+    When run bash -c "jq -r '.passed' '$MOCK_DIR/out/unit-result.json'"
+    The output should equal 'true'
+  End
+
+  It 'sets top-level passed to false when any service fails'
+    cat >"$MOCK_DIR/dev" <<'DEVEOF'
+#!/usr/bin/env bash
+type="$(grep -m1 '^DEV_REPO_TYPE=' .dev 2>/dev/null | cut -d= -f2 | tr -d '"')"
+if [[ "$1" == "completions" ]]; then
+  echo 'up down logs build lint format unit lock check ci db-migrate shell db-shell watch rebuild push'
+elif [[ "$1" == "supports" ]]; then
+  [[ " up down logs build lint format unit lock check ci db-migrate shell db-shell watch rebuild push " == *" $2 "* ]] && exit 0 || exit 1
+elif [[ "$1" == "unit" ]]; then
+  mkdir -p out
+  printf '{"passed":false,"failures":[{"node_id":"test_foo"}]}\n' >out/unit-result.json
+  echo 'dev unit'
+else
+  echo "dev $*"
+fi
+DEVEOF
+    chmod +x "$MOCK_DIR/dev"
+    When run run_mdev unit
+    The status should be success
+    The output should include 'unit testing'
+    Assert [ "$(jq -r '.passed' "$MOCK_DIR/out/unit-result.json")" = 'false' ]
+  End
+
+  It 'omits services with no out/unit-result.json'
+    rm -f "$MOCK_DIR/api/out/unit-result.json"
+    cat >"$MOCK_DIR/dev" <<'DEVEOF'
+#!/usr/bin/env bash
+type="$(grep -m1 '^DEV_REPO_TYPE=' .dev 2>/dev/null | cut -d= -f2 | tr -d '"')"
+svc="$(basename "$(pwd)")"
+if [[ "$1" == "completions" ]]; then
+  echo 'up down logs build lint format unit lock check ci db-migrate shell db-shell watch rebuild push'
+elif [[ "$1" == "supports" ]]; then
+  [[ " up down logs build lint format unit lock check ci db-migrate shell db-shell watch rebuild push " == *" $2 "* ]] && exit 0 || exit 1
+elif [[ "$1" == "unit" ]]; then
+  if [[ "$svc" == "worker" ]]; then
+    mkdir -p out
+    printf '{"passed":true,"failures":[]}\n' >out/unit-result.json
+  fi
+  echo "dev unit"
+else
+  echo "dev $*"
+fi
+DEVEOF
+    chmod +x "$MOCK_DIR/dev"
+    run_mdev unit >/dev/null 2>&1
+    When run bash -c "jq -r '.services | length' '$MOCK_DIR/out/unit-result.json'"
+    The output should equal '1'
+  End
+
+  It 're-emits aggregated JSON as stdout when CLAUDECODE=1'
+    When run bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$MDEV_SCRIPT' unit"
+    The status should be success
+    The output should include '"services"'
+    The output should include '"passed"'
+  End
+
+  It 'does not re-emit aggregated JSON on human runs'
+    When run run_mdev unit
+    The status should be success
+    The output should not include '"services"'
+  End
+End
+
+
+Describe 'cmd_unit narrowing (service-level)'
+  setup_unit_narrow() {
+    setup_mock_mdev
+    write_service "$MOCK_DIR" api myapp-api service
+    write_service "$MOCK_DIR" worker myapp-worker service
+    _write_mock_dev_unit "$MOCK_DIR"
+  }
+  Before 'setup_unit_narrow'
+  After 'teardown'
+
+  _write_previous_result() {
+    mkdir -p "$MOCK_DIR/out"
+    printf '%s\n' "$1" >"$MOCK_DIR/out/unit-result.json"
+  }
+
+  It 'runs all services when no previous workspace result exists'
+    When run run_mdev unit
+    The status should be success
+    The output should include '[api]'
+    The output should include '[worker]'
+  End
+
+  It 'runs all services when previous result passed (scope reset)'
+    _write_previous_result '{"passed":true,"services":[{"name":"api","passed":true,"failures":[]},{"name":"worker","passed":true,"failures":[]}]}'
+    When run run_mdev unit
+    The status should be success
+    The output should include '[api]'
+    The output should include '[worker]'
+  End
+
+  It 'skips passing services when previous result failed'
+    _write_previous_result '{"passed":false,"services":[{"name":"api","passed":true,"failures":[]},{"name":"worker","passed":false,"failures":[{"node_id":"test_foo"}]}]}'
+    When run bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$MDEV_SCRIPT' unit"
+    The status should be success
+    The output should not include '[api]'
+    The output should include '[worker]'
+  End
+
+  It 'carries forward the previous result for skipped services'
+    _write_previous_result '{"passed":false,"services":[{"name":"api","passed":true,"failures":[]},{"name":"worker","passed":false,"failures":[{"node_id":"test_foo"}]}]}'
+    bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$MDEV_SCRIPT' unit" >/dev/null 2>&1
+    When run bash -c "jq -r '.services[] | select(.name==\"api\") | .passed' '$MOCK_DIR/out/unit-result.json'"
+    The output should equal 'true'
+  End
+
+  It 'runs services not present in the previous result'
+    _write_previous_result '{"passed":false,"services":[{"name":"api","passed":true,"failures":[]}]}'
+    When run bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$MDEV_SCRIPT' unit"
+    The status should be success
+    The output should include '[worker]'
+  End
+
+  It 'only applies narrowing when CLAUDECODE=1'
+    _write_previous_result '{"passed":false,"services":[{"name":"api","passed":true,"failures":[]},{"name":"worker","passed":false,"failures":[{"node_id":"test_foo"}]}]}'
+    When run run_mdev unit
+    The status should be success
+    The output should include '[api]'
+    The output should include '[worker]'
+  End
+End

@@ -252,7 +252,75 @@ _run_for_services() {
 cmd_build() { _run_for_services build 'building' "$@"; }
 cmd_lint() { _run_for_services lint 'linting' "$@"; }
 cmd_format() { _run_for_services format 'formatting' "$@"; }
-cmd_unit() { _run_for_services unit 'unit testing' "$@"; }
+cmd_unit() {
+	local verb='unit' label='unit testing'
+	check_docker
+	local services
+	mapfile -t services < <(filter_services "$@")
+
+	local prev_result="$MDEV_ROOT/out/unit-result.json"
+	local prev_passed='true'
+	if [[ "${CLAUDECODE:-}" == '1' && -f "$prev_result" ]]; then
+		prev_passed="$(jq -r '.passed' "$prev_result")"
+	fi
+
+	local carried_entries=()
+	for service in "${services[@]}"; do
+		local name
+		name="$(basename "$service")"
+		if [[ "$prev_passed" == 'false' ]]; then
+			local svc_passed
+			svc_passed="$(jq -r --arg n "$name" '.services[] | select(.name==$n) | .passed' "$prev_result" 2>/dev/null || true)"
+			if [[ "$svc_passed" == 'true' ]]; then
+				local carried
+				carried="$(jq -c --arg n "$name" '.services[] | select(.name==$n)' "$prev_result")"
+				carried_entries+=("$carried")
+				continue
+			fi
+		fi
+		info "$label $name"
+		mdev_labeled "$service" "$verb"
+	done
+
+	local entries=() any_failed='false'
+	for entry in "${carried_entries[@]+"${carried_entries[@]}"}"; do
+		entries+=("$entry")
+		local ep
+		ep="$(printf '%s' "$entry" | jq -r '.passed')"
+		if [[ "$ep" == 'false' ]]; then
+			any_failed='true'
+		fi
+	done
+	for service in "${services[@]}"; do
+		local result_file="$MDEV_ROOT/$service/out/unit-result.json"
+		[[ -f "$result_file" ]] || continue
+		local name passed
+		name="$(basename "$service")"
+		passed="$(jq -r '.passed' "$result_file")"
+		if [[ "$passed" == 'false' ]]; then
+			any_failed='true'
+		fi
+		local entry
+		entry="$(jq -c --arg name "$name" '{name: $name, passed: .passed, failures: .failures}' "$result_file")"
+		entries+=("$entry")
+	done
+
+	local services_json top_passed aggregated
+	services_json="$(printf '%s\n' "${entries[@]+"${entries[@]}"}" | jq -sc '.')"
+	if [[ "$any_failed" == 'true' ]]; then
+		top_passed='false'
+	else
+		top_passed='true'
+	fi
+	aggregated="$(jq -cn --argjson s "$services_json" --argjson p "$top_passed" '{passed: $p, services: $s}')"
+
+	mkdir -p "$MDEV_ROOT/out"
+	printf '%s\n' "$aggregated" >"$MDEV_ROOT/out/unit-result.json"
+
+	if [[ "${CLAUDECODE:-}" == '1' ]]; then
+		printf '%s\n' "$aggregated"
+	fi
+}
 cmd_check() { _run_for_services check 'checking' "$@"; }
 cmd_types() { _run_for_services types 'type checking' "$@"; }
 cmd_security() { _run_for_services security 'security scanning' "$@"; }
