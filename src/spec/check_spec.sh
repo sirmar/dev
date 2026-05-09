@@ -10,6 +10,20 @@ setup_check_no_stages() {
 }
 
 
+setup_check_lint_and_format_passed() {
+	fixture_service_repo
+	mkdir -p "$MOCK_DIR/out"
+	printf '{"passed":false,"stages":[{"name":"lint-dockerfile","passed":true},{"name":"format","passed":true},{"name":"lint","passed":false}]}\n' \
+		>"$MOCK_DIR/out/check-result.json"
+}
+
+setup_check_all_stages_passed() {
+	fixture_service_repo
+	mkdir -p "$MOCK_DIR/out"
+	printf '{"passed":true,"stages":[{"name":"lint-dockerfile","passed":true},{"name":"format","passed":true},{"name":"lint","passed":true},{"name":"types","passed":true},{"name":"security","passed":true},{"name":"coverage","passed":true}]}\n' \
+		>"$MOCK_DIR/out/check-result.json"
+}
+
 setup_check_lint_fails() {
 	fixture_service_repo
 	cat >"$MOCK_DIR/docker" <<'EOF'
@@ -36,6 +50,26 @@ Describe 'check'
       The output should include 'running types'
       The output should include 'running coverage'
       The status should be success
+    End
+
+    It 'writes out/check-result.json with passed true when all stages pass'
+      When run run_dev check
+      The output should include 'linting Dockerfile'
+      The status should be success
+      The path "$MOCK_DIR/out/check-result.json" should be exist
+      The contents of file "$MOCK_DIR/out/check-result.json" should include '"passed":true'
+    End
+
+    It 'writes stages array with all stage names in check-result.json'
+      When run run_dev check
+      The output should include 'linting Dockerfile'
+      The status should be success
+      The contents of file "$MOCK_DIR/out/check-result.json" should include '"name":"lint-dockerfile"'
+      The contents of file "$MOCK_DIR/out/check-result.json" should include '"name":"format"'
+      The contents of file "$MOCK_DIR/out/check-result.json" should include '"name":"lint"'
+      The contents of file "$MOCK_DIR/out/check-result.json" should include '"name":"types"'
+      The contents of file "$MOCK_DIR/out/check-result.json" should include '"name":"security"'
+      The contents of file "$MOCK_DIR/out/check-result.json" should include '"name":"coverage"'
     End
   End
 
@@ -77,6 +111,68 @@ Describe 'check'
       The output should not include 'running types'
       The output should not include 'running coverage'
       The status should be failure
+    End
+
+    It 'writes check-result.json with passed false and lint stage failed'
+      When run run_dev check
+      The output should include 'running lint'
+      The status should be failure
+      The contents of file "$MOCK_DIR/out/check-result.json" should include '"passed":false'
+      The contents of file "$MOCK_DIR/out/check-result.json" should include '{"name":"lint","passed":false}'
+    End
+  End
+End
+
+Describe 'check CLAUDECODE=1 narrowing'
+  After 'teardown'
+
+  Describe 'when no result file exists'
+    Before 'fixture_service_repo'
+
+    It 'runs full check'
+      When run bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$DEV_SCRIPT' check"
+      The output should include 'linting Dockerfile'
+      The output should include 'running format'
+      The output should include 'running lint'
+      The output should include 'running types'
+      The output should include 'running coverage'
+      The status should be success
+    End
+  End
+
+  Describe 'when some stages passed in previous run'
+    Before 'setup_check_lint_and_format_passed'
+
+    It 'skips stages that passed and runs stages that did not'
+      When run bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$DEV_SCRIPT' check"
+      The output should not include 'linting Dockerfile'
+      The output should not include 'running format'
+      The output should include 'running lint'
+      The status should be success
+    End
+  End
+
+  Describe 'when all stages passed in previous run'
+    Before 'setup_check_all_stages_passed'
+
+    It 'runs full check (scope reset)'
+      When run bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$DEV_SCRIPT' check"
+      The output should include 'linting Dockerfile'
+      The output should include 'running format'
+      The output should include 'running lint'
+      The output should include 'running types'
+      The output should include 'running coverage'
+      The status should be success
+    End
+  End
+
+  Describe 're-emit result JSON'
+    Before 'fixture_service_repo'
+
+    It 're-emits check-result.json as last stdout line'
+      When run bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$DEV_SCRIPT' check"
+      The output should include '{"passed":true'
+      The status should be success
     End
   End
 End

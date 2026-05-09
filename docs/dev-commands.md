@@ -51,3 +51,19 @@ After every `dev unit` run, a result file is written to `out/unit-result.json` r
 - `node_id` — opaque, runner-native identifier (e.g. `src/tests/unit/test_auth.py::test_login` for pytest). Pass it directly back to the runner; do not construct or parse it.
 
 When `CLAUDECODE=1`, `dev unit` reads `out/unit-result.json` on startup and automatically scopes the run to the `node_id` values in `failures[]` (narrowing). Once all previously failing tests pass the full suite runs again (scope reset). The result JSON is also re-emitted as the final stdout line for inline consumption.
+
+After every `dev check` run, a result file is written to `out/check-result.json`. Schema:
+
+```json
+{
+  "passed": true,
+  "stages": [
+    { "name": "<stage-name>", "passed": true }
+  ]
+}
+```
+
+- `passed` — `true` if all stages exited 0
+- `stages` — one entry per stage in pipeline order; `passed` is `true` if the stage exited 0 or was absent from the Dockerfile
+
+When `CLAUDECODE=1`, `dev check` reads `out/check-result.json` on startup and skips stages that passed in the previous run (narrowing). Once all stages pass the full pipeline runs again (scope reset). The result JSON is re-emitted as the final stdout line.

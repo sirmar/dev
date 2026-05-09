@@ -441,12 +441,108 @@ cmd_lock() {
 }
 
 cmd_check() {
-	cmd_lint_dockerfile
-	cmd_format "$@"
-	cmd_lint "$@"
-	cmd_types "$@"
-	cmd_security "$@"
-	if ! is_repo_type e2e; then cmd_coverage "$@"; fi
+	local rc=0
+	local stage_results=()
+	local result_file="$ROOT_DIR/out/check-result.json"
+	local skip_stages=()
+
+	if [[ ${CLAUDECODE:-} == 1 ]] && [[ -f $result_file ]]; then
+		local all_passed
+		all_passed=$(jq -r '.passed' "$result_file" 2>/dev/null)
+		if [[ $all_passed != true ]]; then
+			mapfile -t skip_stages < <(jq -r '.stages[] | select(.passed == true) | .name' "$result_file" 2>/dev/null)
+		fi
+	fi
+
+	_check_stage_passed() {
+		local s
+		for s in "${skip_stages[@]}"; do [[ $s == "$1" ]] && return 0; done
+		return 1
+	}
+
+	local ldf_rc=0
+	if _check_stage_passed lint-dockerfile; then
+		stage_results+=('{"name":"lint-dockerfile","passed":true}')
+	else
+		cmd_lint_dockerfile || ldf_rc=$?
+		[[ $ldf_rc -ne 0 ]] && rc=$ldf_rc
+		stage_results+=("{\"name\":\"lint-dockerfile\",\"passed\":$([ "$ldf_rc" -eq 0 ] && echo true || echo false)}")
+	fi
+
+	local fmt_rc=0
+	if _check_stage_passed format; then
+		stage_results+=('{"name":"format","passed":true}')
+	else
+		cmd_format "$@" || fmt_rc=$?
+		if [[ $fmt_rc -ne 0 ]]; then
+			rc=$fmt_rc
+			stage_results+=('{"name":"format","passed":false}')
+			_write_check_result "$rc" "${stage_results[@]}"
+			return $rc
+		fi
+		stage_results+=('{"name":"format","passed":true}')
+	fi
+
+	local lint_rc=0
+	if _check_stage_passed lint; then
+		stage_results+=('{"name":"lint","passed":true}')
+	else
+		cmd_lint "$@" || lint_rc=$?
+		if [[ $lint_rc -ne 0 ]]; then
+			rc=$lint_rc
+			stage_results+=('{"name":"lint","passed":false}')
+			_write_check_result "$rc" "${stage_results[@]}"
+			return $rc
+		fi
+		stage_results+=('{"name":"lint","passed":true}')
+	fi
+
+	local types_rc=0
+	if _check_stage_passed types; then
+		stage_results+=('{"name":"types","passed":true}')
+	else
+		cmd_types "$@" || types_rc=$?
+		[[ $types_rc -ne 0 ]] && rc=$types_rc
+		stage_results+=("{\"name\":\"types\",\"passed\":$([ "$types_rc" -eq 0 ] && echo true || echo false)}")
+	fi
+
+	local sec_rc=0
+	if _check_stage_passed security; then
+		stage_results+=('{"name":"security","passed":true}')
+	else
+		cmd_security "$@" || sec_rc=$?
+		[[ $sec_rc -ne 0 ]] && rc=$sec_rc
+		stage_results+=("{\"name\":\"security\",\"passed\":$([ "$sec_rc" -eq 0 ] && echo true || echo false)}")
+	fi
+
+	if ! is_repo_type e2e; then
+		local cov_rc=0
+		if _check_stage_passed coverage; then
+			stage_results+=('{"name":"coverage","passed":true}')
+		else
+			cmd_coverage "$@" || cov_rc=$?
+			[[ $cov_rc -ne 0 ]] && rc=$cov_rc
+			stage_results+=("{\"name\":\"coverage\",\"passed\":$([ "$cov_rc" -eq 0 ] && echo true || echo false)}")
+		fi
+	fi
+
+	_write_check_result "$rc" "${stage_results[@]}"
+	if [[ ${CLAUDECODE:-} == 1 ]]; then cat "$result_file"; fi
+	return $rc
+}
+
+_write_check_result() {
+	local rc=$1
+	shift
+	local passed
+	passed=$([ "$rc" -eq 0 ] && echo true || echo false)
+	local stages_json
+	stages_json=$(
+		IFS=,
+		echo "[${*}]"
+	)
+	mkdir -p "$ROOT_DIR/out"
+	printf '{"passed":%s,"stages":%s}\n' "$passed" "$stages_json" >"$ROOT_DIR/out/check-result.json"
 }
 
 assert_db() {
