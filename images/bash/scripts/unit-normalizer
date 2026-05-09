@@ -1,0 +1,21 @@
+#!/bin/sh
+tap_file=$1
+output=$2
+
+failures=$(awk '
+/^not ok / { pending=1; next }
+pending && /^# \(in specfile / {
+  file=$0; sub(/^# \(in specfile /, "", file); sub(/,.*/, "", file)
+  lineno=$0; sub(/.*line /, "", lineno); sub(/[^0-9].*/, "", lineno)
+  printf "%s:%s\n", file, lineno
+  pending=0; next
+}
+pending && /^[^#]/ { pending=0 }
+' "$tap_file")
+
+if [ -z "$failures" ]; then
+  printf '{"passed":true,"failures":[]}\n' >"$output"
+else
+  json_failures=$(printf '%s\n' "$failures" | awk '{printf "%s{\"node_id\":\"%s\"}", (NR>1?",":""), $0}')
+  printf '{"passed":false,"failures":[%s]}\n' "$json_failures" >"$output"
+fi
