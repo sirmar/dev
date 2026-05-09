@@ -11,7 +11,8 @@ _setup_entrypoint_env() {
   printf '#!/bin/sh\necho "pnpm $*"\n' >"$PROJ_DIR/pnpm"
   printf '#!/bin/sh\necho "90.0"\n' >"$PROJ_DIR/bc"
   printf '#!/bin/sh\necho "node $*"\n' >"$PROJ_DIR/node"
-  chmod +x "$PROJ_DIR/uv" "$PROJ_DIR/shellspec" "$PROJ_DIR/pnpm" "$PROJ_DIR/bc" "$PROJ_DIR/node"
+  printf '#!/bin/sh\n' >"$PROJ_DIR/unit-normalizer"
+  chmod +x "$PROJ_DIR/uv" "$PROJ_DIR/shellspec" "$PROJ_DIR/pnpm" "$PROJ_DIR/bc" "$PROJ_DIR/node" "$PROJ_DIR/unit-normalizer"
   cp "$DEV_ROOT/images/shared/scripts/entrypoint-helper.sh" "$PROJ_DIR/entrypoint-helper.sh"
   export PROJ_DIR
 }

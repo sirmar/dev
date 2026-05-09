@@ -1,0 +1,25 @@
+#!/usr/bin/env python3
+import json
+import sys
+import xml.etree.ElementTree as ET
+
+
+def normalize(junit_xml_path, output_path):
+    tree = ET.parse(junit_xml_path)
+    root = tree.getroot()
+
+    suites = root.findall('testsuite') or [root]
+    failures = []
+    for suite in suites:
+        for case in suite.findall('testcase'):
+            if case.find('failure') is not None or case.find('error') is not None:
+                classname = case.get('classname', '').replace('.', '/') + '.py'
+                failures.append({'node_id': classname + '::' + case.get('name', '')})
+
+    result = {'passed': len(failures) == 0, 'failures': failures}
+    with open(output_path, 'w') as f:
+        json.dump(result, f)
+
+
+if __name__ == '__main__':
+    normalize(sys.argv[1], sys.argv[2])
