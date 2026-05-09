@@ -380,7 +380,45 @@ run_stage_with_paths() {
 }
 
 cmd_unit() {
-	run_stage_with_paths run_stage unit "unit tests" -- "$@"
+	local failed=false
+	local user_args=() node_ids=()
+	for arg in "$@"; do
+		if [[ $arg == '--failed' ]]; then
+			failed=true
+		else
+			user_args+=("$arg")
+		fi
+	done
+
+	local result_file="$ROOT_DIR/out/unit-result.json"
+	local failures
+
+	if $failed; then
+		if [[ ! -f $result_file ]]; then
+			error "no previous result found — run 'dev unit' first"
+		fi
+		failures=$(jq -r '.failures[].node_id' "$result_file" 2>/dev/null)
+		if [[ -z $failures ]]; then
+			error "last run had no failures — nothing to re-run"
+		fi
+		mapfile -t node_ids <<<"$failures"
+	elif [[ ${CLAUDECODE:-} == 1 ]] && [[ -f $result_file ]]; then
+		failures=$(jq -r '.failures[].node_id' "$result_file" 2>/dev/null)
+		if [[ -n $failures ]]; then
+			mapfile -t node_ids <<<"$failures"
+		fi
+	fi
+
+	local rc=0
+	if [[ ${#node_ids[@]} -gt 0 ]]; then
+		run_stage unit "unit tests" "${node_ids[@]}" || rc=$?
+	else
+		run_stage_with_paths run_stage unit "unit tests" -- "${user_args[@]}" || rc=$?
+	fi
+	if [[ ${CLAUDECODE:-} == 1 ]] && [[ -f $result_file ]]; then
+		cat "$result_file"
+	fi
+	return $rc
 }
 
 cmd_coverage() {

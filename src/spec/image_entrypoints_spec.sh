@@ -126,6 +126,33 @@ Describe 'typescript unit-entrypoint default suite'
   End
 End
 
+Describe 'typescript unit-entrypoint node_id narrowing'
+  Before '_setup_entrypoint_env'
+  After 'teardown'
+
+  It 'calls vitest with file and -t test name for a single node_id'
+    When run run_entrypoint images/typescript/scripts/unit-entrypoint.sh 'src/foo.test.ts > my test'
+    The output should include 'src/foo.test.ts'
+    The output should include '-t'
+    The output should include 'my test'
+    The status should be success
+  End
+
+  It 'combines multiple node_ids from same file into one vitest call with combined -t pattern'
+    When run run_entrypoint images/typescript/scripts/unit-entrypoint.sh 'src/foo.test.ts > test one' 'src/foo.test.ts > test two'
+    The output should include 'src/foo.test.ts'
+    The output should include 'test one|test two'
+    The status should be success
+  End
+
+  It 'runs vitest once per file when node_ids span multiple files'
+    When run run_entrypoint images/typescript/scripts/unit-entrypoint.sh 'src/foo.test.ts > test one' 'src/bar.test.ts > test two'
+    The output should include 'src/foo.test.ts'
+    The output should include 'src/bar.test.ts'
+    The status should be success
+  End
+End
+
 Describe 'typescript coverage-entrypoint default suite'
   Before '_setup_entrypoint_env'
   After 'teardown'

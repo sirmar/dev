@@ -7,8 +7,10 @@ const raw = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'))
 const failures = []
 
 for (const file of raw.testResults || []) {
-  const path = file.testFilePath.replace(/^\/workspace\//, '')
-  for (const t of file.testResults || []) {
+  const filePath = file.testFilePath || file.name
+  if (!filePath) continue
+  const path = filePath.replace(/^\/workspace\//, '')
+  for (const t of (file.testResults || file.assertionResults || [])) {
     if (t.status === 'failed') {
       failures.push({ node_id: [path, ...t.ancestorTitles, t.title].join(' > ') })
     }
