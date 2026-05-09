@@ -21,6 +21,20 @@ Describe 'coverage'
   End
 End
 
+Describe 'coverage result format'
+  Before 'fixture_service_repo'
+  After 'teardown'
+
+  It 'writes out/coverage-result.json with passed true and empty failures'
+    When run run_dev coverage
+    The output should include 'running coverage'
+    The status should be success
+    The path "$MOCK_DIR/out/coverage-result.json" should be exist
+    The contents of file "$MOCK_DIR/out/coverage-result.json" should include '"passed":true'
+    The contents of file "$MOCK_DIR/out/coverage-result.json" should include '"failures":[]'
+  End
+End
+
 Describe 'coverage (with docker-compose.e2e.yml)'
   setup_coverage_compose() {
     fixture_service_repo

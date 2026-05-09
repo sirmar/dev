@@ -58,20 +58,28 @@ Two hidden subcommands support tooling and shell completions without coupling to
 
 ### Dev result format
 
-After every `dev unit` run, `out/unit-result.json` is written to the repo root. Schema:
+Every check command writes a result file to `out/` after each run. Three schemas:
 
+**Node-ID results** (`unit`, `e2e`):
 ```json
 { "passed": true, "failures": [{ "node_id": "<runner-native id>" }] }
 ```
+`node_id` is opaque — runner-native (e.g. `src/tests/unit/test_auth.py::test_login` for pytest). Agents pass it back verbatim; they never construct or parse it. Written by the image entrypoint via a normalizer script (`unit-normalizer`), not by `dev.sh`.
 
-`node_id` is opaque — runner-native (e.g. `src/tests/unit/test_auth.py::test_login` for pytest). Agents pass it back verbatim; they never construct or parse it.
+**Simple results** (`lint`, `lint-dockerfile`, `types`, `security`, `coverage`):
+```json
+{ "passed": true, "failures": [] }
+```
+Written by `_write_simple_result` in `dev.sh` based on Docker exit code. `failures` is always empty but present for schema consistency.
+
+**Check pipeline** (`check`): `out/check-result.json` with a `stages` array — see `docs/dev-commands.md`.
 
 When `CLAUDECODE=1`:
-- `failures[]` non-empty → run is scoped to those `node_id` values (narrowing)
-- `failures[]` empty or no file → full suite runs
-- Result JSON is re-emitted as the final stdout line after each run
+- `unit`/`e2e`: `failures[]` non-empty → run scoped to those `node_id` values (narrowing); full suite on scope reset
+- `check`: stages that passed are skipped; full pipeline on scope reset
+- All: result JSON re-emitted as the final stdout line
 
-This is the stable inter-run state contract between `dev unit` and an AI agent. Human runs are unchanged.
+`mdev` aggregates per-service result files into a workspace-level result. For `unit`/`e2e` the workspace result includes a `services` array with per-service failures. For simple commands the `services` array tracks per-service pass/fail for narrowing. Under `CLAUDECODE=1`, services that passed are skipped (service-level narrowing).
 
 ## Key invariants
 

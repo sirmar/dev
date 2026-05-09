@@ -328,15 +328,21 @@ cmd_lint_dockerfile() {
 		return 0
 	fi
 	info "linting Dockerfile"
+	local rc=0
 	docker run --rm \
 		-v "$ROOT_DIR/Dockerfile:/Dockerfile:ro" \
 		hadolint/hadolint:v2.14.0 \
-		hadolint /Dockerfile
+		hadolint /Dockerfile || rc=$?
+	_write_simple_result lint-dockerfile "$rc"
+	return $rc
 }
 
 cmd_lint() {
 	is_repo_type image && return 0
-	run_stage_with_paths run_stage lint "lint" -- "$@"
+	local rc=0
+	run_stage_with_paths run_stage lint "lint" -- "$@" || rc=$?
+	_write_simple_result lint "$rc"
+	return $rc
 }
 
 cmd_format() {
@@ -422,15 +428,24 @@ cmd_unit() {
 }
 
 cmd_coverage() {
-	run_stage_with_paths run_stage_compose coverage "coverage" compose_e2e "$ROOT_DIR/docker-compose.e2e.yml" optional -- "$@"
+	local rc=0
+	run_stage_with_paths run_stage_compose coverage "coverage" compose_e2e "$ROOT_DIR/docker-compose.e2e.yml" optional -- "$@" || rc=$?
+	_write_simple_result coverage "$rc"
+	return $rc
 }
 
 cmd_types() {
-	run_stage types "types"
+	local rc=0
+	run_stage types "types" || rc=$?
+	_write_simple_result types "$rc"
+	return $rc
 }
 
 cmd_security() {
-	run_stage security "security"
+	local rc=0
+	run_stage security "security" || rc=$?
+	_write_simple_result security "$rc"
+	return $rc
 }
 
 cmd_lock() {
@@ -515,20 +530,39 @@ cmd_check() {
 		stage_results+=("{\"name\":\"security\",\"passed\":$([ "$sec_rc" -eq 0 ] && echo true || echo false)}")
 	fi
 
-	if ! is_repo_type e2e; then
-		local cov_rc=0
-		if _check_stage_passed coverage; then
-			stage_results+=('{"name":"coverage","passed":true}')
+	local unit_rc=0
+	if _check_stage_passed unit; then
+		stage_results+=('{"name":"unit","passed":true}')
+	else
+		cmd_unit "$@" || unit_rc=$?
+		[[ $unit_rc -ne 0 ]] && rc=$unit_rc
+		stage_results+=("{\"name\":\"unit\",\"passed\":$([ "$unit_rc" -eq 0 ] && echo true || echo false)}")
+	fi
+
+	local e2e_rc=0
+	if [[ -f "$ROOT_DIR/docker-compose.e2e.yml" ]]; then
+		if _check_stage_passed e2e; then
+			stage_results+=('{"name":"e2e","passed":true}')
 		else
-			cmd_coverage "$@" || cov_rc=$?
-			[[ $cov_rc -ne 0 ]] && rc=$cov_rc
-			stage_results+=("{\"name\":\"coverage\",\"passed\":$([ "$cov_rc" -eq 0 ] && echo true || echo false)}")
+			cmd_e2e "$@" || e2e_rc=$?
+			[[ $e2e_rc -ne 0 ]] && rc=$e2e_rc
+			stage_results+=("{\"name\":\"e2e\",\"passed\":$([ "$e2e_rc" -eq 0 ] && echo true || echo false)}")
 		fi
+	else
+		stage_results+=('{"name":"e2e","passed":true}')
 	fi
 
 	_write_check_result "$rc" "${stage_results[@]}"
 	if [[ ${CLAUDECODE:-} == 1 ]]; then cat "$result_file"; fi
 	return $rc
+}
+
+_write_simple_result() {
+	local name="$1" rc="$2"
+	local passed
+	passed=$([ "$rc" -eq 0 ] && echo true || echo false)
+	mkdir -p "$ROOT_DIR/out"
+	printf '{"passed":%s,"failures":[]}\n' "$passed" >"$ROOT_DIR/out/${name}-result.json"
 }
 
 _write_check_result() {
@@ -573,7 +607,29 @@ cmd_db_migrate() {
 }
 
 cmd_e2e() {
-	run_stage_with_paths run_stage_compose e2e "e2e tests" compose_e2e "$ROOT_DIR/docker-compose.e2e.yml" required -- "$@"
+	local result_file="$ROOT_DIR/out/e2e-result.json"
+	local node_ids=() user_args=()
+
+	if [[ ${CLAUDECODE:-} == 1 ]] && [[ -f $result_file ]]; then
+		local failures
+		failures=$(jq -r '.failures[].node_id' "$result_file" 2>/dev/null)
+		if [[ -n $failures ]]; then
+			mapfile -t node_ids <<<"$failures"
+		fi
+	else
+		user_args=("$@")
+	fi
+
+	local rc=0
+	if [[ ${#node_ids[@]} -gt 0 ]]; then
+		run_stage_compose e2e "e2e tests" compose_e2e "$ROOT_DIR/docker-compose.e2e.yml" required "${node_ids[@]}" || rc=$?
+	else
+		run_stage_with_paths run_stage_compose e2e "e2e tests" compose_e2e "$ROOT_DIR/docker-compose.e2e.yml" required -- "${user_args[@]}" || rc=$?
+	fi
+	if [[ ${CLAUDECODE:-} == 1 ]] && [[ -f $result_file ]]; then
+		cat "$result_file"
+	fi
+	return $rc
 }
 
 cmd_shell() {

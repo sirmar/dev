@@ -1,6 +1,9 @@
 #!/bin/sh
 if [ $# -gt 0 ]; then
-	exec uv run pytest "$@"
+	uv run pytest --junit-xml=/workspace/out/e2e-junit.xml "$@"
 else
-	exec uv run pytest -q src/tests/e2e/
+	uv run pytest -q --junit-xml=/workspace/out/e2e-junit.xml src/tests/e2e/
 fi
+pytest_exit=$?
+unit-normalizer /workspace/out/e2e-junit.xml /workspace/out/e2e-result.json
+exit $pytest_exit

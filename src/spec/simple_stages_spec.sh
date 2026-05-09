@@ -25,6 +25,25 @@ Describe 'simple stages'
   End
 End
 
+Describe 'result format for fast commands'
+  Before 'fixture_service_repo'
+  After 'teardown'
+
+  Parameters
+    types
+    security
+  End
+
+  It "writes out/$1-result.json with passed true after $1 passes"
+    When run run_dev "$1"
+    The output should include "running $1"
+    The status should be success
+    The path "$MOCK_DIR/out/$1-result.json" should be exist
+    The contents of file "$MOCK_DIR/out/$1-result.json" should include '"passed":true'
+    The contents of file "$MOCK_DIR/out/$1-result.json" should include '"failures":[]'
+  End
+End
+
 Describe 'missing stage'
   Parameters
     unit

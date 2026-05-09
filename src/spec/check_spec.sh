@@ -20,7 +20,7 @@ setup_check_lint_and_format_passed() {
 setup_check_all_stages_passed() {
 	fixture_service_repo
 	mkdir -p "$MOCK_DIR/out"
-	printf '{"passed":true,"stages":[{"name":"lint-dockerfile","passed":true},{"name":"format","passed":true},{"name":"lint","passed":true},{"name":"types","passed":true},{"name":"security","passed":true},{"name":"coverage","passed":true}]}\n' \
+	printf '{"passed":true,"stages":[{"name":"lint-dockerfile","passed":true},{"name":"format","passed":true},{"name":"lint","passed":true},{"name":"types","passed":true},{"name":"security","passed":true},{"name":"unit","passed":true},{"name":"e2e","passed":true}]}\n' \
 		>"$MOCK_DIR/out/check-result.json"
 }
 
@@ -42,13 +42,13 @@ Describe 'check'
     Before 'fixture_service_repo'
     After 'teardown'
 
-    It 'runs lint-dockerfile, fmt, lint, types, and coverage in order'
+    It 'runs lint-dockerfile, fmt, lint, types, security, unit, and e2e in order'
       When run run_dev check
       The output should include 'linting Dockerfile'
       The output should include 'running format'
       The output should include 'running lint'
       The output should include 'running types'
-      The output should include 'running coverage'
+      The output should include 'running unit tests'
       The status should be success
     End
 
@@ -60,7 +60,7 @@ Describe 'check'
       The contents of file "$MOCK_DIR/out/check-result.json" should include '"passed":true'
     End
 
-    It 'writes stages array with all stage names in check-result.json'
+    It 'writes stages array with unit and e2e instead of coverage in check-result.json'
       When run run_dev check
       The output should include 'linting Dockerfile'
       The status should be success
@@ -69,7 +69,9 @@ Describe 'check'
       The contents of file "$MOCK_DIR/out/check-result.json" should include '"name":"lint"'
       The contents of file "$MOCK_DIR/out/check-result.json" should include '"name":"types"'
       The contents of file "$MOCK_DIR/out/check-result.json" should include '"name":"security"'
-      The contents of file "$MOCK_DIR/out/check-result.json" should include '"name":"coverage"'
+      The contents of file "$MOCK_DIR/out/check-result.json" should include '"name":"unit"'
+      The contents of file "$MOCK_DIR/out/check-result.json" should include '"name":"e2e"'
+      The contents of file "$MOCK_DIR/out/check-result.json" should not include '"name":"coverage"'
     End
   End
 
@@ -83,18 +85,19 @@ Describe 'check'
       The output should include "no 'format' stage found in Dockerfile"
       The output should include "no 'lint' stage found in Dockerfile"
       The output should include "no 'types' stage found in Dockerfile"
-      The output should include "no 'coverage' stage found in Dockerfile"
+      The output should include "no 'unit' stage found in Dockerfile"
       The status should be success
     End
   End
 
-  Describe 'for e2e repos'
-    Before 'fixture_e2e_repo'
+  Describe 'when docker-compose.e2e.yml is absent'
+    Before 'fixture_service_repo'
     After 'teardown'
 
-    It 'skips coverage and exits successfully'
+    It 'skips e2e stage silently and exits successfully'
       When run run_dev check
-      The output should not include 'running coverage'
+      The output should not include 'running e2e tests'
+      The output should include 'running unit tests'
       The status should be success
     End
   End
@@ -135,7 +138,7 @@ Describe 'check CLAUDECODE=1 narrowing'
       The output should include 'running format'
       The output should include 'running lint'
       The output should include 'running types'
-      The output should include 'running coverage'
+      The output should include 'running unit tests'
       The status should be success
     End
   End
@@ -161,7 +164,7 @@ Describe 'check CLAUDECODE=1 narrowing'
       The output should include 'running format'
       The output should include 'running lint'
       The output should include 'running types'
-      The output should include 'running coverage'
+      The output should include 'running unit tests'
       The status should be success
     End
   End

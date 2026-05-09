@@ -12,8 +12,10 @@
 | `lint [services...]`       | Run lint in each service                                 |
 | `format [services...]`     | Run format in each service                               |
 | `unit [services...]`       | Run unit tests in each service                           |
+| `e2e [services...]`        | Run e2e tests in each service                            |
 | `types [services...]`      | Run static type checking in each service                 |
 | `security [services...]`   | Run security scanning in each service                    |
+| `coverage [services...]`   | Run tests with coverage in each service                  |
 | `lock [services...]`       | Regenerate lock file in each service                     |
 | `check [services...]`      | Run full quality check in each service                   |
 | `ci [services...]`         | Build and run full quality check                         |
@@ -27,6 +29,41 @@
 | `diagnose`                 | Check workspace and service configuration                |
 
 Commands that are not applicable to a service's repo type are skipped automatically.
+
+## Result files
+
+Aggregating commands write a workspace-level result file to `out/` after each run, combining per-service results.
+
+### `mdev unit`, `mdev e2e`
+
+```json
+{
+  "passed": false,
+  "services": [
+    {
+      "name": "<service>",
+      "passed": false,
+      "failures": [{ "node_id": "<runner-native test identifier>" }]
+    }
+  ]
+}
+```
+
+When `CLAUDECODE=1`, services that passed in the previous run are skipped (service-level narrowing). Once all services pass the full run executes again (scope reset). The result JSON is re-emitted as the final stdout line.
+
+### `mdev lint`, `mdev types`, `mdev security`, `mdev coverage`
+
+```json
+{
+  "passed": true,
+  "failures": [],
+  "services": [
+    { "name": "<service>", "passed": true }
+  ]
+}
+```
+
+`passed` is `false` if any service failed. `failures` is always empty. When `CLAUDECODE=1`, services that passed in the previous run are skipped (service-level narrowing). Once all services pass the full run executes again (scope reset).
 
 ## Workspace config
 

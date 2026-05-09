@@ -98,6 +98,129 @@ EOF
   End
 End
 
+Describe 'e2e result format'
+  setup_e2e_passes() {
+    fixture_service_repo_with_e2e
+    cat >"$MOCK_DIR/docker" <<'EOF'
+#!/bin/sh
+mkdir -p "$MOCK_DIR/out"
+case "$*" in
+  *compose*run*e2e*)
+    printf '{"passed":true,"failures":[]}\n' >"$MOCK_DIR/out/e2e-result.json"
+    echo "docker $*"
+    exit 0
+    ;;
+  *) echo "docker $*"; exit 0 ;;
+esac
+EOF
+    chmod +x "$MOCK_DIR/docker"
+  }
+
+  setup_e2e_some_fail() {
+    fixture_service_repo_with_e2e
+    cat >"$MOCK_DIR/docker" <<'EOF'
+#!/bin/sh
+mkdir -p "$MOCK_DIR/out"
+case "$*" in
+  *compose*run*e2e*)
+    printf '{"passed":false,"failures":[{"node_id":"src/tests/e2e/test_login.py::test_login_flow"}]}\n' >"$MOCK_DIR/out/e2e-result.json"
+    echo "docker $*"
+    exit 1
+    ;;
+  *) echo "docker $*"; exit 0 ;;
+esac
+EOF
+    chmod +x "$MOCK_DIR/docker"
+  }
+
+  Describe 'when e2e passes'
+    Before 'setup_e2e_passes'
+    After 'teardown'
+
+    It 'writes out/e2e-result.json with passed true and empty failures'
+      When run run_dev e2e
+      The output should include 'running e2e tests'
+      The status should be success
+      The path "$MOCK_DIR/out/e2e-result.json" should be exist
+      The contents of file "$MOCK_DIR/out/e2e-result.json" should include '"passed":true'
+      The contents of file "$MOCK_DIR/out/e2e-result.json" should include '"failures":[]'
+    End
+  End
+
+  Describe 'when e2e fails'
+    Before 'setup_e2e_some_fail'
+    After 'teardown'
+
+    It 'writes out/e2e-result.json with passed false and failure node_ids'
+      When run run_dev e2e
+      The output should include 'running e2e tests'
+      The status should be failure
+      The path "$MOCK_DIR/out/e2e-result.json" should be exist
+      The contents of file "$MOCK_DIR/out/e2e-result.json" should include '"passed":false'
+      The contents of file "$MOCK_DIR/out/e2e-result.json" should include 'test_login_flow'
+    End
+  End
+End
+
+Describe 'e2e CLAUDECODE=1 narrowing'
+  After 'teardown'
+
+  setup_e2e_narrowing() {
+    fixture_service_repo_with_e2e
+    cat >"$MOCK_DIR/docker" <<'EOF'
+#!/bin/sh
+mkdir -p "$MOCK_DIR/out"
+case "$*" in
+  *compose*run*e2e*)
+    printf '{"passed":false,"failures":[{"node_id":"src/tests/e2e/test_login.py::test_login_flow"}]}\n' >"$MOCK_DIR/out/e2e-result.json"
+    echo "docker $*"
+    exit 1
+    ;;
+  *) echo "docker $*"; exit 0 ;;
+esac
+EOF
+    chmod +x "$MOCK_DIR/docker"
+  }
+
+  Describe 'when result file has failures'
+    Before 'setup_e2e_narrowing'
+
+    It 'passes node_ids as args to docker compose run'
+      mkdir -p "$MOCK_DIR/out"
+      printf '{"passed":false,"failures":[{"node_id":"src/tests/e2e/test_login.py::test_login_flow"}]}\n' >"$MOCK_DIR/out/e2e-result.json"
+      When run bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$DEV_SCRIPT' e2e"
+      The output should include 'test_login_flow'
+      The status should be failure
+    End
+  End
+
+  Describe 're-emit result JSON'
+    setup_e2e_passes_claudecode() {
+      fixture_service_repo_with_e2e
+      cat >"$MOCK_DIR/docker" <<'EOF'
+#!/bin/sh
+mkdir -p "$MOCK_DIR/out"
+case "$*" in
+  *compose*run*e2e*)
+    printf '{"passed":true,"failures":[]}\n' >"$MOCK_DIR/out/e2e-result.json"
+    echo "docker $*"
+    exit 0
+    ;;
+  *) echo "docker $*"; exit 0 ;;
+esac
+EOF
+      chmod +x "$MOCK_DIR/docker"
+    }
+    Before 'setup_e2e_passes_claudecode'
+
+    It 're-emits e2e-result.json as last stdout line'
+      When run bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$DEV_SCRIPT' e2e"
+      The output should include '{"passed":true,"failures":[]}'
+      The status should be success
+    End
+  End
+End
+
 Describe 'e2e skips on image repos'
   setup_e2e_image_repo() {
     fixture_service_repo_with_e2e

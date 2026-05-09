@@ -13,7 +13,7 @@
 | `types`            | Run static type checking                  |
 | `security`         | Run security scanning                     |
 | `lock`             | Regenerate lock file                      |
-| `check`            | Run format, lint, types, and coverage     |
+| `check`            | Run lint-dockerfile, format, lint, types, security, unit, and e2e |
 | `ci`               | Build and run full quality check          |
 | `e2e`              | Run e2e tests                             |
 | `watch`            | Run with hot reload                       |
@@ -35,11 +35,13 @@
 
 ## Result files
 
-After every `dev unit` run, a result file is written to `out/unit-result.json` regardless of who triggered the run. Schema:
+Every command that runs checks writes a result file to `out/` after each run, regardless of who triggered the run. These files give AI agents reliable inter-run state without re-parsing prose output.
+
+### Commands with node-ID failures (`unit`, `e2e`)
 
 ```json
 {
-  "passed": true,
+  "passed": false,
   "failures": [
     { "node_id": "<runner-native test identifier>" }
   ]
@@ -48,11 +50,23 @@ After every `dev unit` run, a result file is written to `out/unit-result.json` r
 
 - `passed` — `true` if the command exited 0, `false` otherwise
 - `failures` — list of failing tests; empty when all tests pass
-- `node_id` — opaque, runner-native identifier (e.g. `src/tests/unit/test_auth.py::test_login` for pytest). Pass it directly back to the runner; do not construct or parse it.
+- `node_id` — opaque, runner-native identifier (e.g. `src/tests/unit/test_auth.py::test_login` for pytest, `src/auth.test.ts > login > with valid creds` for vitest). Pass it directly back to the runner; do not construct or parse it.
 
-When `CLAUDECODE=1`, `dev unit` reads `out/unit-result.json` on startup and automatically scopes the run to the `node_id` values in `failures[]` (narrowing). Once all previously failing tests pass the full suite runs again (scope reset). The result JSON is also re-emitted as the final stdout line for inline consumption.
+When `CLAUDECODE=1`, `dev unit` and `dev e2e` read their result file on startup and automatically scope the run to the `node_id` values in `failures[]` (narrowing). Once all previously failing tests pass the full suite runs again (scope reset). The result JSON is re-emitted as the final stdout line for inline consumption.
 
-After every `dev check` run, a result file is written to `out/check-result.json`. Schema:
+### Fast analysis commands (`lint`, `lint-dockerfile`, `types`, `security`, `coverage`)
+
+```json
+{
+  "passed": true,
+  "failures": []
+}
+```
+
+- `passed` — `true` if the command exited 0, `false` otherwise
+- `failures` — always empty; present for schema consistency
+
+### `dev check`
 
 ```json
 {
@@ -64,6 +78,6 @@ After every `dev check` run, a result file is written to `out/check-result.json`
 ```
 
 - `passed` — `true` if all stages exited 0
-- `stages` — one entry per stage in pipeline order; `passed` is `true` if the stage exited 0 or was absent from the Dockerfile
+- `stages` — one entry per stage in pipeline order (`lint-dockerfile`, `format`, `lint`, `types`, `security`, `unit`, `e2e`); `passed` is `true` if the stage exited 0 or was absent from the Dockerfile
 
 When `CLAUDECODE=1`, `dev check` reads `out/check-result.json` on startup and skips stages that passed in the previous run (narrowing). Once all stages pass the full pipeline runs again (scope reset). The result JSON is re-emitted as the final stdout line.
