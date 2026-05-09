@@ -56,6 +56,23 @@ Two hidden subcommands support tooling and shell completions without coupling to
 - `dev supports <cmd>` — exits 0 if `<cmd>` is available for the current repo type, 1 otherwise. Used by `mdev` to decide whether to delegate a command to a service.
 - `dev list-scripts` — prints `DEV_SCRIPTS` entry names one per line. Used by shell completions to offer `exec` argument candidates.
 
+### Dev result format
+
+After every `dev unit` run, `out/unit-result.json` is written to the repo root. Schema:
+
+```json
+{ "passed": true, "failures": [{ "node_id": "<runner-native id>" }] }
+```
+
+`node_id` is opaque — runner-native (e.g. `src/tests/unit/test_auth.py::test_login` for pytest). Agents pass it back verbatim; they never construct or parse it.
+
+When `CLAUDECODE=1`:
+- `failures[]` non-empty → run is scoped to those `node_id` values (narrowing)
+- `failures[]` empty or no file → full suite runs
+- Result JSON is re-emitted as the final stdout line after each run
+
+This is the stable inter-run state contract between `dev unit` and an AI agent. Human runs are unchanged.
+
 ## Key invariants
 
 - No language/toolchain logic in `dev.sh` or `mdev.sh` — it belongs in Dockerfiles.
