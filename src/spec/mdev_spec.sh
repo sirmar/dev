@@ -957,3 +957,260 @@ Describe 'cmd_unit narrowing (service-level)'
     The output should include '[worker]'
   End
 End
+
+_write_mock_dev_e2e() {
+  local dir="$1"
+  cat >"$dir/dev" <<'DEVEOF'
+#!/usr/bin/env bash
+type="$(grep -m1 '^DEV_REPO_TYPE=' .dev 2>/dev/null | cut -d= -f2 | tr -d '"')"
+if [[ "$1" == "completions" ]]; then
+  case "$type" in
+    service) echo 'up down logs build lint format unit lock check ci db-migrate shell db-shell watch rebuild push e2e' ;;
+    *)       echo 'build lint format unit check e2e' ;;
+  esac
+elif [[ "$1" == "supports" ]]; then
+  cmd="$2"
+  [[ " up down logs build lint format unit lock check ci db-migrate shell db-shell watch rebuild push e2e " == *" $cmd "* ]] && exit 0 || exit 1
+elif [[ "$1" == "e2e" ]]; then
+  result_json="${MOCK_E2E_RESULT:-{\"passed\":true,\"failures\":[]}}"
+  mkdir -p out
+  printf '%s\n' "$result_json" >out/e2e-result.json
+  echo "dev e2e $*"
+else
+  echo "dev $*"
+fi
+DEVEOF
+  chmod +x "$dir/dev"
+}
+
+Describe 'cmd_e2e aggregation'
+  setup_e2e_agg() {
+    setup_mock_mdev
+    write_service "$MOCK_DIR" api myapp-api service
+    write_service "$MOCK_DIR" worker myapp-worker service
+    _write_mock_dev_e2e "$MOCK_DIR"
+  }
+  Before 'setup_e2e_agg'
+  After 'teardown'
+
+  It 'writes workspace out/e2e-result.json after mdev e2e'
+    When run run_mdev e2e
+    The status should be success
+    The output should include 'e2e testing'
+    The file "$MOCK_DIR/out/e2e-result.json" should be exist
+  End
+
+  It 'includes a services array in the workspace result'
+    run_mdev e2e >/dev/null 2>&1
+    When run bash -c "jq -r '.services | length' '$MOCK_DIR/out/e2e-result.json'"
+    The output should equal '2'
+  End
+
+  It 'sets top-level passed to true when all services pass'
+    run_mdev e2e >/dev/null 2>&1
+    When run bash -c "jq -r '.passed' '$MOCK_DIR/out/e2e-result.json'"
+    The output should equal 'true'
+  End
+
+End
+
+Describe 'cmd_e2e aggregation failure'
+  setup_e2e_agg_failing() {
+    setup_mock_mdev
+    write_service "$MOCK_DIR" api myapp-api service
+    write_service "$MOCK_DIR" worker myapp-worker service
+    cat >"$MOCK_DIR/dev" <<'DEVEOF'
+#!/usr/bin/env bash
+if [[ "$1" == "completions" ]]; then
+  echo 'build lint format unit lock check ci db-migrate shell db-shell watch rebuild push e2e'
+elif [[ "$1" == "supports" ]]; then
+  [[ " up down logs build lint format unit lock check ci db-migrate shell db-shell watch rebuild push e2e " == *" $2 "* ]] && exit 0 || exit 1
+elif [[ "$1" == "e2e" ]]; then
+  mkdir -p out
+  printf '{"passed":false,"failures":[{"node_id":"test_foo"}]}\n' >out/e2e-result.json
+  echo "dev e2e $*"
+else
+  echo "dev $*"
+fi
+DEVEOF
+    chmod +x "$MOCK_DIR/dev"
+  }
+  Before 'setup_e2e_agg_failing'
+  After 'teardown'
+
+  It 'sets top-level passed to false when any service fails'
+    run_mdev e2e >/dev/null 2>&1 || true
+    When run bash -c "jq -r '.passed' '$MOCK_DIR/out/e2e-result.json'"
+    The output should equal 'false'
+  End
+
+  It 're-emits aggregated JSON as stdout when CLAUDECODE=1'
+    When run bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$MDEV_SCRIPT' e2e"
+    The status should be success
+    The output should include '"services"'
+    The output should include '"passed"'
+  End
+End
+
+Describe 'cmd_e2e narrowing (service-level)'
+  setup_e2e_narrow() {
+    setup_mock_mdev
+    write_service "$MOCK_DIR" api myapp-api service
+    write_service "$MOCK_DIR" worker myapp-worker service
+    _write_mock_dev_e2e "$MOCK_DIR"
+  }
+  Before 'setup_e2e_narrow'
+  After 'teardown'
+
+  _write_previous_e2e_result() {
+    mkdir -p "$MOCK_DIR/out"
+    printf '%s\n' "$1" >"$MOCK_DIR/out/e2e-result.json"
+  }
+
+  It 'skips passing services when previous result failed'
+    _write_previous_e2e_result '{"passed":false,"services":[{"name":"api","passed":true,"failures":[]},{"name":"worker","passed":false,"failures":[{"node_id":"test_foo"}]}]}'
+    When run bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$MDEV_SCRIPT' e2e"
+    The status should be success
+    The output should not include '[api]'
+    The output should include '[worker]'
+  End
+
+  It 'runs all services when previous result passed (scope reset)'
+    _write_previous_e2e_result '{"passed":true,"services":[{"name":"api","passed":true,"failures":[]},{"name":"worker","passed":true,"failures":[]}]}'
+    When run bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$MDEV_SCRIPT' e2e"
+    The status should be success
+    The output should include '[api]'
+    The output should include '[worker]'
+  End
+End
+
+_write_mock_dev_simple_result() {
+  local dir="$1" cmd="$2"
+  cat >"$dir/dev" <<DEVEOF
+#!/usr/bin/env bash
+if [[ "\$1" == "completions" ]]; then
+  echo 'build lint format unit check coverage types security'
+elif [[ "\$1" == "supports" ]]; then
+  [[ " build lint format unit check coverage types security " == *" \$2 "* ]] && exit 0 || exit 1
+elif [[ "\$1" == "$cmd" ]]; then
+  mkdir -p out
+  printf '{"passed":true,"failures":[]}\n' >out/${cmd}-result.json
+  echo "dev $cmd"
+else
+  echo "dev \$*"
+fi
+DEVEOF
+  chmod +x "$dir/dev"
+}
+
+Describe 'mdev simple result aggregation'
+  After 'teardown'
+
+  Parameters
+    lint
+    types
+    security
+    coverage
+  End
+
+  setup_simple_agg() {
+    setup_mock_mdev
+    write_service "$MOCK_DIR" api myapp-api service
+    write_service "$MOCK_DIR" worker myapp-worker service
+    _write_mock_dev_simple_result "$MOCK_DIR" "$1"
+  }
+
+  It "writes workspace out/$1-result.json after mdev $1"
+    setup_simple_agg "$1"
+    When run run_mdev "$1"
+    The status should be success
+    The output should include "dev $1"
+    The file "$MOCK_DIR/out/$1-result.json" should be exist
+  End
+
+  It "sets top-level passed to true when all services pass for $1"
+    setup_simple_agg "$1"
+    run_mdev "$1" >/dev/null 2>&1
+    When run bash -c "jq -r '.passed' '$MOCK_DIR/out/$1-result.json'"
+    The output should equal 'true'
+  End
+End
+
+Describe 'mdev simple result narrowing (CLAUDECODE=1)'
+  After 'teardown'
+
+  Parameters
+    lint
+    types
+    security
+    coverage
+  End
+
+  setup_simple_narrowing() {
+    setup_mock_mdev
+    write_service "$MOCK_DIR" api myapp-api service
+    write_service "$MOCK_DIR" worker myapp-worker service
+    _write_mock_dev_simple_result "$MOCK_DIR" "$1"
+    mkdir -p "$MOCK_DIR/out"
+    printf '{"passed":false,"failures":[],"services":[{"name":"api","passed":true},{"name":"worker","passed":false}]}\n' \
+      >"$MOCK_DIR/out/$1-result.json"
+  }
+
+  It "skips services that passed in previous run for $1"
+    setup_simple_narrowing "$1"
+    When run bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$MDEV_SCRIPT' $1"
+    The status should be success
+    The output should not include '[api]'
+    The output should include '[worker]'
+  End
+
+  It "runs all services when previous result passed (scope reset) for $1"
+    setup_simple_narrowing "$1"
+    printf '{"passed":true,"failures":[],"services":[{"name":"api","passed":true},{"name":"worker","passed":true}]}\n' \
+      >"$MOCK_DIR/out/$1-result.json"
+    When run bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$MDEV_SCRIPT' $1"
+    The status should be success
+    The output should include '[api]'
+    The output should include '[worker]'
+  End
+End
+
+Describe 'mdev simple result written even when a service fails'
+  After 'teardown'
+
+  Parameters
+    lint
+    types
+    security
+    coverage
+  End
+
+  setup_simple_agg_failing() {
+    setup_mock_mdev
+    write_service "$MOCK_DIR" api myapp-api service
+    write_service "$MOCK_DIR" worker myapp-worker service
+    cat >"$MOCK_DIR/dev" <<DEVEOF
+#!/usr/bin/env bash
+if [[ "\$1" == "completions" ]]; then
+  echo 'build lint format unit check coverage types security'
+elif [[ "\$1" == "supports" ]]; then
+  [[ " build lint format unit check coverage types security " == *" \$2 "* ]] && exit 0 || exit 1
+elif [[ "\$1" == "$1" ]]; then
+  mkdir -p out
+  printf '{"passed":false,"failures":[]}\n' >out/$1-result.json
+  echo "dev $1"
+  exit 1
+else
+  echo "dev \$*"
+fi
+DEVEOF
+    chmod +x "$MOCK_DIR/dev"
+  }
+
+  It "writes workspace out/$1-result.json even when a service exits non-zero"
+    setup_simple_agg_failing "$1"
+    run_mdev "$1" >/dev/null 2>&1 || true
+    When run bash -c "jq -r '.passed' '$MOCK_DIR/out/$1-result.json'"
+    The output should equal 'false'
+  End
+End

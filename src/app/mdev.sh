@@ -249,8 +249,81 @@ _run_for_services() {
 	done
 }
 
+_aggregate_simple_result() {
+	local verb="$1" label="$2"
+	shift 2
+	check_docker
+	local services
+	mapfile -t services < <(filter_services "$@")
+
+	local prev_result="$MDEV_ROOT/out/${verb}-result.json"
+	local prev_passed='true'
+	if [[ "${CLAUDECODE:-}" == '1' && -f "$prev_result" ]]; then
+		prev_passed="$(jq -r '.passed' "$prev_result")"
+	fi
+
+	local skipped_services=()
+	for service in "${services[@]}"; do
+		local name
+		name="$(basename "$service")"
+		if [[ "$prev_passed" == 'false' ]]; then
+			local svc_passed
+			svc_passed="$(jq -r --arg n "$name" '.services[]? | select(.name==$n) | .passed' "$prev_result" 2>/dev/null || true)"
+			if [[ "$svc_passed" == 'true' ]]; then
+				skipped_services+=("$name")
+				continue
+			fi
+		fi
+		info "$label $name"
+		mdev_labeled "$service" "$verb" || true
+	done
+
+	local any_failed='false'
+	for svc_name in "${skipped_services[@]+"${skipped_services[@]}"}"; do
+		local result_file
+		result_file="$(jq -r --arg n "$svc_name" '.services[]? | select(.name==$n) | .passed' "$prev_result" 2>/dev/null || true)"
+		[[ "$result_file" == 'false' ]] && any_failed='true'
+	done
+	for service in "${services[@]}"; do
+		local name
+		name="$(basename "$service")"
+		local skip='false'
+		for svc_name in "${skipped_services[@]+"${skipped_services[@]}"}"; do
+			[[ "$svc_name" == "$name" ]] && skip='true' && break
+		done
+		[[ "$skip" == 'true' ]] && continue
+		local result_file="$MDEV_ROOT/$service/out/${verb}-result.json"
+		[[ -f "$result_file" ]] || continue
+		local passed
+		passed="$(jq -r '.passed' "$result_file")"
+		[[ "$passed" == 'false' ]] && any_failed='true'
+	done
+
+	local top_passed services_json entries=()
+	for service in "${services[@]}"; do
+		local name
+		name="$(basename "$service")"
+		local svc_passed='true'
+		local is_skipped='false'
+		for svc_name in "${skipped_services[@]+"${skipped_services[@]}"}"; do
+			[[ "$svc_name" == "$name" ]] && is_skipped='true' && break
+		done
+		if [[ "$is_skipped" == 'true' ]]; then
+			svc_passed="$(jq -r --arg n "$name" '.services[]? | select(.name==$n) | .passed' "$prev_result" 2>/dev/null || echo true)"
+		else
+			local result_file="$MDEV_ROOT/$service/out/${verb}-result.json"
+			[[ -f "$result_file" ]] && svc_passed="$(jq -r '.passed' "$result_file")"
+		fi
+		entries+=("{\"name\":\"$name\",\"passed\":$svc_passed}")
+	done
+	services_json="$(printf '%s\n' "${entries[@]+"${entries[@]}"}" | jq -sc '.')"
+	top_passed="$([[ "$any_failed" == 'false' ]] && echo true || echo false)"
+	mkdir -p "$MDEV_ROOT/out"
+	printf '{"passed":%s,"failures":[],"services":%s}\n' "$top_passed" "$services_json" >"$MDEV_ROOT/out/${verb}-result.json"
+}
+
 cmd_build() { _run_for_services build 'building' "$@"; }
-cmd_lint() { _run_for_services lint 'linting' "$@"; }
+cmd_lint() { _aggregate_simple_result lint 'linting' "$@"; }
 cmd_format() { _run_for_services format 'formatting' "$@"; }
 cmd_unit() {
 	local verb='unit' label='unit testing'
@@ -279,7 +352,7 @@ cmd_unit() {
 			fi
 		fi
 		info "$label $name"
-		mdev_labeled "$service" "$verb"
+		mdev_labeled "$service" "$verb" || true
 	done
 
 	local entries=() any_failed='false'
@@ -321,9 +394,75 @@ cmd_unit() {
 		printf '%s\n' "$aggregated"
 	fi
 }
+cmd_e2e() {
+	local verb='e2e' label='e2e testing'
+	check_docker
+	local services
+	mapfile -t services < <(filter_services "$@")
+
+	local prev_result="$MDEV_ROOT/out/e2e-result.json"
+	local prev_passed='true'
+	if [[ "${CLAUDECODE:-}" == '1' && -f "$prev_result" ]]; then
+		prev_passed="$(jq -r '.passed' "$prev_result")"
+	fi
+
+	local carried_entries=()
+	for service in "${services[@]}"; do
+		local name
+		name="$(basename "$service")"
+		if [[ "$prev_passed" == 'false' ]]; then
+			local svc_passed
+			svc_passed="$(jq -r --arg n "$name" '.services[] | select(.name==$n) | .passed' "$prev_result" 2>/dev/null || true)"
+			if [[ "$svc_passed" == 'true' ]]; then
+				local carried
+				carried="$(jq -c --arg n "$name" '.services[] | select(.name==$n)' "$prev_result")"
+				carried_entries+=("$carried")
+				continue
+			fi
+		fi
+		info "$label $name"
+		mdev_labeled "$service" "$verb" || true
+	done
+
+	local entries=() any_failed='false'
+	for entry in "${carried_entries[@]+"${carried_entries[@]}"}"; do
+		entries+=("$entry")
+		local ep
+		ep="$(printf '%s' "$entry" | jq -r '.passed')"
+		if [[ "$ep" == 'false' ]]; then
+			any_failed='true'
+		fi
+	done
+	for service in "${services[@]}"; do
+		local result_file="$MDEV_ROOT/$service/out/e2e-result.json"
+		[[ -f "$result_file" ]] || continue
+		local name passed
+		name="$(basename "$service")"
+		passed="$(jq -r '.passed' "$result_file")"
+		if [[ "$passed" == 'false' ]]; then
+			any_failed='true'
+		fi
+		local entry
+		entry="$(jq -c --arg name "$name" '{name: $name, passed: .passed, failures: .failures}' "$result_file")"
+		entries+=("$entry")
+	done
+
+	local services_json top_passed aggregated
+	services_json="$(printf '%s\n' "${entries[@]+"${entries[@]}"}" | jq -sc '.')"
+	top_passed="$([[ "$any_failed" == 'false' ]] && echo true || echo false)"
+	aggregated="$(jq -cn --argjson s "$services_json" --argjson p "$top_passed" '{passed: $p, services: $s}')"
+
+	mkdir -p "$MDEV_ROOT/out"
+	printf '%s\n' "$aggregated" >"$MDEV_ROOT/out/e2e-result.json"
+
+	if [[ "${CLAUDECODE:-}" == '1' ]]; then
+		printf '%s\n' "$aggregated"
+	fi
+}
 cmd_check() { _run_for_services check 'checking' "$@"; }
-cmd_types() { _run_for_services types 'type checking' "$@"; }
-cmd_security() { _run_for_services security 'security scanning' "$@"; }
+cmd_types() { _aggregate_simple_result types 'type checking' "$@"; }
+cmd_security() { _aggregate_simple_result security 'security scanning' "$@"; }
+cmd_coverage() { _aggregate_simple_result coverage 'coverage' "$@"; }
 cmd_lock() { _run_for_services lock 'locking' "$@"; }
 cmd_ci() {
 	local ref="${1:-}"
@@ -486,7 +625,7 @@ cmd_diagnose() {
 	return $failed
 }
 
-MDEV_COMMANDS=(up down status logs build lint format unit types security lock check ci rebuild db-migrate push shell db-shell changed run init diagnose help)
+MDEV_COMMANDS=(up down status logs build lint format unit e2e types security coverage lock check ci rebuild db-migrate push shell db-shell changed run init diagnose help)
 
 cmd_arg_type() {
 	case "$1" in
@@ -590,8 +729,10 @@ main() {
 	lint) cmd_lint "$@" ;;
 	format) cmd_format "$@" ;;
 	unit) cmd_unit "$@" ;;
+	e2e) cmd_e2e "$@" ;;
 	types) cmd_types "$@" ;;
 	security) cmd_security "$@" ;;
+	coverage) cmd_coverage "$@" ;;
 	lock) cmd_lock "$@" ;;
 	check) cmd_check "$@" ;;
 	ci) cmd_ci "$@" ;;
