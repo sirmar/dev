@@ -15,7 +15,10 @@ A shell script sourced at startup. Declares the project identity and behaviour:
 - `DEV_NAME` — image and container name prefix (required)
 - `DEV_REPO_TYPE` — one of `tool`, `service`, `library`, `e2e`, `image` (required)
 - `DEV_CONTEXT` — Docker build context directory (default `.`)
-- `DEV_PORT`, `DEV_NETWORK`, `DEV_MOUNTS`, `DEV_SCRIPTS`, `DEV_DB_*` — optional feature toggles
+- `DEV_PORT`, `DEV_NETWORK`, `DEV_MOUNTS` — optional runtime toggles
+- `DEV_SCRIPTS` — space-separated `name:path` entries that expose named scripts via `dev exec <name>` (runs the script inside the `scripts` Dockerfile stage)
+- `DEV_DB_NAME`, `DEV_DB_USER`, `DEV_DB_PASSWORD` — opt-in database config; when set, enables `dev db-shell` (interactive MySQL session against `DEV_DB_CONTAINER`) and `dev db-migrate` (runs a migration image against the DB container over `DEV_NETWORK`)
+- `DEV_REGISTRY`, `DEV_REGISTRY_USER`, `DEV_REGISTRY_TOKEN` — opt-in registry config; when set, enables `dev push` which builds and pushes a multi-platform production image to the registry
 
 `find_dev_file` is the single canonical reader — it walks up the directory tree and sets `ROOT_DIR`. All config access goes through this function; nothing reads `.dev` with grep or sed.
 
@@ -43,7 +46,17 @@ Similarly, `MDEV_COMMANDS` + `cmd_arg_type` in `mdev.sh` serve the same role for
 
 A *stage* is a named `FROM … AS <name>` target in the Dockerfile. The canonical stages are: `base`, `lint`, `format`, `unit`, `types`, `security`, `coverage`, `lock`, `watch`, `prod`, `e2e`, `scripts`. `run_stage` is the universal helper — it checks for stage existence, builds the image quietly, then delegates to `run_in`. Commands like `cmd_lint`, `cmd_unit`, `cmd_watch` are thin wrappers around `run_stage`.
 
+The `lock` stage regenerates dependency lock files and writes them back to the repo root via the `out/` mount — the entrypoint writes the updated files to `/workspace/out/` and `dev` copies them back.
+
 For stages that run inside a Docker Compose environment, `run_stage_compose` is the counterpart: it tears down before building, creates the `out` directory, and delegates to `run_compose_suite`. `cmd_coverage` and `cmd_e2e` use it. The `compose_mode` parameter (`required`/`optional`) controls whether a missing compose file is a skip or a fallback to direct Docker.
+
+### The `out/` directory
+
+`out/` is an auto-created, gitignored directory at the repo root. It is the canonical location for all run artifacts: result JSON files, lock file copies written back by the `lock` stage, and any other files produced by container entrypoints. Every container mounts it at `/workspace/out` — this is how entrypoints write results and files back to the host without needing elevated permissions or volume tricks.
+
+### CI integration
+
+`dev` automatically wires GitHub Actions layer cache (scoped per stage, using `type=gha`) when running in CI — users get per-stage caching with zero configuration.
 
 ### Completions
 
@@ -74,12 +87,11 @@ Written by `_write_simple_result` in `dev.sh` based on Docker exit code. `failur
 
 **Check pipeline** (`check`): `out/check-result.json` with a `stages` array — see `docs/dev-commands.md`.
 
-When `CLAUDECODE=1`:
-- `unit`/`e2e`: `failures[]` non-empty → run scoped to those `node_id` values (narrowing); full suite on scope reset
-- `check`: stages that passed are skipped; full pipeline on scope reset
-- All: result JSON re-emitted as the final stdout line
+When stdout is not a tty (e.g. piped, CI, or agent invocation), the result JSON is re-emitted as the final stdout line — callers can read it inline without a second file-read.
 
-`mdev` aggregates per-service result files into a workspace-level result. For `unit`/`e2e` the workspace result includes a `services` array with per-service failures. For simple commands the `services` array tracks per-service pass/fail for narrowing. Under `CLAUDECODE=1`, services that passed are skipped (service-level narrowing).
+Pass `--failed` to `unit`, `e2e`, or `check` to re-run only the previously failing tests or stages: `dev` reads the last result file and scopes the run accordingly. Pass `--failed` to `mdev` commands to additionally skip services that fully passed.
+
+`mdev` aggregates per-service result files into a workspace-level result. For `unit`/`e2e` the workspace result includes a `services` array with per-service failures. For simple commands the `services` array tracks per-service pass/fail for narrowing.
 
 ## Key invariants
 
