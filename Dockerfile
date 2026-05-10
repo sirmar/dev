@@ -11,13 +11,8 @@ WORKDIR /workspace
 COPY .shellspec ./
 ENTRYPOINT ["/usr/local/bin/unit-entrypoint.sh"]
 
-FROM kcov/kcov:latest-alpine AS coverage
-RUN apk add --no-cache bash=5.2.26-r0 git=2.45.4-r0 curl=8.14.1-r2 jq=1.7.1-r0
+FROM ghcr.io/sirmar/dev-bash-coverage:v0.0.4 AS coverage
 WORKDIR /workspace
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-RUN curl -fsSL https://git.io/shellspec | sh -s -- --yes --prefix /usr/local
-COPY --from=base /usr/local/bin/coverage-entrypoint.sh /usr/local/bin/coverage-entrypoint.sh
-COPY --from=base /usr/local/bin/entrypoint-helper.sh /usr/local/bin/entrypoint-helper.sh
 COPY .shellspec ./
 ENTRYPOINT ["/usr/local/bin/coverage-entrypoint.sh"]
 
