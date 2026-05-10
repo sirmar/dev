@@ -1,2 +1,2 @@
 MDEV_NAME=dev-images
-MDEV_SERVICES=bash,nginx,python,typescript
+MDEV_SERVICES=bash,bash-coverage,nginx,python,typescript
