@@ -892,19 +892,12 @@ DEVEOF
     The output should equal '1'
   End
 
-  It 're-emits aggregated JSON as stdout when CLAUDECODE=1'
-    setup_node_id_agg "$1"
-    When run bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$MDEV_SCRIPT' $1"
-    The status should be success
-    The output should include '"services"'
-    The output should include '"passed"'
-  End
-
-  It 'does not re-emit aggregated JSON on human runs'
+  It 're-emits aggregated JSON as stdout'
     setup_node_id_agg "$1"
     When run run_mdev "$1"
     The status should be success
-    The output should not include '"services"'
+    The output should include '"services"'
+    The output should include '"passed"'
   End
 End
 
@@ -940,7 +933,7 @@ Describe 'cmd node-id narrowing (service-level)'
   It 'runs all services when previous result passed (scope reset)'
     setup_node_id_narrow "$1"
     _write_previous_node_id_result "$1" '{"passed":true,"services":[{"name":"api","passed":true,"failures":[]},{"name":"worker","passed":true,"failures":[]}]}'
-    When run bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$MDEV_SCRIPT' $1"
+    When run run_mdev "$1" --failed
     The status should be success
     The output should include '[api]'
     The output should include '[worker]'
@@ -949,7 +942,7 @@ Describe 'cmd node-id narrowing (service-level)'
   It 'skips passing services when previous result failed'
     setup_node_id_narrow "$1"
     _write_previous_node_id_result "$1" '{"passed":false,"services":[{"name":"api","passed":true,"failures":[]},{"name":"worker","passed":false,"failures":[{"node_id":"test_foo"}]}]}'
-    When run bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$MDEV_SCRIPT' $1"
+    When run run_mdev "$1" --failed
     The status should be success
     The output should not include '[api]'
     The output should include '[worker]'
@@ -958,7 +951,7 @@ Describe 'cmd node-id narrowing (service-level)'
   It 'carries forward the previous result for skipped services'
     setup_node_id_narrow "$1"
     _write_previous_node_id_result "$1" '{"passed":false,"services":[{"name":"api","passed":true,"failures":[]},{"name":"worker","passed":false,"failures":[{"node_id":"test_foo"}]}]}'
-    bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$MDEV_SCRIPT' $1" >/dev/null 2>&1
+    run_mdev "$1" --failed >/dev/null 2>&1
     When run bash -c "jq -r '.services[] | select(.name==\"api\") | .passed' '$MOCK_DIR/out/$1-result.json'"
     The output should equal 'true'
   End
@@ -966,12 +959,12 @@ Describe 'cmd node-id narrowing (service-level)'
   It 'runs services not present in the previous result'
     setup_node_id_narrow "$1"
     _write_previous_node_id_result "$1" '{"passed":false,"services":[{"name":"api","passed":true,"failures":[]}]}'
-    When run bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$MDEV_SCRIPT' $1"
+    When run run_mdev "$1" --failed
     The status should be success
     The output should include '[worker]'
   End
 
-  It 'only applies narrowing when CLAUDECODE=1'
+  It 'runs all services without --failed even when previous result failed'
     setup_node_id_narrow "$1"
     _write_previous_node_id_result "$1" '{"passed":false,"services":[{"name":"api","passed":true,"failures":[]},{"name":"worker","passed":false,"failures":[{"node_id":"test_foo"}]}]}'
     When run run_mdev "$1"
@@ -1033,7 +1026,7 @@ Describe 'mdev simple result aggregation'
   End
 End
 
-Describe 'mdev simple result narrowing (CLAUDECODE=1)'
+Describe 'mdev simple result narrowing (--failed)'
   After 'teardown'
 
   Parameters
@@ -1055,7 +1048,7 @@ Describe 'mdev simple result narrowing (CLAUDECODE=1)'
 
   It "skips services that passed in previous run for $1"
     setup_simple_narrowing "$1"
-    When run bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$MDEV_SCRIPT' $1"
+    When run run_mdev "$1" --failed
     The status should be success
     The output should not include '[api]'
     The output should include '[worker]'
@@ -1065,7 +1058,15 @@ Describe 'mdev simple result narrowing (CLAUDECODE=1)'
     setup_simple_narrowing "$1"
     printf '{"passed":true,"failures":[],"services":[{"name":"api","passed":true},{"name":"worker","passed":true}]}\n' \
       >"$MOCK_DIR/out/$1-result.json"
-    When run bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$MDEV_SCRIPT' $1"
+    When run run_mdev "$1" --failed
+    The status should be success
+    The output should include '[api]'
+    The output should include '[worker]'
+  End
+
+  It "runs all services without --failed even when previous result failed for $1"
+    setup_simple_narrowing "$1"
+    When run run_mdev "$1"
     The status should be success
     The output should include '[api]'
     The output should include '[worker]'
@@ -1109,5 +1110,54 @@ DEVEOF
     run_mdev "$1" >/dev/null 2>&1 || true
     When run bash -c "jq -r '.passed' '$MOCK_DIR/out/$1-result.json'"
     The output should equal 'false'
+  End
+End
+
+Describe 'mdev check --failed narrowing'
+  After 'teardown'
+
+  setup_check_narrowing() {
+    setup_mock_mdev
+    write_service "$MOCK_DIR" api myapp-api service
+    write_service "$MOCK_DIR" worker myapp-worker service
+    mkdir -p "$MOCK_DIR/api/out" "$MOCK_DIR/worker/out"
+    printf '{"passed":true,"stages":[]}\n' >"$MOCK_DIR/api/out/check-result.json"
+    printf '{"passed":false,"stages":[]}\n' >"$MOCK_DIR/worker/out/check-result.json"
+    mkdir -p "$MOCK_DIR/out"
+    printf '{"passed":false,"services":[{"name":"api","passed":true},{"name":"worker","passed":false}]}\n' \
+      >"$MOCK_DIR/out/check-result.json"
+  }
+
+  It 'skips services that passed in previous run'
+    setup_check_narrowing
+    When run run_mdev check --failed
+    The status should be success
+    The output should not include '[api]'
+    The output should include '[worker]'
+  End
+
+  It 'passes --failed through to dev check for failing services'
+    setup_check_narrowing
+    When run run_mdev check --failed
+    The status should be success
+    The output should include 'dev check --failed'
+  End
+
+  It 'runs all services without --failed even when previous result failed'
+    setup_check_narrowing
+    When run run_mdev check
+    The status should be success
+    The output should include '[api]'
+    The output should include '[worker]'
+  End
+
+  It 'runs full check when no result file exists'
+    setup_mock_mdev
+    write_service "$MOCK_DIR" api myapp-api service
+    write_service "$MOCK_DIR" worker myapp-worker service
+    When run run_mdev check --failed
+    The status should be success
+    The output should include '[api]'
+    The output should include '[worker]'
   End
 End

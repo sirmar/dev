@@ -46,11 +46,11 @@ vitest node IDs are derived from the JSON reporter output (`--reporter=json`), c
 
 ### Narrowing patterns
 
-Two narrowing patterns activate automatically when `CLAUDECODE=1`:
+Two narrowing patterns activate when `--failed` is passed:
 
-**Node-ID-level narrowing (unit):** On entry, `cmd_unit` reads `out/unit-result.json`. If `failures[]` is non-empty, it passes the stored `node_id` values as positional arguments to the runner — scoping the run to previously failing tests only.
+**Node-ID-level narrowing (`unit`, `e2e`):** On entry, `cmd_unit`/`cmd_e2e` reads the result file. If `failures[]` is non-empty, it passes the stored `node_id` values as positional arguments to the runner — scoping the run to previously failing tests only.
 
-**Stage-level narrowing (check):** On entry, `cmd_check` reads `out/check-result.json`. If `passed` is `false`, it skips stages where `stages[].passed` is `true` and re-runs only the stages that failed or did not complete.
+**Stage-level narrowing (`check`):** On entry, `cmd_check` reads `out/check-result.json`. If `passed` is `false`, it skips stages where `stages[].passed` is `true` and re-runs only the stages that failed or did not complete.
 
 ### Reset rule
 
@@ -58,7 +58,7 @@ The scope returns to a full run automatically once all failures are resolved: wh
 
 ### JSON re-emit
 
-When `CLAUDECODE=1`, the result JSON is re-emitted as the final stdout line after the run completes. This allows the agent to read the result inline from the Bash tool output without a separate file-read call.
+The result JSON is re-emitted as the final stdout line after every run. This allows agents to read the result inline from the Bash tool output without a separate file-read call.
 
 ### Always-written
 
@@ -68,8 +68,8 @@ The result file is written after every run regardless of who invoked the command
 
 - **Per-image normalizer scripts** (`images/<lang>/scripts/unit-normalizer`) — convert the runner's native output to the common schema. Pure input/output; testable in isolation without Docker.
 - **Unit entrypoint updates** — pass structured output flags to the runner and call the normalizer after exit.
-- **`cmd_unit` in `dev.sh`** — reads result file on entry for narrowing; re-emits JSON on exit when `CLAUDECODE=1`.
-- **`cmd_check` in `dev.sh`** — reads `out/check-result.json` on entry for stage-level narrowing; writes result after every run; re-emits JSON on exit when `CLAUDECODE=1`.
+- **`cmd_unit`, `cmd_e2e` in `dev.sh`** — reads result file on entry when `--failed` is passed for narrowing; re-emits JSON on exit unconditionally.
+- **`cmd_check` in `dev.sh`** — reads `out/check-result.json` on entry when `--failed` is passed for stage-level narrowing; writes result after every run; re-emits JSON on exit unconditionally.
 - **`cmd_unit` in `mdev.sh`** — aggregates per-service result files into a workspace-level result with a `services` array.
 
 ## Consequences

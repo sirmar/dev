@@ -107,19 +107,8 @@ Describe 'unit --failed'
   End
 End
 
-Describe 'unit CLAUDECODE=1 narrowing'
+Describe 'unit --failed narrowing'
   After 'teardown'
-
-  Describe 'when no result file exists'
-    Before 'fixture_service_repo'
-
-    It 'runs full suite'
-      When run bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$DEV_SCRIPT' unit"
-      The output should include 'docker run'
-      The output should not include 'test_login_invalid'
-      The status should be success
-    End
-  End
 
   Describe 'when result file has failures'
     Before 'setup_unit_some_fail'
@@ -127,44 +116,32 @@ Describe 'unit CLAUDECODE=1 narrowing'
     It 'passes node_ids as args to docker run'
       mkdir -p "$MOCK_DIR/out"
       printf '{"passed":false,"failures":[{"node_id":"src/tests/unit/test_auth.py::test_login_invalid"}]}\n' >"$MOCK_DIR/out/unit-result.json"
-      When run bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$DEV_SCRIPT' unit"
+      When run run_dev unit --failed
       The output should include 'test_login_invalid'
       The status should be failure
     End
   End
-
-  Describe 'when result file has no failures'
-    Before 'setup_unit_passes'
-
-    It 'runs full suite'
-      mkdir -p "$MOCK_DIR/out"
-      printf '{"passed":true,"failures":[]}\n' >"$MOCK_DIR/out/unit-result.json"
-      When run bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$DEV_SCRIPT' unit"
-      The output should include 'docker run'
-      The output should not include 'test_login_invalid'
-      The status should be success
-    End
-  End
-
-  Describe 're-emit result JSON'
-    Before 'setup_unit_passes'
-
-    It 're-emits unit-result.json as last stdout line'
-      When run bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$DEV_SCRIPT' unit"
-      The output should include '{"passed":true,"failures":[]}'
-      The status should be success
-    End
-  End
 End
 
-Describe 'unit CLAUDECODE=1 narrowing with DEV_CONTEXT=..'
+Describe 'unit --failed narrowing with DEV_CONTEXT=..'
   Before 'setup_unit_parent_context_with_failures'
   After 'teardown'
 
   It 'passes node_ids without DEV_CONTEXT path mangling'
-    When run bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$DEV_SCRIPT' unit"
+    When run run_dev unit --failed
     The output should include 'dev-unit src/tests/unit/test_auth.py::test_login_invalid'
     The status should be failure
+  End
+End
+
+Describe 'unit re-emit result JSON'
+  Before 'setup_unit_passes'
+  After 'teardown'
+
+  It 're-emits unit-result.json as last stdout line'
+    When run run_dev unit
+    The output should include '{"passed":true,"failures":[]}'
+    The status should be success
   End
 End
 

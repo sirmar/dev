@@ -408,11 +408,6 @@ cmd_unit() {
 			error "last run had no failures — nothing to re-run"
 		fi
 		mapfile -t node_ids <<<"$failures"
-	elif [[ ${CLAUDECODE:-} == 1 ]] && [[ -f $result_file ]]; then
-		failures=$(jq -r '.failures[].node_id' "$result_file" 2>/dev/null)
-		if [[ -n $failures ]]; then
-			mapfile -t node_ids <<<"$failures"
-		fi
 	fi
 
 	local rc=0
@@ -421,7 +416,7 @@ cmd_unit() {
 	else
 		run_stage_with_paths run_stage unit "unit tests" -- "${user_args[@]}" || rc=$?
 	fi
-	if [[ ${CLAUDECODE:-} == 1 ]] && [[ -f $result_file ]]; then
+	if [[ -f $result_file && ! -t 1 ]]; then
 		cat "$result_file"
 	fi
 	return $rc
@@ -456,12 +451,17 @@ cmd_lock() {
 }
 
 cmd_check() {
+	local failed=false check_args=()
+	for arg in "$@"; do
+		[[ $arg == '--failed' ]] && failed=true || check_args+=("$arg")
+	done
+
 	local rc=0
 	local stage_results=()
 	local result_file="$ROOT_DIR/out/check-result.json"
 	local skip_stages=()
 
-	if [[ ${CLAUDECODE:-} == 1 ]] && [[ -f $result_file ]]; then
+	if $failed && [[ -f $result_file ]]; then
 		local all_passed
 		all_passed=$(jq -r '.passed' "$result_file" 2>/dev/null)
 		if [[ $all_passed != true ]]; then
@@ -488,7 +488,7 @@ cmd_check() {
 	if _check_stage_passed format; then
 		stage_results+=('{"name":"format","passed":true}')
 	else
-		cmd_format "$@" || fmt_rc=$?
+		cmd_format "${check_args[@]}" || fmt_rc=$?
 		if [[ $fmt_rc -ne 0 ]]; then
 			rc=$fmt_rc
 			stage_results+=('{"name":"format","passed":false}')
@@ -502,7 +502,7 @@ cmd_check() {
 	if _check_stage_passed lint; then
 		stage_results+=('{"name":"lint","passed":true}')
 	else
-		cmd_lint "$@" || lint_rc=$?
+		cmd_lint "${check_args[@]}" || lint_rc=$?
 		if [[ $lint_rc -ne 0 ]]; then
 			rc=$lint_rc
 			stage_results+=('{"name":"lint","passed":false}')
@@ -516,7 +516,7 @@ cmd_check() {
 	if _check_stage_passed types; then
 		stage_results+=('{"name":"types","passed":true}')
 	else
-		cmd_types "$@" || types_rc=$?
+		cmd_types "${check_args[@]}" || types_rc=$?
 		[[ $types_rc -ne 0 ]] && rc=$types_rc
 		stage_results+=("{\"name\":\"types\",\"passed\":$([ "$types_rc" -eq 0 ] && echo true || echo false)}")
 	fi
@@ -525,7 +525,7 @@ cmd_check() {
 	if _check_stage_passed security; then
 		stage_results+=('{"name":"security","passed":true}')
 	else
-		cmd_security "$@" || sec_rc=$?
+		cmd_security "${check_args[@]}" || sec_rc=$?
 		[[ $sec_rc -ne 0 ]] && rc=$sec_rc
 		stage_results+=("{\"name\":\"security\",\"passed\":$([ "$sec_rc" -eq 0 ] && echo true || echo false)}")
 	fi
@@ -534,7 +534,7 @@ cmd_check() {
 	if _check_stage_passed unit; then
 		stage_results+=('{"name":"unit","passed":true}')
 	else
-		cmd_unit "$@" || unit_rc=$?
+		cmd_unit "${check_args[@]}" || unit_rc=$?
 		[[ $unit_rc -ne 0 ]] && rc=$unit_rc
 		stage_results+=("{\"name\":\"unit\",\"passed\":$([ "$unit_rc" -eq 0 ] && echo true || echo false)}")
 	fi
@@ -544,7 +544,7 @@ cmd_check() {
 		if _check_stage_passed e2e; then
 			stage_results+=('{"name":"e2e","passed":true}')
 		else
-			cmd_e2e "$@" || e2e_rc=$?
+			cmd_e2e "${check_args[@]}" || e2e_rc=$?
 			[[ $e2e_rc -ne 0 ]] && rc=$e2e_rc
 			stage_results+=("{\"name\":\"e2e\",\"passed\":$([ "$e2e_rc" -eq 0 ] && echo true || echo false)}")
 		fi
@@ -553,7 +553,7 @@ cmd_check() {
 	fi
 
 	_write_check_result "$rc" "${stage_results[@]}"
-	if [[ ${CLAUDECODE:-} == 1 ]]; then cat "$result_file"; fi
+	if [[ ! -t 1 ]]; then cat "$result_file"; fi
 	return $rc
 }
 
@@ -608,16 +608,21 @@ cmd_db_migrate() {
 
 cmd_e2e() {
 	local result_file="$ROOT_DIR/out/e2e-result.json"
-	local node_ids=() user_args=()
+	local failed=false node_ids=() user_args=()
+	for arg in "$@"; do
+		[[ $arg == '--failed' ]] && failed=true || user_args+=("$arg")
+	done
 
-	if [[ ${CLAUDECODE:-} == 1 ]] && [[ -f $result_file ]]; then
+	if $failed; then
+		if [[ ! -f $result_file ]]; then
+			error "no previous result found — run 'dev e2e' first"
+		fi
 		local failures
 		failures=$(jq -r '.failures[].node_id' "$result_file" 2>/dev/null)
-		if [[ -n $failures ]]; then
-			mapfile -t node_ids <<<"$failures"
+		if [[ -z $failures ]]; then
+			error "last run had no failures — nothing to re-run"
 		fi
-	else
-		user_args=("$@")
+		mapfile -t node_ids <<<"$failures"
 	fi
 
 	local rc=0
@@ -626,7 +631,7 @@ cmd_e2e() {
 	else
 		run_stage_with_paths run_stage_compose e2e "e2e tests" compose_e2e "$ROOT_DIR/docker-compose.e2e.yml" required -- "${user_args[@]}" || rc=$?
 	fi
-	if [[ ${CLAUDECODE:-} == 1 ]] && [[ -f $result_file ]]; then
+	if [[ -f $result_file && ! -t 1 ]]; then
 		cat "$result_file"
 	fi
 	return $rc

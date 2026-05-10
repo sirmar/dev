@@ -252,13 +252,17 @@ _run_for_services() {
 _aggregate_simple_result() {
 	local verb="$1" label="$2"
 	shift 2
+	local failed=false svc_args=()
+	for arg in "$@"; do
+		[[ "$arg" == '--failed' ]] && failed=true || svc_args+=("$arg")
+	done
 	check_docker
 	local services
-	mapfile -t services < <(filter_services "$@")
+	mapfile -t services < <(filter_services "${svc_args[@]}")
 
 	local prev_result="$MDEV_ROOT/out/${verb}-result.json"
 	local prev_passed='true'
-	if [[ "${CLAUDECODE:-}" == '1' && -f "$prev_result" ]]; then
+	if $failed && [[ -f "$prev_result" ]]; then
 		prev_passed="$(jq -r '.passed' "$prev_result")"
 	fi
 
@@ -325,13 +329,17 @@ _aggregate_simple_result() {
 _aggregate_node_id_result() {
 	local verb="$1" label="$2"
 	shift 2
+	local failed=false svc_args=()
+	for arg in "$@"; do
+		[[ "$arg" == '--failed' ]] && failed=true || svc_args+=("$arg")
+	done
 	check_docker
 	local services
-	mapfile -t services < <(filter_services "$@")
+	mapfile -t services < <(filter_services "${svc_args[@]}")
 
 	local prev_result="$MDEV_ROOT/out/${verb}-result.json"
 	local prev_passed='true'
-	if [[ "${CLAUDECODE:-}" == '1' && -f "$prev_result" ]]; then
+	if $failed && [[ -f "$prev_result" ]]; then
 		prev_passed="$(jq -r '.passed' "$prev_result")"
 	fi
 
@@ -350,7 +358,11 @@ _aggregate_node_id_result() {
 			fi
 		fi
 		info "$label $name"
-		mdev_labeled "$service" "$verb" || true
+		if $failed; then
+			mdev_labeled "$service" "$verb" --failed || true
+		else
+			mdev_labeled "$service" "$verb" || true
+		fi
 	done
 
 	local entries=() any_failed='false'
@@ -380,9 +392,7 @@ _aggregate_node_id_result() {
 	mkdir -p "$MDEV_ROOT/out"
 	printf '%s\n' "$aggregated" >"$MDEV_ROOT/out/${verb}-result.json"
 
-	if [[ "${CLAUDECODE:-}" == '1' ]]; then
-		printf '%s\n' "$aggregated"
-	fi
+	if [[ ! -t 1 ]]; then printf '%s\n' "$aggregated"; fi
 }
 
 cmd_build() { _run_for_services build 'building' "$@"; }
@@ -390,7 +400,30 @@ cmd_lint() { _aggregate_simple_result lint 'linting' "$@"; }
 cmd_format() { _run_for_services format 'formatting' "$@"; }
 cmd_unit() { _aggregate_node_id_result unit 'unit testing' "$@"; }
 cmd_e2e() { _aggregate_node_id_result e2e 'e2e testing' "$@"; }
-cmd_check() { _run_for_services check 'checking' "$@"; }
+cmd_check() {
+	local failed=false svc_args=()
+	for arg in "$@"; do
+		[[ "$arg" == '--failed' ]] && failed=true || svc_args+=("$arg")
+	done
+	check_docker
+	local services
+	mapfile -t services < <(filter_services "${svc_args[@]}")
+	for service in "${services[@]}"; do
+		local name result_file svc_passed
+		name="$(basename "$service")"
+		result_file="$MDEV_ROOT/$service/out/check-result.json"
+		if $failed && [[ -f "$result_file" ]]; then
+			svc_passed="$(jq -r '.passed' "$result_file" 2>/dev/null || echo false)"
+			[[ "$svc_passed" == 'true' ]] && continue
+		fi
+		info "checking $name"
+		if $failed; then
+			mdev_labeled "$service" check --failed
+		else
+			mdev_labeled "$service" check
+		fi
+	done
+}
 cmd_types() { _aggregate_simple_result types 'type checking' "$@"; }
 cmd_security() { _aggregate_simple_result security 'security scanning' "$@"; }
 cmd_coverage() { _aggregate_simple_result coverage 'coverage' "$@"; }

@@ -126,14 +126,14 @@ Describe 'check'
   End
 End
 
-Describe 'check CLAUDECODE=1 narrowing'
+Describe 'check --failed narrowing'
   After 'teardown'
 
   Describe 'when no result file exists'
     Before 'fixture_service_repo'
 
     It 'runs full check'
-      When run bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$DEV_SCRIPT' check"
+      When run run_dev check --failed
       The output should include 'linting Dockerfile'
       The output should include 'running format'
       The output should include 'running lint'
@@ -147,7 +147,7 @@ Describe 'check CLAUDECODE=1 narrowing'
     Before 'setup_check_lint_and_format_passed'
 
     It 'skips stages that passed and runs stages that did not'
-      When run bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$DEV_SCRIPT' check"
+      When run run_dev check --failed
       The output should not include 'linting Dockerfile'
       The output should not include 'running format'
       The output should include 'running lint'
@@ -159,7 +159,7 @@ Describe 'check CLAUDECODE=1 narrowing'
     Before 'setup_check_all_stages_passed'
 
     It 'runs full check (scope reset)'
-      When run bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$DEV_SCRIPT' check"
+      When run run_dev check --failed
       The output should include 'linting Dockerfile'
       The output should include 'running format'
       The output should include 'running lint'
@@ -168,14 +168,15 @@ Describe 'check CLAUDECODE=1 narrowing'
       The status should be success
     End
   End
+End
 
-  Describe 're-emit result JSON'
-    Before 'fixture_service_repo'
+Describe 'check re-emit result JSON'
+  Before 'fixture_service_repo'
+  After 'teardown'
 
-    It 're-emits check-result.json as last stdout line'
-      When run bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$DEV_SCRIPT' check"
-      The output should include '{"passed":true'
-      The status should be success
-    End
+  It 're-emits check-result.json as last stdout line'
+    When run run_dev check
+    The output should include '{"passed":true'
+    The status should be success
   End
 End

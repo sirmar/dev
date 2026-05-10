@@ -98,10 +98,9 @@ EOF
   End
 End
 
-Describe 'e2e result format'
-  setup_e2e_passes() {
-    fixture_service_repo_with_e2e
-    cat >"$MOCK_DIR/docker" <<'EOF'
+setup_e2e_passes() {
+  fixture_service_repo_with_e2e
+  cat >"$MOCK_DIR/docker" <<'EOF'
 #!/bin/sh
 mkdir -p "$MOCK_DIR/out"
 case "$*" in
@@ -113,9 +112,10 @@ case "$*" in
   *) echo "docker $*"; exit 0 ;;
 esac
 EOF
-    chmod +x "$MOCK_DIR/docker"
-  }
+  chmod +x "$MOCK_DIR/docker"
+}
 
+Describe 'e2e result format'
   setup_e2e_some_fail() {
     fixture_service_repo_with_e2e
     cat >"$MOCK_DIR/docker" <<'EOF'
@@ -162,7 +162,7 @@ EOF
   End
 End
 
-Describe 'e2e CLAUDECODE=1 narrowing'
+Describe 'e2e --failed'
   After 'teardown'
 
   setup_e2e_narrowing() {
@@ -182,42 +182,43 @@ EOF
     chmod +x "$MOCK_DIR/docker"
   }
 
+  It 'exits with error when no result file exists'
+    fixture_service_repo_with_e2e
+    When run run_dev e2e --failed
+    The stderr should include "no previous result found — run 'dev e2e' first"
+    The status should be failure
+  End
+
+  It 'exits with error when last run had no failures'
+    fixture_service_repo_with_e2e
+    mkdir -p "$MOCK_DIR/out"
+    printf '{"passed":true,"failures":[]}\n' >"$MOCK_DIR/out/e2e-result.json"
+    When run run_dev e2e --failed
+    The stderr should include "last run had no failures — nothing to re-run"
+    The status should be failure
+  End
+
   Describe 'when result file has failures'
     Before 'setup_e2e_narrowing'
 
     It 'passes node_ids as args to docker compose run'
       mkdir -p "$MOCK_DIR/out"
       printf '{"passed":false,"failures":[{"node_id":"src/tests/e2e/test_login.py::test_login_flow"}]}\n' >"$MOCK_DIR/out/e2e-result.json"
-      When run bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$DEV_SCRIPT' e2e"
+      When run run_dev e2e --failed
       The output should include 'test_login_flow'
       The status should be failure
     End
   End
+End
 
-  Describe 're-emit result JSON'
-    setup_e2e_passes_claudecode() {
-      fixture_service_repo_with_e2e
-      cat >"$MOCK_DIR/docker" <<'EOF'
-#!/bin/sh
-mkdir -p "$MOCK_DIR/out"
-case "$*" in
-  *compose*run*e2e*)
-    printf '{"passed":true,"failures":[]}\n' >"$MOCK_DIR/out/e2e-result.json"
-    echo "docker $*"
-    exit 0
-    ;;
-  *) echo "docker $*"; exit 0 ;;
-esac
-EOF
-      chmod +x "$MOCK_DIR/docker"
-    }
-    Before 'setup_e2e_passes_claudecode'
+Describe 'e2e re-emit result JSON'
+  Before 'setup_e2e_passes'
+  After 'teardown'
 
-    It 're-emits e2e-result.json as last stdout line'
-      When run bash -c "cd '$MOCK_DIR' && CLAUDECODE=1 bash '$DEV_SCRIPT' e2e"
-      The output should include '{"passed":true,"failures":[]}'
-      The status should be success
-    End
+  It 're-emits e2e-result.json as last stdout line'
+    When run run_dev e2e
+    The output should include '{"passed":true,"failures":[]}'
+    The status should be success
   End
 End
 

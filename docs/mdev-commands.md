@@ -11,13 +11,14 @@
 | `build [services...]`      | Build Docker images for services                         |
 | `lint [services...]`       | Run lint in each service                                 |
 | `format [services...]`     | Run format in each service                               |
-| `unit [services...]`       | Run unit tests in each service                           |
-| `e2e [services...]`        | Run e2e tests in each service                            |
-| `types [services...]`      | Run static type checking in each service                 |
-| `security [services...]`   | Run security scanning in each service                    |
-| `coverage [services...]`   | Run tests with coverage in each service                  |
-| `lock [services...]`       | Regenerate lock file in each service                     |
-| `check [services...]`      | Run full quality check in each service                   |
+| `unit [--failed] [services...]`     | Run unit tests in each service; `--failed` skips services that passed and narrows within failing services |
+| `e2e [--failed] [services...]`      | Run e2e tests in each service; `--failed` skips services that passed and narrows within failing services |
+| `types [--failed] [services...]`    | Run static type checking in each service; `--failed` skips services that passed |
+| `security [--failed] [services...]` | Run security scanning in each service; `--failed` skips services that passed |
+| `coverage [--failed] [services...]` | Run tests with coverage in each service; `--failed` skips services that passed |
+| `lint [--failed] [services...]`     | Run lint in each service; `--failed` skips services that passed |
+| `lock [services...]`                | Regenerate lock file in each service                     |
+| `check [--failed] [services...]`    | Run full quality check in each service; `--failed` skips services that passed |
 | `ci [services...]`         | Build and run full quality check                         |
 | `rebuild [services...]`    | Build images and start services                          |
 | `db-migrate [services...]` | Run database migrations in each service                  |
@@ -49,7 +50,7 @@ Aggregating commands write a workspace-level result file to `out/` after each ru
 }
 ```
 
-When `CLAUDECODE=1`, services that passed in the previous run are skipped (service-level narrowing). Once all services pass the full run executes again (scope reset). The result JSON is re-emitted as the final stdout line.
+Pass `--failed` to skip services that passed in the previous run (service-level narrowing) and scope within failing services to their failing tests. Once all services pass the full run executes again (scope reset). The result JSON is re-emitted as the final stdout line.
 
 ### `mdev lint`, `mdev types`, `mdev security`, `mdev coverage`
 
@@ -63,7 +64,7 @@ When `CLAUDECODE=1`, services that passed in the previous run are skipped (servi
 }
 ```
 
-`passed` is `false` if any service failed. `failures` is always empty. When `CLAUDECODE=1`, services that passed in the previous run are skipped (service-level narrowing). Once all services pass the full run executes again (scope reset).
+`passed` is `false` if any service failed. `failures` is always empty. Pass `--failed` to skip services that passed in the previous run (service-level narrowing). Once all services pass the full run executes again (scope reset).
 
 ## Workspace config
 

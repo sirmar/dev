@@ -9,6 +9,8 @@
 | `format [file...]` | Format source files                       |
 | `unit [file...]`   | Run unit tests                            |
 | `unit --failed`    | Re-run only tests that failed in the last run |
+| `e2e --failed`     | Re-run only e2e tests that failed in the last run |
+| `check --failed`   | Re-run only check stages that failed in the last run |
 | `coverage [file...]` | Run tests with coverage report          |
 | `types`            | Run static type checking                  |
 | `security`         | Run security scanning                     |
@@ -52,7 +54,7 @@ Every command that runs checks writes a result file to `out/` after each run, re
 - `failures` — list of failing tests; empty when all tests pass
 - `node_id` — opaque, runner-native identifier (e.g. `src/tests/unit/test_auth.py::test_login` for pytest, `src/auth.test.ts > login > with valid creds` for vitest). Pass it directly back to the runner; do not construct or parse it.
 
-When `CLAUDECODE=1`, `dev unit` and `dev e2e` read their result file on startup and automatically scope the run to the `node_id` values in `failures[]` (narrowing). Once all previously failing tests pass the full suite runs again (scope reset). The result JSON is re-emitted as the final stdout line for inline consumption.
+Pass `--failed` to scope the run to the `node_id` values in `failures[]` from the last run (narrowing). Once all previously failing tests pass the full suite runs again (scope reset). The result JSON is re-emitted as the final stdout line for inline consumption.
 
 ### Fast analysis commands (`lint`, `lint-dockerfile`, `types`, `security`, `coverage`)
 
@@ -80,4 +82,4 @@ When `CLAUDECODE=1`, `dev unit` and `dev e2e` read their result file on startup 
 - `passed` — `true` if all stages exited 0
 - `stages` — one entry per stage in pipeline order (`lint-dockerfile`, `format`, `lint`, `types`, `security`, `unit`, `e2e`); `passed` is `true` if the stage exited 0 or was absent from the Dockerfile
 
-When `CLAUDECODE=1`, `dev check` reads `out/check-result.json` on startup and skips stages that passed in the previous run (narrowing). Once all stages pass the full pipeline runs again (scope reset). The result JSON is re-emitted as the final stdout line.
+Pass `--failed` to skip stages that passed in the previous run (narrowing). Once all stages pass the full pipeline runs again (scope reset). The result JSON is re-emitted as the final stdout line.
